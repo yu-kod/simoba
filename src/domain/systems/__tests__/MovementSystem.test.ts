@@ -1,4 +1,5 @@
-import { move } from '@/domain/systems/MovementSystem'
+import { move, clampToWorld } from '@/domain/systems/MovementSystem'
+import { WORLD_WIDTH, WORLD_HEIGHT } from '@/domain/constants'
 import type { Position } from '@/domain/types'
 
 describe('MovementSystem', () => {
@@ -48,6 +49,87 @@ describe('MovementSystem', () => {
 
       expect(result.x).toBe(0)
       expect(result.y).toBe(100)
+    })
+
+    it('should clamp to world bounds when radius is provided', () => {
+      const nearEdge: Position = { x: WORLD_WIDTH - 5, y: 360 }
+      const result = move(nearEdge, { x: 1, y: 0 }, 200, 1, 20)
+
+      expect(result.x).toBe(WORLD_WIDTH - 20)
+    })
+
+    it('should not clamp when radius is 0 (default)', () => {
+      const farRight: Position = { x: WORLD_WIDTH - 5, y: 360 }
+      const result = move(farRight, { x: 1, y: 0 }, 200, 1)
+
+      expect(result.x).toBeGreaterThan(WORLD_WIDTH)
+    })
+  })
+
+  describe('clampToWorld', () => {
+    const radius = 20
+
+    it('should be referentially transparent', () => {
+      const pos: Position = { x: -10, y: 500 }
+      const result1 = clampToWorld(pos, radius)
+      const result2 = clampToWorld(pos, radius)
+
+      expect(result1).toEqual(result2)
+    })
+
+    it('should not mutate the original position', () => {
+      const pos: Position = { x: -10, y: -10 }
+      clampToWorld(pos, radius)
+
+      expect(pos.x).toBe(-10)
+      expect(pos.y).toBe(-10)
+    })
+
+    it('should clamp x below minimum to radius', () => {
+      const result = clampToWorld({ x: -50, y: 360 }, radius)
+
+      expect(result.x).toBe(radius)
+    })
+
+    it('should clamp x above maximum to WORLD_WIDTH - radius', () => {
+      const result = clampToWorld({ x: 5000, y: 360 }, radius)
+
+      expect(result.x).toBe(WORLD_WIDTH - radius)
+    })
+
+    it('should clamp y below minimum to radius', () => {
+      const result = clampToWorld({ x: 100, y: -50 }, radius)
+
+      expect(result.y).toBe(radius)
+    })
+
+    it('should clamp y above maximum to WORLD_HEIGHT - radius', () => {
+      const result = clampToWorld({ x: 100, y: 1000 }, radius)
+
+      expect(result.y).toBe(WORLD_HEIGHT - radius)
+    })
+
+    it('should not modify position already within bounds', () => {
+      const pos: Position = { x: 500, y: 360 }
+      const result = clampToWorld(pos, radius)
+
+      expect(result).toEqual(pos)
+    })
+
+    it('should clamp both axes simultaneously', () => {
+      const result = clampToWorld({ x: -100, y: 9999 }, radius)
+
+      expect(result.x).toBe(radius)
+      expect(result.y).toBe(WORLD_HEIGHT - radius)
+    })
+
+    it('should handle radius equal to half world height', () => {
+      const halfHeight = WORLD_HEIGHT / 2
+      const center: Position = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 }
+      const result = clampToWorld(center, halfHeight)
+
+      expect(result.x).toBe(WORLD_WIDTH / 2)
+      expect(result.y).toBe(WORLD_HEIGHT / 2)
     })
   })
 })
