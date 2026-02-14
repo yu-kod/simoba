@@ -10,9 +10,15 @@ const BASE_HEIGHT = 160
 const BASE_Y = (WORLD_HEIGHT - BASE_HEIGHT) / 2
 
 const TOWER_RADIUS = 24
+const TOWER_DISTANCE_FROM_EDGE = 600
 
 const BUSH_WIDTH = 140
 const BUSH_HEIGHT = 60
+const BUSH_DISTANCE_FROM_EDGE = 1200
+const BUSH_LANE_OVERLAP = 10
+
+const BOSS_MARKER_RADIUS = 16
+const BOSS_MARKER_INNER_RADIUS = 8
 
 export const MAP_LAYOUT = {
   lane: {
@@ -39,12 +45,12 @@ export const MAP_LAYOUT = {
 
   towers: {
     blue: {
-      x: 600,
+      x: TOWER_DISTANCE_FROM_EDGE,
       y: WORLD_HEIGHT / 2,
       radius: TOWER_RADIUS,
     },
     red: {
-      x: WORLD_WIDTH - 600,
+      x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE,
       y: WORLD_HEIGHT / 2,
       radius: TOWER_RADIUS,
     },
@@ -52,14 +58,14 @@ export const MAP_LAYOUT = {
 
   bushes: [
     {
-      x: 1200,
-      y: LANE_Y - BUSH_HEIGHT + 10,
+      x: BUSH_DISTANCE_FROM_EDGE,
+      y: LANE_Y - BUSH_HEIGHT + BUSH_LANE_OVERLAP,
       width: BUSH_WIDTH,
       height: BUSH_HEIGHT,
     },
     {
-      x: WORLD_WIDTH - 1200 - BUSH_WIDTH,
-      y: LANE_Y + LANE_HEIGHT - 10,
+      x: WORLD_WIDTH - BUSH_DISTANCE_FROM_EDGE - BUSH_WIDTH,
+      y: LANE_Y + LANE_HEIGHT - BUSH_LANE_OVERLAP,
       width: BUSH_WIDTH,
       height: BUSH_HEIGHT,
     },
@@ -68,6 +74,8 @@ export const MAP_LAYOUT = {
   bossSpawn: {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
+    markerRadius: BOSS_MARKER_RADIUS,
+    markerInnerRadius: BOSS_MARKER_INNER_RADIUS,
   },
 } as const
 

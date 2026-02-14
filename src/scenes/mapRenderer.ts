@@ -2,9 +2,6 @@ import Phaser from 'phaser'
 import { MAP_LAYOUT, MAP_COLORS } from '@/domain/mapLayout'
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@/domain/constants'
 
-const BOSS_MARKER_RADIUS = 16
-const BOSS_MARKER_INNER_RADIUS = 8
-
 export function renderMap(scene: Phaser.Scene): void {
   const g = scene.add.graphics()
 
@@ -55,13 +52,13 @@ function drawBushes(g: Phaser.GameObjects.Graphics): void {
 }
 
 function drawBossSpawn(g: Phaser.GameObjects.Graphics): void {
-  const { x, y } = MAP_LAYOUT.bossSpawn
+  const { x, y, markerRadius, markerInnerRadius } = MAP_LAYOUT.bossSpawn
 
   // Outer ring
   g.fillStyle(MAP_COLORS.bossSpawn, 0.3)
-  g.fillCircle(x, y, BOSS_MARKER_RADIUS)
+  g.fillCircle(x, y, markerRadius)
 
   // Inner dot
   g.fillStyle(MAP_COLORS.bossSpawn, 1)
-  g.fillCircle(x, y, BOSS_MARKER_INNER_RADIUS)
+  g.fillCircle(x, y, markerInnerRadius)
 }

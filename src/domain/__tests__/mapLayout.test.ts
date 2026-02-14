@@ -91,8 +91,8 @@ describe('mapLayout', () => {
 
         for (const bush of MAP_LAYOUT.bushes) {
           const bushCenter = bush.y + bush.height / 2
-          const nearTop = Math.abs(bushCenter - laneTop) < 100
-          const nearBottom = Math.abs(bushCenter - laneBottom) < 100
+          const nearTop = Math.abs(bushCenter - laneTop) < 50
+          const nearBottom = Math.abs(bushCenter - laneBottom) < 50
           expect(nearTop || nearBottom).toBe(true)
         }
       })
