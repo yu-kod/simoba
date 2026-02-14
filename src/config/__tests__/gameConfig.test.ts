@@ -2,8 +2,8 @@ vi.mock('phaser', () => ({
   default: {
     AUTO: 0,
     Scale: { FIT: 'FIT', CENTER_BOTH: 'CENTER_BOTH' },
-    Scene: class {}
-  }
+    Scene: class {},
+  },
 }))
 
 import { GAME_WIDTH, GAME_HEIGHT, gameConfig } from '@/config/gameConfig'
@@ -30,7 +30,9 @@ describe('gameConfig', () => {
     })
 
     it('should have zero gravity (top-down)', () => {
-      const arcade = gameConfig.physics?.arcade as { gravity: { x: number; y: number } }
+      const arcade = gameConfig.physics?.arcade as {
+        gravity: { x: number; y: number }
+      }
       expect(arcade.gravity).toEqual({ x: 0, y: 0 })
     })
   })
