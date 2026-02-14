@@ -1,13 +1,17 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, GAME_HEIGHT } from '@/config/gameConfig'
-import { HERO_SPEED, WORLD_WIDTH, WORLD_HEIGHT } from '@/domain/constants'
+import {
+  HERO_RADIUS,
+  HERO_SPEED,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
+  CAMERA_LERP,
+} from '@/domain/constants'
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { move } from '@/domain/systems/MovementSystem'
 
-const HERO_RADIUS = 20
 const BLUE_COLOR = 0x3498db
 const BACKGROUND_COLOR = 0x2d3436
-const CAMERA_LERP = 0.1
 
 export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
@@ -36,6 +40,7 @@ export class GameScene extends Phaser.Scene {
       id: 'player-1',
       type: 'BLADE',
       team: 'blue',
+      // Spawn within initial camera view (not world center)
       position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
     })
 

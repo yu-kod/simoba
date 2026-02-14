@@ -2,7 +2,8 @@
 export const WORLD_WIDTH = 3200
 export const WORLD_HEIGHT = 720
 
-// Movement
+// Hero
+export const HERO_RADIUS = 20
 export const HERO_SPEED = 200
 
 // Match
@@ -18,3 +19,6 @@ export const ULTIMATE_ENHANCE_LEVEL = 5
 
 // Dodge
 export const DODGE_COOLDOWN = 10 // seconds
+
+// Camera
+export const CAMERA_LERP = 0.1

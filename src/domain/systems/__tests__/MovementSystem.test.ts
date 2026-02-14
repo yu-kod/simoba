@@ -122,5 +122,14 @@ describe('MovementSystem', () => {
       expect(result.x).toBe(radius)
       expect(result.y).toBe(WORLD_HEIGHT - radius)
     })
+
+    it('should handle radius equal to half world height', () => {
+      const halfHeight = WORLD_HEIGHT / 2
+      const center: Position = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 }
+      const result = clampToWorld(center, halfHeight)
+
+      expect(result.x).toBe(WORLD_WIDTH / 2)
+      expect(result.y).toBe(WORLD_HEIGHT / 2)
+    })
   })
 })
