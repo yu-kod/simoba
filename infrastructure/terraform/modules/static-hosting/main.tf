@@ -19,6 +19,24 @@ resource "aws_s3_bucket_website_configuration" "game_client" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "game_client" {
+  bucket = aws_s3_bucket.game_client.id
+
+  versioning_configuration {
+    status = var.environment == "prod" ? "Enabled" : "Suspended"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "game_client" {
+  bucket = aws_s3_bucket.game_client.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "game_client" {
   bucket = aws_s3_bucket.game_client.id
 
@@ -29,6 +47,7 @@ resource "aws_s3_bucket_public_access_block" "game_client" {
 }
 
 resource "aws_s3_bucket_policy" "game_client" {
+  count  = var.enable_public_access ? 1 : 0
   bucket = aws_s3_bucket.game_client.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -67,17 +86,9 @@ resource "aws_cloudfront_distribution" "game_cdn" {
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-${var.bucket_name}"
 
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
+    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
   }
 
   restrictions {
