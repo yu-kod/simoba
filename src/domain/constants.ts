@@ -1,3 +1,7 @@
+// World
+export const WORLD_WIDTH = 3200
+export const WORLD_HEIGHT = 720
+
 // Movement
 export const HERO_SPEED = 200
 
