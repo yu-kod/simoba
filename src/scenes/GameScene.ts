@@ -9,9 +9,9 @@ import {
 } from '@/domain/constants'
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { move } from '@/domain/systems/MovementSystem'
+import { renderMap } from '@/scenes/mapRenderer'
 
 const BLUE_COLOR = 0x3498db
-const BACKGROUND_COLOR = 0x2d3436
 
 export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
@@ -24,10 +24,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    // World background (full 3200x720)
-    const background = this.add.graphics()
-    background.fillStyle(BACKGROUND_COLOR, 1)
-    background.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+    // Map rendering (background + lane + bases + towers + bushes + boss)
+    renderMap(this)
 
     // Physics world bounds
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
