@@ -9,7 +9,7 @@
 **Deliverables:**
 - [ ] Map rendering (single lane, bases, tower, bushes)
 - [ ] Character movement (WASD + mouse aim)
-- [ ] Basic attack and skill system (Q, E, R)
+- [ ] Basic attack and skill system (Q, E, R, Space dodge)
 - [ ] 3 heroes playable (BLADE, BOLT, AURA)
 - [ ] Minion auto-spawn and lane walking
 - [ ] XP gain by proximity, level-up talent choices
@@ -17,7 +17,7 @@
 - [ ] Match tempo events (3min buff, 4min boss, 5min sudden death)
 - [ ] Win/lose condition and match reset
 
-**Tech:** Phaser.js only. Deploy to S3 + CloudFront or any static host.
+**Tech:** Phaser.js + Vite + TypeScript. Deploy to S3 + CloudFront or any static host.
 
 ---
 

@@ -8,6 +8,8 @@ Each hero has exactly 4 abilities:
 3. **Skill 2 (E)** — Utility ability
 4. **Ultimate (R)** — Unlocked at Lv3, enhanced at Lv5
 
+Additionally, all heroes share the universal **Dodge Dash (Space)** mechanic (see game-mechanics.md). This is not counted as a hero ability.
+
 No passives. Simplicity over depth.
 
 ---
