@@ -3,8 +3,9 @@
 ## Map
 
 - **Layout:** Horizontal single-lane. Blue base (left) ↔ Red base (right).
-- **Towers:** 1 per team.
-- **Boss:** 1 at center (spawns at 4:00).
+- **World size:** 3200x720 (px). Camera follows player within this world.
+- **Towers:** 1 per team (positioned between base and lane center).
+- **Boss:** 1 at center of the lane (spawns at 4:00).
 - **Bushes:** 2-3 along lane edges (top/bottom). Break line of sight for ambush plays.
 - **No jungle.** Minimal map cognition load.
 
@@ -49,6 +50,12 @@
 | E | Skill 2 |
 | R | Ultimate (unlocked at Lv3) |
 | Space | Dodge dash (long cooldown) |
+
+## Universal Mechanics
+
+These mechanics are shared by all heroes and are not counted as hero abilities:
+
+- **Dodge Dash (Space):** Short invincibility-frame dash in movement direction. Long cooldown (~10s). Universal escape/engage tool.
 
 ## Visual Style
 

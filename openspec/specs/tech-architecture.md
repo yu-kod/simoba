@@ -2,10 +2,13 @@
 
 ## Frontend
 
-- **Engine:** Phaser.js
+- **Engine:** Phaser.js 3.x
+- **Build Tool:** Vite 6.x (dev server + bundler)
 - **Rendering:** 2D top-down (Canvas / WebGL)
+- **Resolution:** 1280x720 (Scale.FIT + CENTER_BOTH)
+- **Physics:** Arcade Physics (gravity: 0, top-down)
 - **Hosting:** S3 + CloudFront (static files)
-- **Language:** TypeScript
+- **Language:** TypeScript (strict mode)
 
 ## Backend (Phase 2+)
 
@@ -59,3 +62,19 @@ Phase 1 has no backend. Bot-only, runs entirely client-side.
 | S3 + CloudFront | ~$1-3 | Nearly free at low traffic |
 
 Initial monthly cost: **~$20**.
+
+## Infrastructure as Code
+
+- **Tool:** Terraform (>= 1.0)
+- **Local dev:** LocalStack (Docker Compose) for AWS service emulation
+- **Structure:**
+  - `infrastructure/terraform/modules/` — reusable modules (static-hosting)
+  - `infrastructure/terraform/environments/local/` — LocalStack config
+  - `infrastructure/terraform/environments/prod/` — Production AWS config
+- **State:** S3 backend with DynamoDB locking (prod)
+
+## CI/CD
+
+- **Platform:** GitHub Actions
+- **Claude Code Review:** Auto-reviews all non-draft PRs targeting `develop`
+- **Claude Code (@claude):** On-demand via `@claude` mention in PR/issue comments
