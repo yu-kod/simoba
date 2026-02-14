@@ -1,0 +1,21 @@
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/crash.log
+
+# LocalStack
+infrastructure/docker/localstack-data/
+
+# Environment
+.env
+.env.local
+
+# Node (Phase 1+)
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
