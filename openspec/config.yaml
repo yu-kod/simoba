@@ -1,0 +1,21 @@
+schema: spec-driven
+
+context: |
+  Project: MOBA.io — 2v2 Micro Arena
+  Genre: Casual MOBA x .io browser game
+  Tech: Phaser.js (frontend), Colyseus (backend), AWS (infra)
+  Language: TypeScript
+  Max match duration: 5 minutes
+  No account required, instant play
+  Phase 1: Bot-only (no backend), static hosting only
+  Visual style: Geometric (.io style), Canvas-only, no image assets
+
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" section
+    - Reference relevant spec files in openspec/specs/
+  tasks:
+    - Break tasks into chunks of max 2 hours
+    - Each task should be independently testable
+    - Specify which spec file the task relates to
