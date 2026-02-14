@@ -12,15 +12,17 @@ All game/tech specs live in `openspec/specs/`:
 |------|----------|
 | `game-mechanics.md` | Map, minions, match tempo, controls, growth system |
 | `heroes.md` | Hero definitions, skills, talent choices |
-| `tech-architecture.md` | Phaser.js, Colyseus, AWS infra, cost |
+| `tech-architecture.md` | Phaser.js, Vite, Colyseus, Terraform, AWS infra, CI/CD |
 | `dev-phases.md` | Phase 1-4 deliverables and goals |
 
 ## Tech Stack
 
-- **Frontend:** Phaser.js (Canvas/WebGL, 2D top-down)
+- **Frontend:** Phaser.js 3.x (Canvas/WebGL, 2D top-down)
+- **Build:** Vite 6.x (dev server + bundler)
 - **Backend (Phase 2+):** Colyseus on Node.js (WebSocket)
-- **Infra:** S3 + CloudFront (static), ECS on EC2 (game server)
-- **Language:** TypeScript
+- **Infra:** Terraform + AWS (S3 + CloudFront static, ECS on EC2 game server)
+- **CI/CD:** GitHub Actions (Claude Code auto-review)
+- **Language:** TypeScript (strict mode)
 
 ## Current Phase
 
