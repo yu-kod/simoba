@@ -35,7 +35,7 @@ export function updateAttackState(
 ): AttackStateResult {
   // Tick down cooldown
   const tickedCooldown = Math.max(0, hero.attackCooldown - deltaTime)
-  let updatedHero: HeroState = { ...hero, attackCooldown: tickedCooldown }
+  const updatedHero: HeroState = { ...hero, attackCooldown: tickedCooldown }
 
   // No target set — nothing more to do
   if (updatedHero.attackTargetId === null || target === null) {
