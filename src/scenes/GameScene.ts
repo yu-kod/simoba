@@ -1,23 +1,21 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, GAME_HEIGHT } from '@/config/gameConfig'
 import {
-  HERO_RADIUS,
-  HERO_SPEED,
   WORLD_WIDTH,
   WORLD_HEIGHT,
   CAMERA_LERP,
 } from '@/domain/constants'
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
+import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import { move } from '@/domain/systems/MovementSystem'
+import { updateFacing } from '@/domain/systems/updateFacing'
 import { renderMap } from '@/scenes/mapRenderer'
+import { HeroRenderer } from '@/scenes/HeroRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
-
-const BLUE_COLOR = 0x3498db
 
 export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
-  private heroGraphics!: Phaser.GameObjects.Graphics
-  private heroContainer!: Phaser.GameObjects.Container
+  private heroRenderer!: HeroRenderer
   private inputHandler!: InputHandler
 
   constructor() {
@@ -43,18 +41,16 @@ export class GameScene extends Phaser.Scene {
       position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
     })
 
-    // Hero visual (container + graphics for camera follow target)
-    this.heroContainer = this.add.container(
-      this.heroState.position.x,
-      this.heroState.position.y
-    )
-    this.heroGraphics = this.add.graphics()
-    this.heroGraphics.fillStyle(BLUE_COLOR, 1)
-    this.heroGraphics.fillCircle(0, 0, HERO_RADIUS)
-    this.heroContainer.add(this.heroGraphics)
+    // Hero visual (HeroRenderer manages Container + Graphics)
+    this.heroRenderer = new HeroRenderer(this, this.heroState)
 
     // Camera follows hero container with lerp
-    this.cameras.main.startFollow(this.heroContainer, true, CAMERA_LERP, CAMERA_LERP)
+    this.cameras.main.startFollow(
+      this.heroRenderer.gameObject,
+      true,
+      CAMERA_LERP,
+      CAMERA_LERP
+    )
 
     // Input handler (Phaser adapter → InputState)
     this.inputHandler = new InputHandler(this)
@@ -64,22 +60,26 @@ export class GameScene extends Phaser.Scene {
     // 1. Read input via InputHandler → pure InputState
     const input = this.inputHandler.read(this.heroState.position)
 
-    // 2. Update domain state via pure function
+    // 2. Update facing from movement direction
+    const newFacing = updateFacing(this.heroState.facing, input.movement)
+    if (newFacing !== this.heroState.facing) {
+      this.heroState = { ...this.heroState, facing: newFacing }
+    }
+
+    // 3. Update position via pure function
     if (input.movement.x !== 0 || input.movement.y !== 0) {
+      const radius = HERO_DEFINITIONS[this.heroState.type].radius
       const newPosition = move(
         this.heroState.position,
         input.movement,
-        HERO_SPEED,
+        this.heroState.stats.speed,
         delta / 1000,
-        HERO_RADIUS
+        radius
       )
       this.heroState = { ...this.heroState, position: newPosition }
     }
 
-    // 3. Sync Phaser objects to domain state
-    this.heroContainer.setPosition(
-      this.heroState.position.x,
-      this.heroState.position.y
-    )
+    // 4. Sync Phaser objects to domain state
+    this.heroRenderer.sync(this.heroState)
   }
 }

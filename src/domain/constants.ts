@@ -2,10 +2,6 @@
 export const WORLD_WIDTH = 3200
 export const WORLD_HEIGHT = 720
 
-// Hero
-export const HERO_RADIUS = 20
-export const HERO_SPEED = 200
-
 // Match
 export const MATCH_DURATION = 300 // seconds (5 minutes)
 export const MINION_BUFF_TIME = 180 // seconds (3:00)
