@@ -9,6 +9,10 @@ export interface HeroDefinition {
   readonly radius: number
   /** Whether the hero can move while performing basic attacks */
   readonly canMoveWhileAttacking: boolean
+  /** Projectile travel speed in px/sec. 0 = melee (instant damage). */
+  readonly projectileSpeed: number
+  /** Projectile collision/draw radius in px. 0 for melee heroes. */
+  readonly projectileRadius: number
 }
 
 export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
@@ -29,6 +33,8 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
     },
     radius: 22,
     canMoveWhileAttacking: true,
+    projectileSpeed: 0,
+    projectileRadius: 0,
   },
   BOLT: {
     base: {
@@ -47,6 +53,8 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
     },
     radius: 18,
     canMoveWhileAttacking: false,
+    projectileSpeed: 600,
+    projectileRadius: 4,
   },
   AURA: {
     base: {
@@ -65,5 +73,7 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
     },
     radius: 20,
     canMoveWhileAttacking: false,
+    projectileSpeed: 400,
+    projectileRadius: 5,
   },
 }

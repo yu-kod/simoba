@@ -1,4 +1,7 @@
-import { updateAttackState } from '@/domain/systems/updateAttackState'
+import {
+  updateAttackState,
+  type ProjectileSpawnEvent,
+} from '@/domain/systems/updateAttackState'
 import type { HeroState } from '@/domain/entities/Hero'
 import type { CombatEntityState } from '@/domain/types'
 
@@ -225,6 +228,116 @@ describe('updateAttackState', () => {
       )
 
       expect(updated.attackCooldown).toBeCloseTo(1.25) // 1 / 0.8
+    })
+  })
+
+  describe('ranged attack (projectileSpeed > 0)', () => {
+    const BOLT_RADIUS = 18
+    const BOLT_PROJECTILE_SPEED = 600
+    const BOLT_PROJECTILE_RADIUS = 4
+
+    function makeBoltHero(overrides: Partial<HeroState> = {}): HeroState {
+      return makeHero({
+        type: 'BOLT',
+        stats: {
+          maxHp: 400,
+          speed: 220,
+          attackDamage: 45,
+          attackRange: 300,
+          attackSpeed: 1.0,
+        },
+        ...overrides,
+      })
+    }
+
+    it('should emit projectileSpawnEvent instead of damageEvent when projectileSpeed > 0', () => {
+      const hero = makeBoltHero({
+        attackCooldown: 0,
+        attackTargetId: 'enemy-1',
+      })
+      const target = makeTarget({ position: { x: 100, y: 0 } })
+
+      const result = updateAttackState(
+        hero,
+        target,
+        0.016,
+        BOLT_RADIUS,
+        TARGET_RADIUS,
+        BOLT_PROJECTILE_SPEED,
+        BOLT_PROJECTILE_RADIUS
+      )
+
+      expect(result.damageEvents).toHaveLength(0)
+      expect(result.projectileSpawnEvents).toHaveLength(1)
+
+      const spawn = result.projectileSpawnEvents[0]
+      expect(spawn.ownerId).toBe('hero-1')
+      expect(spawn.ownerTeam).toBe('blue')
+      expect(spawn.targetId).toBe('enemy-1')
+      expect(spawn.startPosition).toEqual({ x: 0, y: 0 })
+      expect(spawn.damage).toBe(45)
+      expect(spawn.speed).toBe(BOLT_PROJECTILE_SPEED)
+      expect(spawn.radius).toBe(BOLT_PROJECTILE_RADIUS)
+    })
+
+    it('should reset cooldown after ranged attack', () => {
+      const hero = makeBoltHero({
+        attackCooldown: 0,
+        attackTargetId: 'enemy-1',
+      })
+      const target = makeTarget({ position: { x: 100, y: 0 } })
+
+      const { hero: updated } = updateAttackState(
+        hero,
+        target,
+        0.016,
+        BOLT_RADIUS,
+        TARGET_RADIUS,
+        BOLT_PROJECTILE_SPEED,
+        BOLT_PROJECTILE_RADIUS
+      )
+
+      expect(updated.attackCooldown).toBe(1.0) // 1 / 1.0
+    })
+
+    it('should not emit projectileSpawnEvent when on cooldown', () => {
+      const hero = makeBoltHero({
+        attackCooldown: 0.5,
+        attackTargetId: 'enemy-1',
+      })
+      const target = makeTarget({ position: { x: 100, y: 0 } })
+
+      const result = updateAttackState(
+        hero,
+        target,
+        0.016,
+        BOLT_RADIUS,
+        TARGET_RADIUS,
+        BOLT_PROJECTILE_SPEED,
+        BOLT_PROJECTILE_RADIUS
+      )
+
+      expect(result.damageEvents).toHaveLength(0)
+      expect(result.projectileSpawnEvents).toHaveLength(0)
+    })
+
+    it('should return empty projectileSpawnEvents for melee (default projectileSpeed 0)', () => {
+      const hero = makeHero({
+        attackCooldown: 0,
+        attackTargetId: 'enemy-1',
+      })
+      const target = makeTarget({ position: { x: 100, y: 0 } })
+
+      const result = updateAttackState(
+        hero,
+        target,
+        0.016,
+        BLADE_RADIUS,
+        TARGET_RADIUS
+      )
+
+      expect(result.damageEvents).toHaveLength(1)
+      expect(result.projectileSpawnEvents).toHaveLength(0)
     })
   })
 })
