@@ -1,11 +1,15 @@
-import type { EntityState, HeroType, Position, Team } from '@/domain/types'
+import type { StatBlock } from '@/domain/entities/StatBlock'
+import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
+import type { CombatEntityState, HeroType, Position, Team } from '@/domain/types'
 
-export interface HeroState extends EntityState {
+export interface HeroState extends CombatEntityState {
   readonly type: HeroType
-  readonly hp: number
-  readonly maxHp: number
   readonly level: number
   readonly xp: number
+  /** Effective stats — may change during a match via buffs / level-ups */
+  readonly stats: StatBlock
+  /** Facing direction in radians (0 = right) */
+  readonly facing: number
 }
 
 interface CreateHeroParams {
@@ -15,22 +19,19 @@ interface CreateHeroParams {
   readonly position: Position
 }
 
-const BASE_HP: Record<HeroType, number> = {
-  BLADE: 600,
-  BOLT: 400,
-  AURA: 450,
-}
-
 export function createHeroState(params: CreateHeroParams): HeroState {
-  const maxHp = BASE_HP[params.type]
+  const definition = HERO_DEFINITIONS[params.type]
+  const stats = { ...definition.base }
   return {
     id: params.id,
     type: params.type,
     team: params.team,
     position: params.position,
-    hp: maxHp,
-    maxHp,
+    hp: stats.maxHp,
+    maxHp: stats.maxHp,
     level: 1,
     xp: 0,
+    stats,
+    facing: 0,
   }
 }

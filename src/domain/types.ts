@@ -12,3 +12,9 @@ export interface EntityState {
   readonly position: Position
   readonly team: Team
 }
+
+/** Common state for all HP-bearing entities (hero, minion, structure, boss) */
+export interface CombatEntityState extends EntityState {
+  readonly hp: number
+  readonly maxHp: number
+}
