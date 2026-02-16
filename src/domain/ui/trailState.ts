@@ -37,11 +37,7 @@ export function updateTrail(
 
   // Trail is above currentHp — we have a visible trail
 
-  // New damage just happened (trailHp was at or near currentHp last frame,
-  // but now currentHp has dropped further). Reset delay.
-  // We detect "new damage" by checking if delayRemaining is 0 and trail matches.
-  // However, the simpler approach: if delayRemaining is 0 and trailHp > currentHp,
-  // it means the trail just finished or damage just happened — start delay.
+  // Still in delay phase — wait before shrinking
   if (state.delayRemaining > 0) {
     // Still in delay phase — wait
     const newDelay = Math.max(0, state.delayRemaining - deltaTime)
