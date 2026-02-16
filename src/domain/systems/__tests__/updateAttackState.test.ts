@@ -1,7 +1,4 @@
-import {
-  updateAttackState,
-  type ProjectileSpawnEvent,
-} from '@/domain/systems/updateAttackState'
+import { updateAttackState } from '@/domain/systems/updateAttackState'
 import type { HeroState } from '@/domain/entities/Hero'
 import type { CombatEntityState } from '@/domain/types'
 

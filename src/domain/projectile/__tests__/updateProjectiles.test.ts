@@ -1,5 +1,4 @@
 import { updateProjectiles } from '@/domain/projectile/updateProjectiles'
-import { createProjectile } from '@/domain/projectile/ProjectileState'
 import type { ProjectileState } from '@/domain/projectile/ProjectileState'
 import type { CombatEntityState } from '@/domain/types'
 
