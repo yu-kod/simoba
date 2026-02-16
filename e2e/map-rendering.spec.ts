@@ -64,10 +64,10 @@ test.describe('Map Rendering', () => {
     page,
   }) => {
     // Move hero to the right to bring red base area into view
-    // Press right arrow for ~3 seconds to traverse the map
-    await page.keyboard.down('ArrowRight')
+    // Press D key for ~3 seconds to traverse the map (WASD movement)
+    await page.keyboard.down('d')
     await page.waitForTimeout(3000)
-    await page.keyboard.up('ArrowRight')
+    await page.keyboard.up('d')
     await page.waitForTimeout(500)
 
     await expect(page.locator('#game-container canvas')).toHaveScreenshot(

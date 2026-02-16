@@ -10,6 +10,7 @@ import {
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { move } from '@/domain/systems/MovementSystem'
 import { renderMap } from '@/scenes/mapRenderer'
+import { InputHandler } from '@/scenes/InputHandler'
 
 const BLUE_COLOR = 0x3498db
 
@@ -17,7 +18,7 @@ export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
   private heroGraphics!: Phaser.GameObjects.Graphics
   private heroContainer!: Phaser.GameObjects.Container
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private inputHandler!: InputHandler
 
   constructor() {
     super({ key: 'GameScene' })
@@ -55,20 +56,19 @@ export class GameScene extends Phaser.Scene {
     // Camera follows hero container with lerp
     this.cameras.main.startFollow(this.heroContainer, true, CAMERA_LERP, CAMERA_LERP)
 
-    if (this.input.keyboard) {
-      this.cursors = this.input.keyboard.createCursorKeys()
-    }
+    // Input handler (Phaser adapter → InputState)
+    this.inputHandler = new InputHandler(this)
   }
 
   update(_time: number, delta: number): void {
-    // 1. Read input
-    const direction = this.readInput()
+    // 1. Read input via InputHandler → pure InputState
+    const input = this.inputHandler.read(this.heroState.position)
 
     // 2. Update domain state via pure function
-    if (direction.x !== 0 || direction.y !== 0) {
+    if (input.movement.x !== 0 || input.movement.y !== 0) {
       const newPosition = move(
         this.heroState.position,
-        direction,
+        input.movement,
         HERO_SPEED,
         delta / 1000,
         HERO_RADIUS
@@ -81,28 +81,5 @@ export class GameScene extends Phaser.Scene {
       this.heroState.position.x,
       this.heroState.position.y
     )
-  }
-
-  private readInput(): { x: number; y: number } {
-    if (!this.cursors) {
-      return { x: 0, y: 0 }
-    }
-
-    let x = 0
-    let y = 0
-
-    if (this.cursors.left.isDown) x -= 1
-    if (this.cursors.right.isDown) x += 1
-    if (this.cursors.up.isDown) y -= 1
-    if (this.cursors.down.isDown) y += 1
-
-    // Normalize diagonal movement
-    if (x !== 0 && y !== 0) {
-      const length = Math.sqrt(x * x + y * y)
-      x /= length
-      y /= length
-    }
-
-    return { x, y }
   }
 }
