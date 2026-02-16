@@ -17,9 +17,16 @@ import { renderMap } from '@/scenes/mapRenderer'
 import { HeroRenderer } from '@/scenes/HeroRenderer'
 import { MeleeSwingRenderer } from '@/scenes/effects/MeleeSwingRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
-import type { CombatEntityState } from '@/domain/types'
+import type { CombatEntityState, HeroType } from '@/domain/types'
 
 const DEFAULT_ENTITY_RADIUS = 20
+
+/** Debug: number keys 1-3 switch hero type (remove before release — see Issue) */
+const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
+  { key: 'ONE', type: 'BLADE' },
+  { key: 'TWO', type: 'BOLT' },
+  { key: 'THREE', type: 'AURA' },
+]
 
 export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
@@ -78,6 +85,13 @@ export class GameScene extends Phaser.Scene {
 
     // Input handler (Phaser adapter → InputState)
     this.inputHandler = new InputHandler(this)
+
+    // Debug: number keys switch hero type (remove before release)
+    for (const { key, type } of DEBUG_HERO_KEYS) {
+      this.input.keyboard!.on(`keydown-${key}`, () =>
+        this.debugSwitchHero(type)
+      )
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -233,6 +247,29 @@ export class GameScene extends Phaser.Scene {
     if (targetId === null) return null
     if (targetId === this.enemyState.id) return this.enemyState
     return null
+  }
+
+  /** Debug: switch player hero type, fully resetting to spawn state */
+  private debugSwitchHero(type: HeroType): void {
+    if (this.heroState.type === type) return
+
+    this.heroRenderer.destroy()
+
+    this.heroState = createHeroState({
+      id: 'player-1',
+      type,
+      team: 'blue',
+      position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
+    })
+
+    this.heroRenderer = new HeroRenderer(this, this.heroState, true)
+
+    this.cameras.main.startFollow(
+      this.heroRenderer.gameObject,
+      true,
+      CAMERA_LERP,
+      CAMERA_LERP
+    )
   }
 
   private getEntityRadius(entity: CombatEntityState): number {
