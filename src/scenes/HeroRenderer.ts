@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import type { HeroState } from '@/domain/entities/Hero'
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import type { HeroType } from '@/domain/types'
+import { HpBarRenderer } from '@/scenes/ui/HpBarRenderer'
 
 /** Type-specific body colors (not team colors — team is shown via HP bar) */
 const HERO_COLORS: Record<HeroType, number> = {
@@ -24,12 +25,13 @@ export class HeroRenderer {
   private readonly container: Phaser.GameObjects.Container
   private readonly bodyGraphics: Phaser.GameObjects.Graphics
   private readonly indicatorGraphics: Phaser.GameObjects.Graphics
+  private readonly hpBar: HpBarRenderer
   private readonly radius: number
   private readonly heroType: HeroType
   private flashTimer = 0
   private isFlashing = false
 
-  constructor(scene: Phaser.Scene, heroState: HeroState) {
+  constructor(scene: Phaser.Scene, heroState: HeroState, isAlly: boolean) {
     const definition = HERO_DEFINITIONS[heroState.type]
     this.radius = definition.radius
     this.heroType = heroState.type
@@ -50,6 +52,10 @@ export class HeroRenderer {
     this.drawFacingIndicator(color)
     this.container.add(this.indicatorGraphics)
 
+    // HP bar (positioned relative to container)
+    this.hpBar = new HpBarRenderer(scene, this.radius, heroState.maxHp, isAlly)
+    this.container.add(this.hpBar.gameObject)
+
     this.sync(heroState)
   }
 
@@ -67,6 +73,9 @@ export class HeroRenderer {
       Math.sin(heroState.facing) * offset
     )
     this.indicatorGraphics.setRotation(heroState.facing)
+
+    // Update HP bar
+    this.hpBar.sync(heroState.hp, heroState.maxHp)
   }
 
   /** Trigger a white flash on hit */
@@ -77,8 +86,10 @@ export class HeroRenderer {
     this.drawBody(this.heroType, FLASH_COLOR)
   }
 
-  /** Update time-based effects (hit flash fade) */
+  /** Update time-based effects (hit flash fade, HP bar trail) */
   update(delta: number): void {
+    this.hpBar.update(delta)
+
     if (!this.isFlashing) return
 
     this.flashTimer += delta
