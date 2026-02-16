@@ -53,8 +53,8 @@ export class GameScene extends Phaser.Scene {
       position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
     })
 
-    // Hero visual (HeroRenderer manages Container + Graphics)
-    this.heroRenderer = new HeroRenderer(this, this.heroState)
+    // Hero visual (HeroRenderer manages Container + Graphics + HP bar)
+    this.heroRenderer = new HeroRenderer(this, this.heroState, true)
 
     // Camera follows hero container with lerp
     this.cameras.main.startFollow(
@@ -71,7 +71,7 @@ export class GameScene extends Phaser.Scene {
       team: 'red',
       position: { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 },
     })
-    this.enemyRenderer = new HeroRenderer(this, this.enemyState)
+    this.enemyRenderer = new HeroRenderer(this, this.enemyState, false)
 
     // Attack effect
     this.meleeSwing = new MeleeSwingRenderer(this)
