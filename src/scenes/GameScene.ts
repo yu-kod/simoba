@@ -13,13 +13,24 @@ import { findClickTarget } from '@/domain/systems/findClickTarget'
 import { updateAttackState } from '@/domain/systems/updateAttackState'
 import { applyDamage } from '@/domain/systems/applyDamage'
 import { isInAttackRange } from '@/domain/systems/isInAttackRange'
+import { createProjectile } from '@/domain/projectile/ProjectileState'
+import type { ProjectileState } from '@/domain/projectile/ProjectileState'
+import { updateProjectiles } from '@/domain/projectile/updateProjectiles'
 import { renderMap } from '@/scenes/mapRenderer'
 import { HeroRenderer } from '@/scenes/HeroRenderer'
 import { MeleeSwingRenderer } from '@/scenes/effects/MeleeSwingRenderer'
+import { ProjectileRenderer } from '@/scenes/effects/ProjectileRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
-import type { CombatEntityState } from '@/domain/types'
+import type { CombatEntityState, HeroType } from '@/domain/types'
 
 const DEFAULT_ENTITY_RADIUS = 20
+
+/** Debug: number keys 1-3 switch hero type (remove before release — see Issue) */
+const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
+  { key: 'ONE', type: 'BLADE' },
+  { key: 'TWO', type: 'BOLT' },
+  { key: 'THREE', type: 'AURA' },
+]
 
 export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
@@ -30,6 +41,9 @@ export class GameScene extends Phaser.Scene {
   private enemyRenderer!: HeroRenderer
 
   private meleeSwing!: MeleeSwingRenderer
+  private projectiles: ProjectileState[] = []
+  private projectileRenderer!: ProjectileRenderer
+  private nextProjectileId = 0
 
   constructor() {
     super({ key: 'GameScene' })
@@ -73,11 +87,19 @@ export class GameScene extends Phaser.Scene {
     })
     this.enemyRenderer = new HeroRenderer(this, this.enemyState, false)
 
-    // Attack effect
+    // Attack effects
     this.meleeSwing = new MeleeSwingRenderer(this)
+    this.projectileRenderer = new ProjectileRenderer(this)
 
     // Input handler (Phaser adapter → InputState)
     this.inputHandler = new InputHandler(this)
+
+    // Debug: number keys switch hero type (remove before release)
+    for (const { key, type } of DEBUG_HERO_KEYS) {
+      this.input.keyboard!.on(`keydown-${key}`, () =>
+        this.debugSwitchHero(type)
+      )
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -87,6 +109,7 @@ export class GameScene extends Phaser.Scene {
 
     this.processInput(input, isMoving)
     this.processAttack(deltaSeconds)
+    this.processProjectiles(deltaSeconds)
     this.processFacing(input)
     this.processMovement(input, isMoving, deltaSeconds)
     this.updateEffects(delta)
@@ -113,18 +136,21 @@ export class GameScene extends Phaser.Scene {
 
   private processAttack(deltaSeconds: number): void {
     const target = this.resolveTarget(this.heroState.attackTargetId)
-    const heroRadius = HERO_DEFINITIONS[this.heroState.type].radius
+    const heroDef = HERO_DEFINITIONS[this.heroState.type]
     const targetRadius = target ? this.getEntityRadius(target) : 0
 
     const attackResult = updateAttackState(
       this.heroState,
       target,
       deltaSeconds,
-      heroRadius,
-      targetRadius
+      heroDef.radius,
+      targetRadius,
+      heroDef.projectileSpeed,
+      heroDef.projectileRadius
     )
     this.heroState = attackResult.hero
 
+    // Melee: instant damage + swing effect
     for (const event of attackResult.damageEvents) {
       if (event.targetId === this.enemyState.id) {
         this.enemyState = applyDamage(this.enemyState, event.damage)
@@ -135,6 +161,50 @@ export class GameScene extends Phaser.Scene {
         })
       }
     }
+
+    // Ranged: spawn projectiles
+    for (const spawn of attackResult.projectileSpawnEvents) {
+      this.projectiles.push(
+        createProjectile({
+          id: `projectile-${this.nextProjectileId++}`,
+          ownerId: spawn.ownerId,
+          ownerTeam: spawn.ownerTeam,
+          targetId: spawn.targetId,
+          startPosition: spawn.startPosition,
+          damage: spawn.damage,
+          speed: spawn.speed,
+          radius: spawn.radius,
+        })
+      )
+    }
+  }
+
+  private processProjectiles(deltaSeconds: number): void {
+    if (this.projectiles.length === 0) {
+      this.projectileRenderer.draw([])
+      return
+    }
+
+    const targets: CombatEntityState[] = [this.enemyState]
+    const result = updateProjectiles(
+      this.projectiles,
+      targets,
+      deltaSeconds,
+      (targetId) => this.getEntityRadius(
+        targets.find((t) => t.id === targetId) ?? this.enemyState
+      )
+    )
+
+    this.projectiles = [...result.projectiles]
+
+    for (const event of result.damageEvents) {
+      if (event.targetId === this.enemyState.id) {
+        this.enemyState = applyDamage(this.enemyState, event.damage)
+        this.enemyRenderer.flash()
+      }
+    }
+
+    this.projectileRenderer.draw(this.projectiles)
   }
 
   private processFacing(
@@ -233,6 +303,31 @@ export class GameScene extends Phaser.Scene {
     if (targetId === null) return null
     if (targetId === this.enemyState.id) return this.enemyState
     return null
+  }
+
+  /** Debug: switch player hero type, fully resetting to spawn state */
+  private debugSwitchHero(type: HeroType): void {
+    if (this.heroState.type === type) return
+
+    this.heroRenderer.destroy()
+    this.projectiles = []
+    this.nextProjectileId = 0
+
+    this.heroState = createHeroState({
+      id: 'player-1',
+      type,
+      team: 'blue',
+      position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
+    })
+
+    this.heroRenderer = new HeroRenderer(this, this.heroState, true)
+
+    this.cameras.main.startFollow(
+      this.heroRenderer.gameObject,
+      true,
+      CAMERA_LERP,
+      CAMERA_LERP
+    )
   }
 
   private getEntityRadius(entity: CombatEntityState): number {
