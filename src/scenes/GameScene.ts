@@ -43,6 +43,7 @@ export class GameScene extends Phaser.Scene {
   private meleeSwing!: MeleeSwingRenderer
   private projectiles: ProjectileState[] = []
   private projectileRenderer!: ProjectileRenderer
+  private nextProjectileId = 0
 
   constructor() {
     super({ key: 'GameScene' })
@@ -165,6 +166,7 @@ export class GameScene extends Phaser.Scene {
     for (const spawn of attackResult.projectileSpawnEvents) {
       this.projectiles.push(
         createProjectile({
+          id: `projectile-${this.nextProjectileId++}`,
           ownerId: spawn.ownerId,
           ownerTeam: spawn.ownerTeam,
           targetId: spawn.targetId,
@@ -309,6 +311,7 @@ export class GameScene extends Phaser.Scene {
 
     this.heroRenderer.destroy()
     this.projectiles = []
+    this.nextProjectileId = 0
 
     this.heroState = createHeroState({
       id: 'player-1',

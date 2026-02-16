@@ -11,9 +11,8 @@ export interface ProjectileState {
   readonly radius: number
 }
 
-let nextProjectileId = 0
-
 export function createProjectile(params: {
+  readonly id: string
   readonly ownerId: string
   readonly ownerTeam: Team
   readonly targetId: string
@@ -23,7 +22,7 @@ export function createProjectile(params: {
   readonly radius: number
 }): ProjectileState {
   return {
-    id: `projectile-${nextProjectileId++}`,
+    id: params.id,
     ownerId: params.ownerId,
     ownerTeam: params.ownerTeam,
     targetId: params.targetId,
