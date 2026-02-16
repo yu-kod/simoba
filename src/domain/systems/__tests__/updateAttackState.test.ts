@@ -151,6 +151,56 @@ describe('updateAttackState', () => {
     })
   })
 
+  describe('dead target', () => {
+    it('should drop attackTargetId when target HP is 0', () => {
+      const hero = makeHero({
+        attackCooldown: 0,
+        attackTargetId: 'enemy-1',
+      })
+      const target = makeTarget({ position: { x: 100, y: 0 }, hp: 0 })
+
+      const { hero: updated, damageEvents } = updateAttackState(
+        hero,
+        target,
+        0.016,
+        BLADE_RADIUS,
+        TARGET_RADIUS
+      )
+
+      expect(updated.attackTargetId).toBeNull()
+      expect(damageEvents).toHaveLength(0)
+    })
+  })
+
+  describe('attackSpeed edge cases', () => {
+    it('should clamp cooldown reset when attackSpeed is 0', () => {
+      const hero = makeHero({
+        attackCooldown: 0,
+        attackTargetId: 'enemy-1',
+        stats: {
+          maxHp: 650,
+          speed: 170,
+          attackDamage: 60,
+          attackRange: 60,
+          attackSpeed: 0,
+        },
+      })
+      const target = makeTarget({ position: { x: 100, y: 0 } })
+
+      const { hero: updated, damageEvents } = updateAttackState(
+        hero,
+        target,
+        0.016,
+        BLADE_RADIUS,
+        TARGET_RADIUS
+      )
+
+      expect(damageEvents).toHaveLength(1)
+      expect(updated.attackCooldown).toBe(100) // 1 / 0.01 (MIN_ATTACK_SPEED)
+      expect(Number.isFinite(updated.attackCooldown)).toBe(true)
+    })
+  })
+
   describe('cooldown reset', () => {
     it('should reset cooldown to 1/attackSpeed after attack', () => {
       const hero = makeHero({

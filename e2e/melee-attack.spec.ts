@@ -70,13 +70,15 @@ test.describe('Melee Attack', () => {
       const game = (window as unknown as GameWindow).game
       const scene = game.scene.getScene('GameScene')
 
-      // Place hero within attack range of enemy
+      // Place hero within attack range of enemy (immutable reassignment)
       // BLADE radius=22, attackRange=60, so max center distance = 22+22+60 = 104
       const enemyPos = scene.enemyState.position
-      const heroState = scene.heroState as Record<string, unknown>
-      heroState.position = { x: enemyPos.x - 80, y: enemyPos.y }
-      heroState.attackTargetId = 'enemy-1'
-      heroState.attackCooldown = 0
+      ;(scene as Record<string, unknown>).heroState = {
+        ...scene.heroState,
+        position: { x: enemyPos.x - 80, y: enemyPos.y },
+        attackTargetId: 'enemy-1',
+        attackCooldown: 0,
+      }
     })
 
     // Wait for attack loop to fire (multiple cycles)

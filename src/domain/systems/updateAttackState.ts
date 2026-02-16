@@ -2,6 +2,8 @@ import type { HeroState } from '@/domain/entities/Hero'
 import type { CombatEntityState } from '@/domain/types'
 import { isInAttackRange } from '@/domain/systems/isInAttackRange'
 
+const MIN_ATTACK_SPEED = 0.01
+
 export interface DamageEvent {
   readonly attackerId: string
   readonly targetId: string
@@ -57,9 +59,18 @@ export function updateAttackState(
     }
   }
 
+  // Target already dead — drop target
+  if (target.hp <= 0) {
+    return {
+      hero: { ...updatedHero, attackTargetId: null },
+      damageEvents: [],
+    }
+  }
+
   // In range and cooldown ready — attack
   if (updatedHero.attackCooldown <= 0) {
-    const cooldownReset = 1 / updatedHero.stats.attackSpeed
+    const cooldownReset =
+      1 / Math.max(MIN_ATTACK_SPEED, updatedHero.stats.attackSpeed)
     const damageEvent: DamageEvent = {
       attackerId: updatedHero.id,
       targetId: target.id,

@@ -19,6 +19,8 @@ import { MeleeSwingRenderer } from '@/scenes/effects/MeleeSwingRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
 import type { CombatEntityState } from '@/domain/types'
 
+const DEFAULT_ENTITY_RADIUS = 20
+
 export class GameScene extends Phaser.Scene {
   private heroState!: HeroState
   private heroRenderer!: HeroRenderer
@@ -80,17 +82,26 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     const deltaSeconds = delta / 1000
-
-    // 1. Read input via InputHandler → pure InputState
     const input = this.inputHandler.read(this.heroState.position)
+    const isMoving = input.movement.x !== 0 || input.movement.y !== 0
 
-    // 2. Handle right-click targeting
+    this.processInput(input, isMoving)
+    this.processAttack(deltaSeconds)
+    this.processFacing(input)
+    this.processMovement(input, isMoving, deltaSeconds)
+    this.updateEffects(delta)
+    this.syncRenderers()
+  }
+
+  private processInput(
+    input: ReturnType<InputHandler['read']>,
+    isMoving: boolean
+  ): void {
     if (input.attack) {
       this.heroState = this.handleAttackInput(input.aimWorldPosition)
     }
 
-    // 3. Handle canMoveWhileAttacking — cancel attack if moving and flag is false
-    const isMoving = input.movement.x !== 0 || input.movement.y !== 0
+    // Cancel attack if moving and canMoveWhileAttacking is false
     if (
       isMoving &&
       this.heroState.attackTargetId !== null &&
@@ -98,11 +109,38 @@ export class GameScene extends Phaser.Scene {
     ) {
       this.heroState = { ...this.heroState, attackTargetId: null }
     }
+  }
 
-    // 4. Resolve target entity for attack state machine
+  private processAttack(deltaSeconds: number): void {
     const target = this.resolveTarget(this.heroState.attackTargetId)
+    const heroRadius = HERO_DEFINITIONS[this.heroState.type].radius
+    const targetRadius = target ? this.getEntityRadius(target) : 0
 
-    // 5. Update facing (attack target > movement > keep current)
+    const attackResult = updateAttackState(
+      this.heroState,
+      target,
+      deltaSeconds,
+      heroRadius,
+      targetRadius
+    )
+    this.heroState = attackResult.hero
+
+    for (const event of attackResult.damageEvents) {
+      if (event.targetId === this.enemyState.id) {
+        this.enemyState = applyDamage(this.enemyState, event.damage)
+        this.enemyRenderer.flash()
+        this.meleeSwing.play({
+          position: this.heroState.position,
+          facing: this.heroState.facing,
+        })
+      }
+    }
+  }
+
+  private processFacing(
+    input: ReturnType<InputHandler['read']>
+  ): void {
+    const target = this.resolveTarget(this.heroState.attackTargetId)
     const targetPosition =
       this.heroState.attackTargetId !== null && target
         ? target.position
@@ -116,61 +154,32 @@ export class GameScene extends Phaser.Scene {
     if (newFacing !== this.heroState.facing) {
       this.heroState = { ...this.heroState, facing: newFacing }
     }
+  }
 
-    // 6. Update attack state machine (cooldown, range check, damage events)
-    if (this.heroState.attackTargetId !== null && target) {
-      const heroRadius = HERO_DEFINITIONS[this.heroState.type].radius
-      const targetRadius = this.getEntityRadius(target)
-      const attackResult = updateAttackState(
-        this.heroState,
-        target,
-        deltaSeconds,
-        heroRadius,
-        targetRadius
-      )
-      this.heroState = attackResult.hero
+  private processMovement(
+    input: ReturnType<InputHandler['read']>,
+    isMoving: boolean,
+    deltaSeconds: number
+  ): void {
+    if (!isMoving) return
+    const radius = HERO_DEFINITIONS[this.heroState.type].radius
+    const newPosition = move(
+      this.heroState.position,
+      input.movement,
+      this.heroState.stats.speed,
+      deltaSeconds,
+      radius
+    )
+    this.heroState = { ...this.heroState, position: newPosition }
+  }
 
-      // Process damage events
-      for (const event of attackResult.damageEvents) {
-        if (event.targetId === this.enemyState.id) {
-          this.enemyState = applyDamage(this.enemyState, event.damage)
-          this.enemyRenderer.flash()
-          this.meleeSwing.play({
-            position: this.heroState.position,
-            facing: this.heroState.facing,
-          })
-        }
-      }
-    } else {
-      // Still tick down cooldown even without target
-      const tickedCooldown = Math.max(
-        0,
-        this.heroState.attackCooldown - deltaSeconds
-      )
-      if (tickedCooldown !== this.heroState.attackCooldown) {
-        this.heroState = { ...this.heroState, attackCooldown: tickedCooldown }
-      }
-    }
-
-    // 7. Update position via pure function
-    if (isMoving) {
-      const radius = HERO_DEFINITIONS[this.heroState.type].radius
-      const newPosition = move(
-        this.heroState.position,
-        input.movement,
-        this.heroState.stats.speed,
-        deltaSeconds,
-        radius
-      )
-      this.heroState = { ...this.heroState, position: newPosition }
-    }
-
-    // 8. Update effects
+  private updateEffects(delta: number): void {
     this.meleeSwing.update(delta)
     this.heroRenderer.update(delta)
     this.enemyRenderer.update(delta)
+  }
 
-    // 9. Sync Phaser objects to domain state
+  private syncRenderers(): void {
     this.heroRenderer.sync(this.heroState)
     this.enemyRenderer.sync(this.enemyState)
   }
@@ -201,6 +210,7 @@ export class GameScene extends Phaser.Scene {
         return { ...this.heroState, attackTargetId: clickedTarget.id }
       }
 
+      // Phase 1: No auto-walk-to-attack. Hero must already be in range.
       // Out of range — update facing toward target but don't start attacking
       const dx = clickedTarget.position.x - this.heroState.position.x
       const dy = clickedTarget.position.y - this.heroState.position.y
@@ -233,6 +243,6 @@ export class GameScene extends Phaser.Scene {
     if (entity.id === this.heroState.id) {
       return HERO_DEFINITIONS[this.heroState.type].radius
     }
-    return 20 // default fallback
+    return DEFAULT_ENTITY_RADIUS
   }
 }

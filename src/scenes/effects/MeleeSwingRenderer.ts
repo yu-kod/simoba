@@ -30,7 +30,7 @@ export class MeleeSwingRenderer implements AttackEffectRenderer {
     this.active = true
     this.elapsed = 0
     this.facing = params.facing
-    this.position = params.position
+    this.position = { x: params.position.x, y: params.position.y }
     this.draw(1)
   }
 
