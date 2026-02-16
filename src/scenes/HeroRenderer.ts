@@ -17,16 +17,22 @@ const BODY_STROKE_WIDTH = 2
 const TYPE_INDICATOR_ALPHA = 0.8
 const TYPE_INDICATOR_SCALE = 0.6
 const DIAMOND_ASPECT_RATIO = 0.6
+const FLASH_DURATION_MS = 100
+const FLASH_COLOR = 0xffffff
 
 export class HeroRenderer {
   private readonly container: Phaser.GameObjects.Container
   private readonly bodyGraphics: Phaser.GameObjects.Graphics
   private readonly indicatorGraphics: Phaser.GameObjects.Graphics
   private readonly radius: number
+  private readonly heroType: HeroType
+  private flashTimer = 0
+  private isFlashing = false
 
   constructor(scene: Phaser.Scene, heroState: HeroState) {
     const definition = HERO_DEFINITIONS[heroState.type]
     this.radius = definition.radius
+    this.heroType = heroState.type
     const color = HERO_COLORS[heroState.type]
 
     this.container = scene.add.container(
@@ -61,6 +67,26 @@ export class HeroRenderer {
       Math.sin(heroState.facing) * offset
     )
     this.indicatorGraphics.setRotation(heroState.facing)
+  }
+
+  /** Trigger a white flash on hit */
+  flash(): void {
+    this.isFlashing = true
+    this.flashTimer = 0
+    this.bodyGraphics.clear()
+    this.drawBody(this.heroType, FLASH_COLOR)
+  }
+
+  /** Update time-based effects (hit flash fade) */
+  update(delta: number): void {
+    if (!this.isFlashing) return
+
+    this.flashTimer += delta
+    if (this.flashTimer >= FLASH_DURATION_MS) {
+      this.isFlashing = false
+      this.bodyGraphics.clear()
+      this.drawBody(this.heroType, HERO_COLORS[this.heroType])
+    }
   }
 
   destroy(): void {

@@ -2,6 +2,20 @@ import { createHeroState } from '@/domain/entities/Hero'
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import type { HeroType } from '@/domain/types'
 
+describe('HeroDefinition', () => {
+  it('should set canMoveWhileAttacking to true for BLADE', () => {
+    expect(HERO_DEFINITIONS.BLADE.canMoveWhileAttacking).toBe(true)
+  })
+
+  it('should set canMoveWhileAttacking to false for BOLT', () => {
+    expect(HERO_DEFINITIONS.BOLT.canMoveWhileAttacking).toBe(false)
+  })
+
+  it('should set canMoveWhileAttacking to false for AURA', () => {
+    expect(HERO_DEFINITIONS.AURA.canMoveWhileAttacking).toBe(false)
+  })
+})
+
 describe('Hero', () => {
   describe('createHeroState', () => {
     it('should create a BLADE hero with correct initial values', () => {
@@ -71,6 +85,18 @@ describe('Hero', () => {
       })
 
       expect(hero.facing).toBe(0)
+    })
+
+    it('should initialise attackCooldown to 0 and attackTargetId to null', () => {
+      const hero = createHeroState({
+        id: 'hero-atk',
+        type: 'BLADE',
+        team: 'blue',
+        position: { x: 0, y: 0 },
+      })
+
+      expect(hero.attackCooldown).toBe(0)
+      expect(hero.attackTargetId).toBeNull()
     })
 
     it('should return stats as a new object (not a reference to HERO_DEFINITIONS.base)', () => {
