@@ -10,6 +10,10 @@ export interface HeroState extends CombatEntityState {
   readonly stats: StatBlock
   /** Facing direction in radians (0 = right) */
   readonly facing: number
+  /** Seconds remaining until next attack (0 or below = ready) */
+  readonly attackCooldown: number
+  /** Entity ID of the current attack target, or null if not attacking */
+  readonly attackTargetId: string | null
 }
 
 interface CreateHeroParams {
@@ -33,5 +37,7 @@ export function createHeroState(params: CreateHeroParams): HeroState {
     xp: 0,
     stats,
     facing: 0,
+    attackCooldown: 0,
+    attackTargetId: null,
   }
 }

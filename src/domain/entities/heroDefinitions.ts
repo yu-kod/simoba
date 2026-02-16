@@ -7,6 +7,8 @@ export interface HeroDefinition {
   /** Per-level stat growth (added per level-up). Uses StatBlock so base + growth share the same shape. */
   readonly growth: StatBlock
   readonly radius: number
+  /** Whether the hero can move while performing basic attacks */
+  readonly canMoveWhileAttacking: boolean
 }
 
 export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
@@ -26,6 +28,7 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
       attackSpeed: 0.05,
     },
     radius: 22,
+    canMoveWhileAttacking: true,
   },
   BOLT: {
     base: {
@@ -43,6 +46,7 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
       attackSpeed: 0.05,
     },
     radius: 18,
+    canMoveWhileAttacking: false,
   },
   AURA: {
     base: {
@@ -60,5 +64,6 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
       attackSpeed: 0.03,
     },
     radius: 20,
+    canMoveWhileAttacking: false,
   },
 }
