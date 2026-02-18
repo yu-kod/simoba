@@ -72,6 +72,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     // E2E test API (dev only)
+    // Static import is tree-shaken by Vite in production builds
+    // because the only call site is inside this dead-code branch.
     if (import.meta.env.DEV) {
       registerTestApi(this.entityManager, this.combatManager)
     }

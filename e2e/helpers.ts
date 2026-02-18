@@ -11,7 +11,9 @@ export type TestApi = {
 
 export type TestWindow = { __test__: TestApi }
 
-// Game constants (must match src/config/gameConfig.ts and src/domain/constants.ts)
+// Game constants — duplicated from src/config/gameConfig.ts and src/domain/constants.ts.
+// E2E tests run in Playwright (Node.js) and cannot import Vite-bundled game modules.
+// If these values change in the source, update here too.
 const GAME_WIDTH = 1280
 const GAME_HEIGHT = 720
 const WORLD_WIDTH = 3200
