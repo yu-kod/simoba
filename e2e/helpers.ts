@@ -4,8 +4,10 @@ export type TestApi = {
   getHeroType: () => string
   getHeroPosition: () => { x: number; y: number }
   getHeroHp: () => { current: number; max: number }
+  getHeroDead: () => boolean
   getEnemyHp: () => { current: number; max: number }
   getEnemyPosition: () => { x: number; y: number }
+  getEnemyDead: () => boolean
   getProjectileCount: () => number
 }
 

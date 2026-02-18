@@ -52,7 +52,7 @@ export class EntityManager {
   }
 
   getEnemies(): CombatEntityState[] {
-    return [this._enemy]
+    return this._enemy.dead ? [] : [this._enemy]
   }
 
   getEntityRadius(id: string): number {

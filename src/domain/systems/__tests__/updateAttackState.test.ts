@@ -22,6 +22,9 @@ function makeHero(overrides: Partial<HeroState> = {}): HeroState {
     facing: 0,
     attackCooldown: 0,
     attackTargetId: null,
+    dead: false,
+    respawnTimer: 0,
+    deathPosition: { x: 0, y: 0 },
     ...overrides,
   }
 }
@@ -267,7 +270,7 @@ describe('updateAttackState', () => {
       expect(result.damageEvents).toHaveLength(0)
       expect(result.projectileSpawnEvents).toHaveLength(1)
 
-      const spawn = result.projectileSpawnEvents[0]
+      const spawn = result.projectileSpawnEvents[0]!
       expect(spawn.ownerId).toBe('hero-1')
       expect(spawn.ownerTeam).toBe('blue')
       expect(spawn.targetId).toBe('enemy-1')
