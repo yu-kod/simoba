@@ -52,7 +52,12 @@ export class EntityManager {
   }
 
   getEnemies(): CombatEntityState[] {
-    return this._enemy.dead ? [] : [this._enemy]
+    const enemies: CombatEntityState[] = []
+    if (!this._enemy.dead) enemies.push(this._enemy)
+    for (const remote of this._remotePlayers.values()) {
+      if (!remote.dead) enemies.push(remote)
+    }
+    return enemies
   }
 
   getEntityRadius(id: string): number {

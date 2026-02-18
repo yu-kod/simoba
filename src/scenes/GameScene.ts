@@ -258,8 +258,16 @@ export class GameScene extends Phaser.Scene {
   private updateFreeCamera(movement: { x: number; y: number }, deltaSeconds: number): void {
     if (movement.x === 0 && movement.y === 0) return
     const cam = this.cameras.main
-    cam.scrollX += movement.x * FREE_CAMERA_SPEED * deltaSeconds
-    cam.scrollY += movement.y * FREE_CAMERA_SPEED * deltaSeconds
+    cam.scrollX = Phaser.Math.Clamp(
+      cam.scrollX + movement.x * FREE_CAMERA_SPEED * deltaSeconds,
+      0,
+      WORLD_WIDTH - GAME_WIDTH
+    )
+    cam.scrollY = Phaser.Math.Clamp(
+      cam.scrollY + movement.y * FREE_CAMERA_SPEED * deltaSeconds,
+      0,
+      WORLD_HEIGHT - GAME_HEIGHT
+    )
   }
 
   private updateRespawnUI(): void {

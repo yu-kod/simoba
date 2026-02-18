@@ -18,7 +18,7 @@ export interface HeroState extends CombatEntityState {
   readonly dead: boolean
   /** Seconds remaining until respawn (0 = alive or ready to respawn) */
   readonly respawnTimer: number
-  /** Position where the hero died (used for custom respawn logic) */
+  /** Position where the hero died (reserved for custom respawn logic — Issue #84) */
   readonly deathPosition: Position
 }
 
