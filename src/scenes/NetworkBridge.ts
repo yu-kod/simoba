@@ -11,6 +11,7 @@ export interface NetworkBridgeCallbacks {
 
 export class NetworkBridge {
   constructor(
+    /** Not readonly: allows fallback from online to offline mode */
     private gameMode: GameMode,
     private readonly entityManager: EntityManager,
     private readonly combatManager: CombatManager,

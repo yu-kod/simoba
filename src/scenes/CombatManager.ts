@@ -23,6 +23,8 @@ export interface CombatEvents {
   readonly meleeSwings: ReadonlyArray<{ position: Position; facing: number }>
 }
 
+type ProjectileSpawnEvent = CombatEvents['projectileSpawnEvents'][number]
+
 const EMPTY_EVENTS: CombatEvents = {
   damageEvents: [],
   projectileSpawnEvents: [],
@@ -64,7 +66,7 @@ export class CombatManager {
     this.entityManager.updateLocalHero(() => attackResult.hero)
 
     const damageEvents: Array<{ targetId: string; damage: number }> = []
-    const projectileSpawnEvents: CombatEvents['projectileSpawnEvents'][number][] = []
+    const projectileSpawnEvents: ProjectileSpawnEvent[] = []
     const meleeSwings: Array<{ position: Position; facing: number }> = []
 
     for (const event of attackResult.damageEvents) {
