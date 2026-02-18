@@ -19,6 +19,7 @@ import { NetworkBridge } from '@/scenes/NetworkBridge'
 import type { HeroType } from '@/domain/types'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import { OnlineGameMode } from '@/network/OnlineGameMode'
+import { registerTestApi } from '@/test/e2eTestApi'
 
 /** Debug: number keys 1-3 switch hero type (remove before release — see Issue) */
 const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
@@ -38,16 +39,6 @@ export class GameScene extends Phaser.Scene {
   private meleeSwing!: MeleeSwingRenderer
   private projectileRenderer!: ProjectileRenderer
   private remoteRenderers = new Map<string, HeroRenderer>()
-
-  /** Expose hero state for E2E test inspection */
-  get heroState() { return this.entityManager.localHero }
-  set heroState(value) { this.entityManager.updateLocalHero(() => value) }
-
-  /** Expose enemy state for E2E test inspection */
-  get enemyState() { return this.entityManager.enemy }
-
-  /** Expose projectiles for E2E test inspection */
-  get projectiles() { return this.combatManager.projectiles }
 
   constructor() {
     super({ key: 'GameScene' })
@@ -78,6 +69,11 @@ export class GameScene extends Phaser.Scene {
     // Debug keys
     for (const { key, type } of DEBUG_HERO_KEYS) {
       this.input.keyboard!.on(`keydown-${key}`, () => this.debugSwitchHero(type))
+    }
+
+    // E2E test API (dev only)
+    if (import.meta.env.DEV) {
+      registerTestApi(this.entityManager, this.combatManager)
     }
 
     // Network
