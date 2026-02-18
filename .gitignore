@@ -20,6 +20,13 @@ coverage/
 test-results/
 playwright-report/
 
+# Build cache
+.vite/
+
+# Tool configs (local)
+.claude/
+.serena/
+
 # OS
 .DS_Store
 Thumbs.db
