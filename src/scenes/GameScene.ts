@@ -119,6 +119,7 @@ export class GameScene extends Phaser.Scene {
 
     onlineMode.onSceneCreate()
       .catch(() => {
+        onlineMode.dispose()
         this.gameMode = new OfflineGameMode()
       })
   }
@@ -141,11 +142,13 @@ export class GameScene extends Phaser.Scene {
     })
 
     this.gameMode.onRemoteProjectileSpawn((event) => {
+      const ownerEntry = this.remoteRenderers.get(event.ownerId)
+      const ownerTeam = ownerEntry?.state.team ?? 'red'
       this.projectiles.push(
         createProjectile({
-          id: `remote-projectile-${this.nextProjectileId++}`,
+          id: `remote-${event.ownerId}-${this.nextProjectileId++}`,
           ownerId: event.ownerId,
-          ownerTeam: 'red',
+          ownerTeam,
           targetId: event.targetId,
           startPosition: event.startPosition,
           damage: event.damage,
