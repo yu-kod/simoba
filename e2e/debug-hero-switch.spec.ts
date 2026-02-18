@@ -1,42 +1,16 @@
 import { test, expect } from '@playwright/test'
-
-/** Helper type for accessing Phaser game from window */
-type GameWindow = {
-  game: {
-    scene: {
-      isActive: (key: string) => boolean
-      getScene: (key: string) => {
-        heroState: {
-          type: string
-          position: { x: number; y: number }
-          hp: number
-          maxHp: number
-        }
-      }
-    }
-  }
-}
+import { type TestWindow, waitForTestApi } from './helpers'
 
 test.describe('Debug Hero Switch', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.waitForFunction(
-      () => {
-        const game = (window as unknown as GameWindow).game
-        return game?.scene?.isActive('GameScene')
-      },
-      { timeout: 10000 }
-    )
-    await page.waitForTimeout(500)
+    await waitForTestApi(page)
   })
 
   test('should start as BLADE by default', async ({ page }) => {
-    const heroType = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return scene.heroState.type
-    })
-
+    const heroType = await page.evaluate(
+      () => (window as unknown as TestWindow).__test__.getHeroType()
+    )
     expect(heroType).toBe('BLADE')
   })
 
@@ -45,12 +19,8 @@ test.describe('Debug Hero Switch', () => {
     await page.waitForTimeout(200)
 
     const state = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return {
-        type: scene.heroState.type,
-        maxHp: scene.heroState.maxHp,
-      }
+      const api = (window as unknown as TestWindow).__test__
+      return { type: api.getHeroType(), maxHp: api.getHeroHp().max }
     })
 
     expect(state.type).toBe('BOLT')
@@ -62,12 +32,8 @@ test.describe('Debug Hero Switch', () => {
     await page.waitForTimeout(200)
 
     const state = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return {
-        type: scene.heroState.type,
-        maxHp: scene.heroState.maxHp,
-      }
+      const api = (window as unknown as TestWindow).__test__
+      return { type: api.getHeroType(), maxHp: api.getHeroHp().max }
     })
 
     expect(state.type).toBe('AURA')
@@ -75,21 +41,15 @@ test.describe('Debug Hero Switch', () => {
   })
 
   test('should switch back to BLADE when pressing key 1', async ({ page }) => {
-    // First switch to BOLT
     await page.keyboard.press('2')
     await page.waitForTimeout(200)
 
-    // Then switch back to BLADE
     await page.keyboard.press('1')
     await page.waitForTimeout(200)
 
     const state = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return {
-        type: scene.heroState.type,
-        maxHp: scene.heroState.maxHp,
-      }
+      const api = (window as unknown as TestWindow).__test__
+      return { type: api.getHeroType(), maxHp: api.getHeroHp().max }
     })
 
     expect(state.type).toBe('BLADE')
@@ -97,37 +57,26 @@ test.describe('Debug Hero Switch', () => {
   })
 
   test('should reset position to spawn on switch', async ({ page }) => {
-    // Get initial spawn position
-    const spawnPos = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return { ...scene.heroState.position }
-    })
+    const spawnPos = await page.evaluate(
+      () => (window as unknown as TestWindow).__test__.getHeroPosition()
+    )
 
-    // Move hero away from spawn using WASD
     await page.keyboard.down('d')
     await page.waitForTimeout(500)
     await page.keyboard.up('d')
     await page.waitForTimeout(100)
 
-    // Verify hero moved
-    const movedPos = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return { ...scene.heroState.position }
-    })
+    const movedPos = await page.evaluate(
+      () => (window as unknown as TestWindow).__test__.getHeroPosition()
+    )
     expect(movedPos.x).toBeGreaterThan(spawnPos.x)
 
-    // Switch type — position should reset
     await page.keyboard.press('2')
     await page.waitForTimeout(200)
 
-    const resetPos = await page.evaluate(() => {
-      const game = (window as unknown as GameWindow).game
-      const scene = game.scene.getScene('GameScene')
-      return { ...scene.heroState.position }
-    })
-
+    const resetPos = await page.evaluate(
+      () => (window as unknown as TestWindow).__test__.getHeroPosition()
+    )
     expect(resetPos.x).toBeCloseTo(spawnPos.x, 0)
     expect(resetPos.y).toBeCloseTo(spawnPos.y, 0)
   })
