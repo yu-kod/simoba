@@ -42,7 +42,7 @@ describe('updateProjectiles', () => {
     const result = updateProjectiles([projectile], [target], 0.016, radiusLookup)
 
     expect(result.projectiles).toHaveLength(1)
-    expect(result.projectiles[0].position.x).toBeGreaterThan(100)
+    expect(result.projectiles[0]!.position.x).toBeGreaterThan(100)
     expect(result.damageEvents).toHaveLength(0)
   })
 

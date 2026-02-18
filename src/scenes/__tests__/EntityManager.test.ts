@@ -76,6 +76,19 @@ describe('EntityManager', () => {
       expect(enemies).toHaveLength(1)
       expect(enemies[0]!.id).toBe('enemy-1')
     })
+
+    it('excludes dead enemy', () => {
+      const em = createManager()
+      em.updateEnemy((e) => ({ ...e, dead: true, respawnTimer: 5 }))
+      expect(em.getEnemies()).toHaveLength(0)
+    })
+
+    it('includes enemy after respawn', () => {
+      const em = createManager()
+      em.updateEnemy((e) => ({ ...e, dead: true }))
+      em.updateEnemy((e) => ({ ...e, dead: false }))
+      expect(em.getEnemies()).toHaveLength(1)
+    })
   })
 
   describe('getEntityRadius', () => {

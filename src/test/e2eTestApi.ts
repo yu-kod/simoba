@@ -5,8 +5,10 @@ export interface E2ETestApi {
   getHeroType: () => string
   getHeroPosition: () => { x: number; y: number }
   getHeroHp: () => { current: number; max: number }
+  getHeroDead: () => boolean
   getEnemyHp: () => { current: number; max: number }
   getEnemyPosition: () => { x: number; y: number }
+  getEnemyDead: () => boolean
   getProjectileCount: () => number
 }
 
@@ -30,6 +32,7 @@ export function registerTestApi(
       current: entityManager.localHero.hp,
       max: entityManager.localHero.maxHp,
     }),
+    getHeroDead: () => entityManager.localHero.dead,
     getEnemyHp: () => ({
       current: entityManager.enemy.hp,
       max: entityManager.enemy.maxHp,
@@ -38,6 +41,7 @@ export function registerTestApi(
       const { x, y } = entityManager.enemy.position
       return { x, y }
     },
+    getEnemyDead: () => entityManager.enemy.dead,
     getProjectileCount: () => combatManager.projectiles.length,
   }
 }

@@ -14,6 +14,12 @@ export interface HeroState extends CombatEntityState {
   readonly attackCooldown: number
   /** Entity ID of the current attack target, or null if not attacking */
   readonly attackTargetId: string | null
+  /** Whether the hero is currently dead */
+  readonly dead: boolean
+  /** Seconds remaining until respawn (0 = alive or ready to respawn) */
+  readonly respawnTimer: number
+  /** Position where the hero died (reserved for custom respawn logic — Issue #84) */
+  readonly deathPosition: Position
 }
 
 interface CreateHeroParams {
@@ -39,5 +45,8 @@ export function createHeroState(params: CreateHeroParams): HeroState {
     facing: 0,
     attackCooldown: 0,
     attackTargetId: null,
+    dead: false,
+    respawnTimer: 0,
+    deathPosition: params.position,
   }
 }

@@ -16,5 +16,8 @@ export const ULTIMATE_ENHANCE_LEVEL = 5
 // Dodge
 export const DODGE_COOLDOWN = 10 // seconds
 
+// Respawn
+export const DEFAULT_RESPAWN_TIME = 5 // seconds
+
 // Camera
 export const CAMERA_LERP = 0.1

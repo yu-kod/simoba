@@ -66,6 +66,9 @@ export class HeroRenderer {
   sync(heroState: HeroState): void {
     this.container.setPosition(heroState.position.x, heroState.position.y)
 
+    // Hide entire container (body + HP bar) when dead
+    this.container.setVisible(!heroState.dead)
+
     // Rotate facing indicator around the hero
     const offset = this.radius * FACING_INDICATOR_OFFSET
     this.indicatorGraphics.setPosition(
