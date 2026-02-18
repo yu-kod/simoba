@@ -22,6 +22,9 @@ import { MeleeSwingRenderer } from '@/scenes/effects/MeleeSwingRenderer'
 import { ProjectileRenderer } from '@/scenes/effects/ProjectileRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
 import type { CombatEntityState, HeroType } from '@/domain/types'
+import type { GameMode, RemotePlayerState } from '@/network/GameMode'
+import { OfflineGameMode } from '@/network/OfflineGameMode'
+import { OnlineGameMode } from '@/network/OnlineGameMode'
 
 const DEFAULT_ENTITY_RADIUS = 20
 
@@ -44,6 +47,8 @@ export class GameScene extends Phaser.Scene {
   private projectiles: ProjectileState[] = []
   private projectileRenderer!: ProjectileRenderer
   private nextProjectileId = 0
+  private gameMode!: GameMode
+  private remoteRenderers = new Map<string, { renderer: HeroRenderer; state: HeroState }>()
 
   constructor() {
     super({ key: 'GameScene' })
@@ -100,6 +105,88 @@ export class GameScene extends Phaser.Scene {
         this.debugSwitchHero(type)
       )
     }
+
+    // Network: try online, fallback to offline
+    this.initGameMode()
+  }
+
+  private initGameMode(): void {
+    const onlineMode = new OnlineGameMode()
+    // Register callbacks BEFORE connecting so that onAdd for
+    // existing players fires with callbacks already populated.
+    this.gameMode = onlineMode
+    this.setupRemotePlayerCallbacks()
+
+    onlineMode.onSceneCreate()
+      .catch(() => {
+        this.gameMode = new OfflineGameMode()
+      })
+  }
+
+  private setupRemotePlayerCallbacks(): void {
+    this.gameMode.onRemotePlayerJoin((remote) => {
+      this.addRemotePlayer(remote)
+    })
+
+    this.gameMode.onRemotePlayerLeave((sessionId) => {
+      this.removeRemotePlayer(sessionId)
+    })
+
+    this.gameMode.onRemotePlayerUpdate((remote) => {
+      this.updateRemotePlayer(remote)
+    })
+
+    this.gameMode.onRemoteDamage((event) => {
+      this.applyLocalDamage(event.targetId, event.amount)
+    })
+
+    this.gameMode.onRemoteProjectileSpawn((event) => {
+      this.projectiles.push(
+        createProjectile({
+          id: `remote-projectile-${this.nextProjectileId++}`,
+          ownerId: event.ownerId,
+          ownerTeam: 'red',
+          targetId: event.targetId,
+          startPosition: event.startPosition,
+          damage: event.damage,
+          speed: event.speed,
+          radius: 5,
+        })
+      )
+    })
+  }
+
+  private addRemotePlayer(remote: RemotePlayerState): void {
+    const heroType = (remote.heroType as HeroType) ?? 'BLADE'
+    const state = createHeroState({
+      id: remote.sessionId,
+      type: heroType,
+      team: remote.team === 'blue' ? 'blue' : 'red',
+      position: { x: remote.x, y: remote.y },
+    })
+    const renderer = new HeroRenderer(this, state, false)
+    this.remoteRenderers.set(remote.sessionId, { renderer, state })
+  }
+
+  private removeRemotePlayer(sessionId: string): void {
+    const entry = this.remoteRenderers.get(sessionId)
+    if (!entry) return
+    entry.renderer.destroy()
+    this.remoteRenderers.delete(sessionId)
+  }
+
+  private updateRemotePlayer(remote: RemotePlayerState): void {
+    const entry = this.remoteRenderers.get(remote.sessionId)
+    if (!entry) return
+    const updated: HeroState = {
+      ...entry.state,
+      position: { x: remote.x, y: remote.y },
+      facing: remote.facing,
+      hp: remote.hp,
+      maxHp: remote.maxHp,
+    }
+    this.remoteRenderers.set(remote.sessionId, { renderer: entry.renderer, state: updated })
+    entry.renderer.sync(updated)
   }
 
   update(_time: number, delta: number): void {
@@ -114,6 +201,9 @@ export class GameScene extends Phaser.Scene {
     this.processMovement(input, isMoving, deltaSeconds)
     this.updateEffects(delta)
     this.syncRenderers()
+
+    // Send local state to network (throttled inside GameMode)
+    this.gameMode?.sendLocalState(this.heroState)
   }
 
   private processInput(
@@ -152,14 +242,12 @@ export class GameScene extends Phaser.Scene {
 
     // Melee: instant damage + swing effect
     for (const event of attackResult.damageEvents) {
-      if (event.targetId === this.enemyState.id) {
-        this.enemyState = applyDamage(this.enemyState, event.damage)
-        this.enemyRenderer.flash()
-        this.meleeSwing.play({
-          position: this.heroState.position,
-          facing: this.heroState.facing,
-        })
-      }
+      this.applyLocalDamage(event.targetId, event.damage)
+      this.gameMode?.sendDamageEvent({ targetId: event.targetId, amount: event.damage })
+      this.meleeSwing.play({
+        position: this.heroState.position,
+        facing: this.heroState.facing,
+      })
     }
 
     // Ranged: spawn projectiles
@@ -176,6 +264,12 @@ export class GameScene extends Phaser.Scene {
           radius: spawn.radius,
         })
       )
+      this.gameMode?.sendProjectileSpawn({
+        targetId: spawn.targetId,
+        startPosition: spawn.startPosition,
+        damage: spawn.damage,
+        speed: spawn.speed,
+      })
     }
   }
 
@@ -198,10 +292,8 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = [...result.projectiles]
 
     for (const event of result.damageEvents) {
-      if (event.targetId === this.enemyState.id) {
-        this.enemyState = applyDamage(this.enemyState, event.damage)
-        this.enemyRenderer.flash()
-      }
+      this.applyLocalDamage(event.targetId, event.damage)
+      this.gameMode?.sendDamageEvent({ targetId: event.targetId, amount: event.damage })
     }
 
     this.projectileRenderer.draw(this.projectiles)
@@ -247,6 +339,9 @@ export class GameScene extends Phaser.Scene {
     this.meleeSwing.update(delta)
     this.heroRenderer.update(delta)
     this.enemyRenderer.update(delta)
+    for (const { renderer } of this.remoteRenderers.values()) {
+      renderer.update(delta)
+    }
   }
 
   private syncRenderers(): void {
@@ -297,6 +392,21 @@ export class GameScene extends Phaser.Scene {
     }
 
     return this.heroState
+  }
+
+  private applyLocalDamage(targetId: string, amount: number): void {
+    if (targetId === this.enemyState.id) {
+      this.enemyState = applyDamage(this.enemyState, amount)
+      this.enemyRenderer.flash()
+      return
+    }
+    const remote = this.remoteRenderers.get(targetId)
+    if (remote) {
+      const updated = { ...remote.state, hp: Math.max(0, remote.state.hp - amount) }
+      this.remoteRenderers.set(targetId, { renderer: remote.renderer, state: updated })
+      remote.renderer.flash()
+      remote.renderer.sync(updated)
+    }
   }
 
   private resolveTarget(targetId: string | null): CombatEntityState | null {
