@@ -13,10 +13,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@colyseus/core": "^0.16.5",
+    "@colyseus/core": "^0.17.36",
     "@colyseus/schema": "^3.0.76",
-    "@colyseus/ws-transport": "^0.16.5",
-    "colyseus": "^0.16.5",
+    "@colyseus/ws-transport": "^0.17.9",
+    "colyseus": "^0.17.8",
     "express": "^5.2.1",
     "tsx": "^4.21.0"
   },
