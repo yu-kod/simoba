@@ -5,28 +5,20 @@ import {
   WORLD_HEIGHT,
   CAMERA_LERP,
 } from '@/domain/constants'
-import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import { move } from '@/domain/systems/MovementSystem'
 import { updateFacing } from '@/domain/systems/updateFacing'
-import { findClickTarget } from '@/domain/systems/findClickTarget'
-import { updateAttackState } from '@/domain/systems/updateAttackState'
-import { applyDamage } from '@/domain/systems/applyDamage'
-import { isInAttackRange } from '@/domain/systems/isInAttackRange'
-import { createProjectile } from '@/domain/projectile/ProjectileState'
-import type { ProjectileState } from '@/domain/projectile/ProjectileState'
-import { updateProjectiles } from '@/domain/projectile/updateProjectiles'
 import { renderMap } from '@/scenes/mapRenderer'
 import { HeroRenderer } from '@/scenes/HeroRenderer'
 import { MeleeSwingRenderer } from '@/scenes/effects/MeleeSwingRenderer'
 import { ProjectileRenderer } from '@/scenes/effects/ProjectileRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
-import type { CombatEntityState, HeroType } from '@/domain/types'
-import type { GameMode, RemotePlayerState } from '@/network/GameMode'
+import { EntityManager } from '@/scenes/EntityManager'
+import { CombatManager } from '@/scenes/CombatManager'
+import { NetworkBridge } from '@/scenes/NetworkBridge'
+import type { HeroType } from '@/domain/types'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import { OnlineGameMode } from '@/network/OnlineGameMode'
-
-const DEFAULT_ENTITY_RADIUS = 20
 
 /** Debug: number keys 1-3 switch hero type (remove before release — see Issue) */
 const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
@@ -36,421 +28,184 @@ const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
 ]
 
 export class GameScene extends Phaser.Scene {
-  private heroState!: HeroState
-  private heroRenderer!: HeroRenderer
+  private entityManager!: EntityManager
+  private combatManager!: CombatManager
+  private networkBridge!: NetworkBridge
   private inputHandler!: InputHandler
 
-  private enemyState!: HeroState
+  private heroRenderer!: HeroRenderer
   private enemyRenderer!: HeroRenderer
-
   private meleeSwing!: MeleeSwingRenderer
-  private projectiles: ProjectileState[] = []
   private projectileRenderer!: ProjectileRenderer
-  private nextProjectileId = 0
-  private gameMode!: GameMode
-  private remoteRenderers = new Map<string, { renderer: HeroRenderer; state: HeroState }>()
+  private remoteRenderers = new Map<string, HeroRenderer>()
+
+  /** Expose hero state for E2E test inspection */
+  get heroState() { return this.entityManager.localHero }
+  set heroState(value) { this.entityManager.updateLocalHero(() => value) }
+
+  /** Expose enemy state for E2E test inspection */
+  get enemyState() { return this.entityManager.enemy }
+
+  /** Expose projectiles for E2E test inspection */
+  get projectiles() { return this.combatManager.projectiles }
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create(): void {
-    // Map rendering (background + lane + bases + towers + bushes + boss)
     renderMap(this)
-
-    // Physics world bounds
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
-
-    // Camera bounds and follow setup
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
-    // Hero state (domain)
-    this.heroState = createHeroState({
-      id: 'player-1',
-      type: 'BLADE',
-      team: 'blue',
-      position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
-    })
-
-    // Hero visual (HeroRenderer manages Container + Graphics + HP bar)
-    this.heroRenderer = new HeroRenderer(this, this.heroState, true)
-
-    // Camera follows hero container with lerp
-    this.cameras.main.startFollow(
-      this.heroRenderer.gameObject,
-      true,
-      CAMERA_LERP,
-      CAMERA_LERP
+    // Managers (Phaser-free)
+    this.entityManager = new EntityManager(
+      { id: 'player-1', type: 'BLADE', team: 'blue', position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 } },
+      { id: 'enemy-1', type: 'BLADE', team: 'red', position: { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 } }
     )
+    this.combatManager = new CombatManager(this.entityManager)
 
-    // Enemy hero (static, for attack testing)
-    this.enemyState = createHeroState({
-      id: 'enemy-1',
-      type: 'BLADE',
-      team: 'red',
-      position: { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 },
-    })
-    this.enemyRenderer = new HeroRenderer(this, this.enemyState, false)
-
-    // Attack effects
+    // Renderers
+    this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
+    this.enemyRenderer = new HeroRenderer(this, this.entityManager.enemy, false)
     this.meleeSwing = new MeleeSwingRenderer(this)
     this.projectileRenderer = new ProjectileRenderer(this)
 
-    // Input handler (Phaser adapter → InputState)
+    this.cameras.main.startFollow(this.heroRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
+
     this.inputHandler = new InputHandler(this)
 
-    // Debug: number keys switch hero type (remove before release)
+    // Debug keys
     for (const { key, type } of DEBUG_HERO_KEYS) {
-      this.input.keyboard!.on(`keydown-${key}`, () =>
-        this.debugSwitchHero(type)
-      )
+      this.input.keyboard!.on(`keydown-${key}`, () => this.debugSwitchHero(type))
     }
 
-    // Network: try online, fallback to offline
+    // Network
     this.initGameMode()
   }
 
   private initGameMode(): void {
     const onlineMode = new OnlineGameMode()
-    // Register callbacks BEFORE connecting so that onAdd for
-    // existing players fires with callbacks already populated.
-    this.gameMode = onlineMode
-    this.setupRemotePlayerCallbacks()
+    this.networkBridge = new NetworkBridge(onlineMode, this.entityManager, this.combatManager, {
+      onRemotePlayerAdded: (sessionId) => {
+        const state = this.entityManager.getRemotePlayer(sessionId)
+        if (state) this.remoteRenderers.set(sessionId, new HeroRenderer(this, state, false))
+      },
+      onRemotePlayerRemoved: (sessionId) => {
+        this.remoteRenderers.get(sessionId)?.destroy()
+        this.remoteRenderers.delete(sessionId)
+      },
+      onRemotePlayerUpdated: (sessionId) => {
+        const state = this.entityManager.getRemotePlayer(sessionId)
+        if (state) this.remoteRenderers.get(sessionId)?.sync(state)
+      },
+      onDamageApplied: (targetId) => {
+        if (targetId === this.entityManager.enemy.id) {
+          this.enemyRenderer.flash()
+        } else {
+          this.remoteRenderers.get(targetId)?.flash()
+        }
+      },
+    })
+    this.networkBridge.setupCallbacks()
 
     onlineMode.onSceneCreate()
       .catch(() => {
         onlineMode.dispose()
-        this.gameMode = new OfflineGameMode()
+        this.networkBridge.replaceGameMode(new OfflineGameMode())
       })
-  }
-
-  private setupRemotePlayerCallbacks(): void {
-    this.gameMode.onRemotePlayerJoin((remote) => {
-      this.addRemotePlayer(remote)
-    })
-
-    this.gameMode.onRemotePlayerLeave((sessionId) => {
-      this.removeRemotePlayer(sessionId)
-    })
-
-    this.gameMode.onRemotePlayerUpdate((remote) => {
-      this.updateRemotePlayer(remote)
-    })
-
-    this.gameMode.onRemoteDamage((event) => {
-      this.applyLocalDamage(event.targetId, event.amount)
-    })
-
-    this.gameMode.onRemoteProjectileSpawn((event) => {
-      const ownerEntry = this.remoteRenderers.get(event.ownerId)
-      const ownerTeam = ownerEntry?.state.team ?? 'red'
-      this.projectiles.push(
-        createProjectile({
-          id: `remote-${event.ownerId}-${this.nextProjectileId++}`,
-          ownerId: event.ownerId,
-          ownerTeam,
-          targetId: event.targetId,
-          startPosition: event.startPosition,
-          damage: event.damage,
-          speed: event.speed,
-          radius: 5,
-        })
-      )
-    })
-  }
-
-  private addRemotePlayer(remote: RemotePlayerState): void {
-    const heroType = (remote.heroType as HeroType) ?? 'BLADE'
-    const state = createHeroState({
-      id: remote.sessionId,
-      type: heroType,
-      team: remote.team === 'blue' ? 'blue' : 'red',
-      position: { x: remote.x, y: remote.y },
-    })
-    const renderer = new HeroRenderer(this, state, false)
-    this.remoteRenderers.set(remote.sessionId, { renderer, state })
-  }
-
-  private removeRemotePlayer(sessionId: string): void {
-    const entry = this.remoteRenderers.get(sessionId)
-    if (!entry) return
-    entry.renderer.destroy()
-    this.remoteRenderers.delete(sessionId)
-  }
-
-  private updateRemotePlayer(remote: RemotePlayerState): void {
-    const entry = this.remoteRenderers.get(remote.sessionId)
-    if (!entry) return
-    const updated: HeroState = {
-      ...entry.state,
-      position: { x: remote.x, y: remote.y },
-      facing: remote.facing,
-      hp: remote.hp,
-      maxHp: remote.maxHp,
-    }
-    this.remoteRenderers.set(remote.sessionId, { renderer: entry.renderer, state: updated })
-    entry.renderer.sync(updated)
   }
 
   update(_time: number, delta: number): void {
     const deltaSeconds = delta / 1000
-    const input = this.inputHandler.read(this.heroState.position)
+    const input = this.inputHandler.read(this.entityManager.localHero.position)
     const isMoving = input.movement.x !== 0 || input.movement.y !== 0
 
-    this.processInput(input, isMoving)
-    this.processAttack(deltaSeconds)
-    this.processProjectiles(deltaSeconds)
-    this.processFacing(input)
-    this.processMovement(input, isMoving, deltaSeconds)
-    this.updateEffects(delta)
-    this.syncRenderers()
-
-    // Send local state to network (throttled inside GameMode)
-    this.gameMode?.sendLocalState(this.heroState)
-  }
-
-  private processInput(
-    input: ReturnType<InputHandler['read']>,
-    isMoving: boolean
-  ): void {
+    // Input → attack
     if (input.attack) {
-      this.heroState = this.handleAttackInput(input.aimWorldPosition)
+      this.combatManager.handleAttackInput(input.aimWorldPosition)
+    }
+    if (isMoving && this.entityManager.localHero.attackTargetId !== null
+      && !HERO_DEFINITIONS[this.entityManager.localHero.type].canMoveWhileAttacking) {
+      this.entityManager.updateLocalHero((h) => ({ ...h, attackTargetId: null }))
     }
 
-    // Cancel attack if moving and canMoveWhileAttacking is false
-    if (
-      isMoving &&
-      this.heroState.attackTargetId !== null &&
-      !HERO_DEFINITIONS[this.heroState.type].canMoveWhileAttacking
-    ) {
-      this.heroState = { ...this.heroState, attackTargetId: null }
+    // Combat
+    const attackEvents = this.combatManager.processAttack(deltaSeconds)
+    const projectileEvents = this.combatManager.processProjectiles(deltaSeconds)
+
+    // Network events + effects
+    for (const e of attackEvents.damageEvents) {
+      this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
+      this.enemyRenderer.flash()
     }
-  }
-
-  private processAttack(deltaSeconds: number): void {
-    const target = this.resolveTarget(this.heroState.attackTargetId)
-    const heroDef = HERO_DEFINITIONS[this.heroState.type]
-    const targetRadius = target ? this.getEntityRadius(target) : 0
-
-    const attackResult = updateAttackState(
-      this.heroState,
-      target,
-      deltaSeconds,
-      heroDef.radius,
-      targetRadius,
-      heroDef.projectileSpeed,
-      heroDef.projectileRadius
-    )
-    this.heroState = attackResult.hero
-
-    // Melee: instant damage + swing effect
-    for (const event of attackResult.damageEvents) {
-      this.applyLocalDamage(event.targetId, event.damage)
-      this.gameMode?.sendDamageEvent({ targetId: event.targetId, amount: event.damage })
-      this.meleeSwing.play({
-        position: this.heroState.position,
-        facing: this.heroState.facing,
-      })
+    for (const swing of attackEvents.meleeSwings) {
+      this.meleeSwing.play(swing)
     }
-
-    // Ranged: spawn projectiles
-    for (const spawn of attackResult.projectileSpawnEvents) {
-      this.projectiles.push(
-        createProjectile({
-          id: `projectile-${this.nextProjectileId++}`,
-          ownerId: spawn.ownerId,
-          ownerTeam: spawn.ownerTeam,
-          targetId: spawn.targetId,
-          startPosition: spawn.startPosition,
-          damage: spawn.damage,
-          speed: spawn.speed,
-          radius: spawn.radius,
-        })
-      )
-      this.gameMode?.sendProjectileSpawn({
+    for (const spawn of attackEvents.projectileSpawnEvents) {
+      this.networkBridge.sendProjectileSpawn({
         targetId: spawn.targetId,
         startPosition: spawn.startPosition,
         damage: spawn.damage,
         speed: spawn.speed,
       })
     }
-  }
-
-  private processProjectiles(deltaSeconds: number): void {
-    if (this.projectiles.length === 0) {
-      this.projectileRenderer.draw([])
-      return
+    for (const e of projectileEvents.damageEvents) {
+      this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
+      this.enemyRenderer.flash()
     }
 
-    const targets: CombatEntityState[] = [this.enemyState]
-    const result = updateProjectiles(
-      this.projectiles,
-      targets,
-      deltaSeconds,
-      (targetId) => this.getEntityRadius(
-        targets.find((t) => t.id === targetId) ?? this.enemyState
+    // Facing
+    const hero = this.entityManager.localHero
+    const target = hero.attackTargetId !== null
+      ? this.entityManager.getEntity(hero.attackTargetId)
+      : null
+    const newFacing = updateFacing(hero.facing, input.movement, target?.position ?? null, hero.position)
+    if (newFacing !== hero.facing) {
+      this.entityManager.updateLocalHero((h) => ({ ...h, facing: newFacing }))
+    }
+
+    // Movement
+    if (isMoving) {
+      const radius = HERO_DEFINITIONS[this.entityManager.localHero.type].radius
+      const newPosition = move(
+        this.entityManager.localHero.position,
+        input.movement,
+        this.entityManager.localHero.stats.speed,
+        deltaSeconds,
+        radius
       )
-    )
-
-    this.projectiles = [...result.projectiles]
-
-    for (const event of result.damageEvents) {
-      this.applyLocalDamage(event.targetId, event.damage)
-      this.gameMode?.sendDamageEvent({ targetId: event.targetId, amount: event.damage })
+      this.entityManager.updateLocalHero((h) => ({ ...h, position: newPosition }))
     }
 
-    this.projectileRenderer.draw(this.projectiles)
-  }
-
-  private processFacing(
-    input: ReturnType<InputHandler['read']>
-  ): void {
-    const target = this.resolveTarget(this.heroState.attackTargetId)
-    const targetPosition =
-      this.heroState.attackTargetId !== null && target
-        ? target.position
-        : null
-    const newFacing = updateFacing(
-      this.heroState.facing,
-      input.movement,
-      targetPosition,
-      this.heroState.position
-    )
-    if (newFacing !== this.heroState.facing) {
-      this.heroState = { ...this.heroState, facing: newFacing }
-    }
-  }
-
-  private processMovement(
-    input: ReturnType<InputHandler['read']>,
-    isMoving: boolean,
-    deltaSeconds: number
-  ): void {
-    if (!isMoving) return
-    const radius = HERO_DEFINITIONS[this.heroState.type].radius
-    const newPosition = move(
-      this.heroState.position,
-      input.movement,
-      this.heroState.stats.speed,
-      deltaSeconds,
-      radius
-    )
-    this.heroState = { ...this.heroState, position: newPosition }
-  }
-
-  private updateEffects(delta: number): void {
+    // Effects + renderers
     this.meleeSwing.update(delta)
     this.heroRenderer.update(delta)
     this.enemyRenderer.update(delta)
-    for (const { renderer } of this.remoteRenderers.values()) {
+    for (const renderer of this.remoteRenderers.values()) {
       renderer.update(delta)
     }
+    this.heroRenderer.sync(this.entityManager.localHero)
+    this.enemyRenderer.sync(this.entityManager.enemy)
+    this.projectileRenderer.draw(this.combatManager.projectiles)
+
+    this.networkBridge.sendLocalState()
   }
 
-  private syncRenderers(): void {
-    this.heroRenderer.sync(this.heroState)
-    this.enemyRenderer.sync(this.enemyState)
-  }
-
-  private handleAttackInput(
-    aimWorldPosition: { x: number; y: number }
-  ): HeroState {
-    const enemies: CombatEntityState[] = [this.enemyState]
-    const clickedTarget = findClickTarget(
-      aimWorldPosition,
-      enemies,
-      (entity) => this.getEntityRadius(entity)
-    )
-
-    if (clickedTarget) {
-      // Check if target is in attack range before setting
-      const heroRadius = HERO_DEFINITIONS[this.heroState.type].radius
-      const targetRadius = this.getEntityRadius(clickedTarget)
-      const inRange = isInAttackRange(
-        this.heroState.position,
-        clickedTarget.position,
-        heroRadius,
-        targetRadius,
-        this.heroState.stats.attackRange
-      )
-
-      if (inRange) {
-        return { ...this.heroState, attackTargetId: clickedTarget.id }
-      }
-
-      // Phase 1: No auto-walk-to-attack. Hero must already be in range.
-      // Out of range — update facing toward target but don't start attacking
-      const dx = clickedTarget.position.x - this.heroState.position.x
-      const dy = clickedTarget.position.y - this.heroState.position.y
-      const facingToTarget = Math.atan2(dy, dx)
-      return { ...this.heroState, facing: facingToTarget }
-    }
-
-    // Ground click — face click direction
-    const dx = aimWorldPosition.x - this.heroState.position.x
-    const dy = aimWorldPosition.y - this.heroState.position.y
-    if (dx !== 0 || dy !== 0) {
-      const facingToClick = Math.atan2(dy, dx)
-      return { ...this.heroState, facing: facingToClick }
-    }
-
-    return this.heroState
-  }
-
-  private applyLocalDamage(targetId: string, amount: number): void {
-    if (targetId === this.enemyState.id) {
-      this.enemyState = applyDamage(this.enemyState, amount)
-      this.enemyRenderer.flash()
-      return
-    }
-    const remote = this.remoteRenderers.get(targetId)
-    if (remote) {
-      const updated = { ...remote.state, hp: Math.max(0, remote.state.hp - amount) }
-      this.remoteRenderers.set(targetId, { renderer: remote.renderer, state: updated })
-      remote.renderer.flash()
-      remote.renderer.sync(updated)
-    }
-  }
-
-  private resolveTarget(targetId: string | null): CombatEntityState | null {
-    if (targetId === null) return null
-    if (targetId === this.enemyState.id) return this.enemyState
-    return null
-  }
-
-  /** Debug: switch player hero type, fully resetting to spawn state */
   private debugSwitchHero(type: HeroType): void {
-    if (this.heroState.type === type) return
+    if (this.entityManager.localHero.type === type) return
 
     this.heroRenderer.destroy()
-    this.projectiles = []
-    this.nextProjectileId = 0
+    this.combatManager.resetProjectiles()
 
-    this.heroState = createHeroState({
+    this.entityManager.resetLocalHero({
       id: 'player-1',
       type,
       team: 'blue',
       position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
     })
 
-    this.heroRenderer = new HeroRenderer(this, this.heroState, true)
-
-    this.cameras.main.startFollow(
-      this.heroRenderer.gameObject,
-      true,
-      CAMERA_LERP,
-      CAMERA_LERP
-    )
-  }
-
-  private getEntityRadius(entity: CombatEntityState): number {
-    // For heroes, look up from definitions
-    if (entity.id === this.enemyState.id) {
-      return HERO_DEFINITIONS[this.enemyState.type].radius
-    }
-    if (entity.id === this.heroState.id) {
-      return HERO_DEFINITIONS[this.heroState.type].radius
-    }
-    return DEFAULT_ENTITY_RADIUS
+    this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
+    this.cameras.main.startFollow(this.heroRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
   }
 }
