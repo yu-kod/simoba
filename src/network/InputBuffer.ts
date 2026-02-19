@@ -15,7 +15,7 @@ export class InputBuffer {
 
   /** Add an input to the buffer. */
   add(input: InputMessage): void {
-    this.buffer = [...this.buffer, input]
+    this.buffer.push(input)
   }
 
   /** Remove all inputs with seq <= acknowledgedSeq. */

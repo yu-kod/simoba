@@ -12,8 +12,7 @@ import type {
   ServerProjectileState,
 } from '@/network/GameMode'
 import { NetworkClient } from '@/network/NetworkClient'
-
-const DEFAULT_PROJECTILE_RADIUS = 5
+import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StateCallbacks = (instance: any) => any
@@ -113,17 +112,15 @@ export class OnlineGameMode implements GameMode {
 
     // --- Server-authoritative projectile sync ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(this.room.state.projectiles).onAdd((_proj: any) => {
+    $(this.room.state.projectiles).onAdd((proj: any) => {
       this.notifyProjectilesChanged()
+      // Per-projectile position listeners (avoids onStateChange firing for all state changes)
+      $(proj).listen('x', () => this.notifyProjectilesChanged())
+      $(proj).listen('y', () => this.notifyProjectilesChanged())
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     $(this.room.state.projectiles).onRemove((_proj: any) => {
-      this.notifyProjectilesChanged()
-    })
-
-    // Listen for projectile position changes via room state change
-    this.room.onStateChange(() => {
       this.notifyProjectilesChanged()
     })
   }

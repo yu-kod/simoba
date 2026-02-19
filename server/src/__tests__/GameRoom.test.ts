@@ -3,12 +3,8 @@ import { HeroSchema } from '../schema/HeroSchema.js'
 import { GameRoomState } from '../schema/GameRoomState.js'
 import {
   MAX_PLAYERS,
-  MAX_DAMAGE_PER_HIT,
-  MAX_PROJECTILE_SPEED,
   BLUE_SPAWN,
   RED_SPAWN,
-  isValidDamageMessage,
-  isValidProjectileMessage,
 } from '../rooms/GameRoom.js'
 
 describe('HeroSchema', () => {
@@ -78,14 +74,6 @@ describe('GameRoom constants', () => {
 
   it('should have distinct spawn positions per team', () => {
     expect(BLUE_SPAWN.x).not.toBe(RED_SPAWN.x)
-  })
-
-  it('should cap damage at 200', () => {
-    expect(MAX_DAMAGE_PER_HIT).toBe(200)
-  })
-
-  it('should cap projectile speed at 1000', () => {
-    expect(MAX_PROJECTILE_SPEED).toBe(1000)
   })
 })
 
@@ -166,83 +154,3 @@ describe('gameStart state flag logic', () => {
   })
 })
 
-describe('isValidDamageMessage', () => {
-  const attacker = 'attacker-1'
-
-  it('accepts valid damage message', () => {
-    expect(isValidDamageMessage({ targetId: 'target-1', amount: 60 }, attacker)).toBe(true)
-  })
-
-  it('rejects non-object message', () => {
-    expect(isValidDamageMessage(null, attacker)).toBe(false)
-    expect(isValidDamageMessage('string', attacker)).toBe(false)
-    expect(isValidDamageMessage(42, attacker)).toBe(false)
-  })
-
-  it('rejects missing fields', () => {
-    expect(isValidDamageMessage({}, attacker)).toBe(false)
-    expect(isValidDamageMessage({ targetId: 'x' }, attacker)).toBe(false)
-    expect(isValidDamageMessage({ amount: 10 }, attacker)).toBe(false)
-  })
-
-  it('rejects zero or negative damage', () => {
-    expect(isValidDamageMessage({ targetId: 'target-1', amount: 0 }, attacker)).toBe(false)
-    expect(isValidDamageMessage({ targetId: 'target-1', amount: -10 }, attacker)).toBe(false)
-  })
-
-  it('rejects damage exceeding MAX_DAMAGE_PER_HIT', () => {
-    expect(isValidDamageMessage({ targetId: 'target-1', amount: 201 }, attacker)).toBe(false)
-    expect(isValidDamageMessage({ targetId: 'target-1', amount: 9999 }, attacker)).toBe(false)
-  })
-
-  it('accepts damage at exactly MAX_DAMAGE_PER_HIT', () => {
-    expect(isValidDamageMessage({ targetId: 'target-1', amount: 200 }, attacker)).toBe(true)
-  })
-
-  it('rejects self-damage', () => {
-    expect(isValidDamageMessage({ targetId: attacker, amount: 50 }, attacker)).toBe(false)
-  })
-})
-
-describe('isValidProjectileMessage', () => {
-  const valid = { targetId: 'target-1', startX: 100, startY: 200, damage: 45, speed: 600 }
-
-  it('accepts valid projectile message', () => {
-    expect(isValidProjectileMessage(valid)).toBe(true)
-  })
-
-  it('rejects non-object message', () => {
-    expect(isValidProjectileMessage(null)).toBe(false)
-    expect(isValidProjectileMessage('string')).toBe(false)
-  })
-
-  it('rejects zero or negative damage', () => {
-    expect(isValidProjectileMessage({ ...valid, damage: 0 })).toBe(false)
-    expect(isValidProjectileMessage({ ...valid, damage: -5 })).toBe(false)
-  })
-
-  it('rejects damage exceeding cap', () => {
-    expect(isValidProjectileMessage({ ...valid, damage: 201 })).toBe(false)
-  })
-
-  it('rejects zero or negative speed', () => {
-    expect(isValidProjectileMessage({ ...valid, speed: 0 })).toBe(false)
-    expect(isValidProjectileMessage({ ...valid, speed: -100 })).toBe(false)
-  })
-
-  it('rejects speed exceeding cap', () => {
-    expect(isValidProjectileMessage({ ...valid, speed: 1001 })).toBe(false)
-  })
-
-  it('accepts speed at exactly MAX_PROJECTILE_SPEED', () => {
-    expect(isValidProjectileMessage({ ...valid, speed: 1000 })).toBe(true)
-  })
-
-  it('rejects missing targetId', () => {
-    expect(isValidProjectileMessage({ startX: 100, startY: 200, damage: 45, speed: 600 })).toBe(false)
-  })
-
-  it('rejects non-string targetId', () => {
-    expect(isValidProjectileMessage({ ...valid, targetId: 123 })).toBe(false)
-  })
-})

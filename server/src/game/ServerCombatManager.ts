@@ -6,6 +6,7 @@ import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { InputMessage } from '@shared/messages'
+import { applyDamageToTarget } from './combatUtils.js'
 
 let projectileIdCounter = 0
 
@@ -33,23 +34,6 @@ function findTarget(
   const tower = towers.get(targetId)
   if (tower) return { id: targetId, x: tower.x, y: tower.y, hp: tower.hp, dead: tower.dead, radius: tower.radius, team: tower.team }
   return null
-}
-
-function applyDamageToTarget(
-  targetId: string,
-  damage: number,
-  heroes: MapSchema<HeroSchema>,
-  towers: MapSchema<TowerSchema>
-): void {
-  const hero = heroes.get(targetId)
-  if (hero) {
-    hero.hp = Math.max(0, hero.hp - damage)
-    return
-  }
-  const tower = towers.get(targetId)
-  if (tower) {
-    tower.hp = Math.max(0, tower.hp - damage)
-  }
 }
 
 /**

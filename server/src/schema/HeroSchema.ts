@@ -15,6 +15,7 @@ export class HeroSchema extends Schema {
   @type('string') team: string = 'blue'
   @type('string') heroType: string = 'BLADE'
   @type('float32') attackCooldown: number = 0
+  // Convention: '' means "no target" (empty string, not null) for Colyseus schema compat
   @type('string') attackTargetId: string = ''
   @type('float32') speed: number = 0
   @type('int16') attackDamage: number = 0
@@ -22,5 +23,5 @@ export class HeroSchema extends Schema {
   @type('float32') attackSpeed: number = 0
   @type('float32') radius: number = 0
   @type('float32') respawnTimer: number = 0
-  @type('int16') lastProcessedSeq: number = 0
+  @type('uint32') lastProcessedSeq: number = 0
 }

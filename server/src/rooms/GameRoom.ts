@@ -15,9 +15,6 @@ import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/Serve
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
 
 export const MAX_PLAYERS = 2
-/** Upper bound for any single damage event (highest base + max growth) */
-export const MAX_DAMAGE_PER_HIT = 200
-export const MAX_PROJECTILE_SPEED = 1000
 
 export const BLUE_SPAWN = { x: 320, y: 360 } as const
 export const RED_SPAWN = { x: 2880, y: 360 } as const
@@ -27,29 +24,6 @@ const TOWER_BLUE_POS = { x: TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 }
 const TOWER_RED_POS = { x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 }
 
 const TICK_RATE_MS = 16.6 // ~60 Hz
-
-export function isValidDamageMessage(
-  message: unknown,
-  attackerSessionId: string
-): message is { targetId: string; amount: number } {
-  if (typeof message !== 'object' || message === null) return false
-  const msg = message as Record<string, unknown>
-  if (typeof msg.targetId !== 'string' || typeof msg.amount !== 'number') return false
-  if (msg.amount <= 0 || msg.amount > MAX_DAMAGE_PER_HIT) return false
-  if (msg.targetId === attackerSessionId) return false
-  return true
-}
-
-export function isValidProjectileMessage(
-  message: unknown
-): message is { targetId: string; startX: number; startY: number; damage: number; speed: number } {
-  if (typeof message !== 'object' || message === null) return false
-  const msg = message as Record<string, unknown>
-  if (typeof msg.damage !== 'number' || msg.damage <= 0 || msg.damage > MAX_DAMAGE_PER_HIT) return false
-  if (typeof msg.speed !== 'number' || msg.speed <= 0 || msg.speed > MAX_PROJECTILE_SPEED) return false
-  if (typeof msg.targetId !== 'string') return false
-  return true
-}
 
 function isValidInputMessage(message: unknown): message is InputMessage {
   if (typeof message !== 'object' || message === null) return false
@@ -214,7 +188,10 @@ export class GameRoom extends Room<GameRoomState> {
     // 5. Death detection and respawn
     processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
 
-    // Clear inputs after processing
+    // Clear inputs after processing.
+    // Design: "latest input wins" — each client sends inputs every frame,
+    // but the server only processes the most recent one per tick (Map.set overwrites).
+    // This avoids input queue buildup and keeps the simulation deterministic.
     this.playerInputs.clear()
   }
 }

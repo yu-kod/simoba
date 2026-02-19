@@ -2,6 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
+import { applyDamageToTarget } from './combatUtils.js'
 
 interface DamageTarget {
   id: string
@@ -13,7 +14,7 @@ interface DamageTarget {
   team: string
 }
 
-const DEFAULT_PROJECTILE_RADIUS = 5
+import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 
 function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1
@@ -33,23 +34,6 @@ function getAllDamageTargets(
     targets.push({ id, x: t.x, y: t.y, hp: t.hp, dead: t.dead, radius: t.radius, team: t.team })
   })
   return targets
-}
-
-function applyDamageToTarget(
-  targetId: string,
-  damage: number,
-  heroes: MapSchema<HeroSchema>,
-  towers: MapSchema<TowerSchema>
-): void {
-  const hero = heroes.get(targetId)
-  if (hero) {
-    hero.hp = Math.max(0, hero.hp - damage)
-    return
-  }
-  const tower = towers.get(targetId)
-  if (tower) {
-    tower.hp = Math.max(0, tower.hp - damage)
-  }
 }
 
 /**

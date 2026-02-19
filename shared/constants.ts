@@ -24,3 +24,6 @@ export const CAMERA_LERP = 0.1
 
 // Entity
 export const DEFAULT_ENTITY_RADIUS = 20
+
+// Projectile
+export const DEFAULT_PROJECTILE_RADIUS = 5
