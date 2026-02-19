@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import type { ProjectileState } from '@/domain/projectile/ProjectileState'
+import type { ServerProjectileState } from '@/network/GameMode'
 import type { Team } from '@/domain/types'
 
 const PROJECTILE_COLORS: Record<Team, number> = {
@@ -29,6 +30,17 @@ export class ProjectileRenderer {
       const color = PROJECTILE_COLORS[p.ownerTeam]
       this.graphics.fillStyle(color, 1)
       this.graphics.fillCircle(p.position.x, p.position.y, p.radius)
+    }
+  }
+
+  /** Draw server-synced projectiles (server-authoritative mode). */
+  drawServer(projectiles: readonly ServerProjectileState[]): void {
+    this.graphics.clear()
+
+    for (const p of projectiles) {
+      const color = PROJECTILE_COLORS[p.team as Team]
+      this.graphics.fillStyle(color, 1)
+      this.graphics.fillCircle(p.x, p.y, p.radius)
     }
   }
 

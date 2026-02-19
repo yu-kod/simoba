@@ -1,13 +1,12 @@
 import { createHeroState, type HeroState, type CreateHeroParams } from '@/domain/entities/Hero'
 import { isHero } from '@/domain/entities/typeGuards'
 import type { CombatEntityState, HeroType, Team } from '@/domain/types'
+import { DEFAULT_ENTITY_RADIUS } from '@/domain/constants'
 import type { RemotePlayerState } from '@/network/GameMode'
-
-const DEFAULT_ENTITY_RADIUS = 20
 
 export class EntityManager {
   private readonly _entities = new Map<string, CombatEntityState>()
-  private readonly _localHeroId: string
+  private _localHeroId: string
 
   constructor(
     localHeroParams: CreateHeroParams,
@@ -78,6 +77,16 @@ export class EntityManager {
   getEntityRadius(id: string): number {
     const entity = this.getEntity(id)
     return entity?.radius ?? DEFAULT_ENTITY_RADIUS
+  }
+
+  /** Remap the local hero's ID (e.g., from placeholder to Colyseus sessionId). */
+  remapLocalHero(newId: string): void {
+    const hero = this._entities.get(this._localHeroId)
+    if (hero) {
+      this._entities.delete(this._localHeroId)
+      this._entities.set(newId, { ...hero, id: newId })
+    }
+    this._localHeroId = newId
   }
 
   // ---- Remote player management (convenience wrappers) ----
