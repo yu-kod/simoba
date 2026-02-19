@@ -57,6 +57,12 @@ export class EntityManager {
     this._entities.delete(id)
   }
 
+  /**
+   * Update an entity in the registry.
+   * T must match the concrete type the entity was registered with.
+   * No runtime type checking is performed — passing an incompatible T
+   * may cause runtime errors when the updater accesses subtype-specific fields.
+   */
   updateEntity<T extends CombatEntityState>(
     id: string,
     updater: (entity: T) => T
@@ -83,6 +89,7 @@ export class EntityManager {
       !entity.dead && entity.team !== team
 
     // Heroes
+    if (isEnemy(this._localHero)) enemies.push(this._localHero)
     if (isEnemy(this._enemy)) enemies.push(this._enemy)
     for (const remote of this._remotePlayers.values()) {
       if (isEnemy(remote)) enemies.push(remote)

@@ -277,13 +277,12 @@ describe('EntityManager', () => {
       expect(enemies[0]!.id).toBe('enemy-1')
     })
 
-    it('returns enemies of red team', () => {
+    it('returns enemies of red team (includes localHero)', () => {
       const em = createManager()
       const enemies = em.getEnemiesOf('red')
-      // localHero is blue, so it's an enemy of red — but getEnemiesOf only checks _enemy and registry
-      // Actually it checks _enemy (red, same team), remote players, and registry
-      // _enemy is red, so it's NOT an enemy of red
-      expect(enemies).toHaveLength(0)
+      // localHero is blue, so it IS an enemy of red
+      expect(enemies).toHaveLength(1)
+      expect(enemies[0]!.id).toBe('player-1')
     })
 
     it('includes registry entities as enemies', () => {
