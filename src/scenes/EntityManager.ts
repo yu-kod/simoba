@@ -1,6 +1,6 @@
 import { createHeroState, type HeroState, type CreateHeroParams } from '@/domain/entities/Hero'
 import { isHero } from '@/domain/entities/typeGuards'
-import type { CombatEntityState, HeroType, Position, Team } from '@/domain/types'
+import type { CombatEntityState, HeroType, Team } from '@/domain/types'
 import type { RemotePlayerState } from '@/network/GameMode'
 
 const DEFAULT_ENTITY_RADIUS = 20
