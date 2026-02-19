@@ -18,7 +18,10 @@ function createMockGameMode(): GameMode & {
   let projectileCb: ((event: { ownerId: string; targetId: string; startPosition: { x: number; y: number }; damage: number; speed: number }) => void) | null = null
 
   return {
+    isServerAuthoritative: false,
+    localSessionId: null,
     onSceneCreate: vi.fn().mockResolvedValue(undefined),
+    sendInput: vi.fn(),
     sendLocalState: vi.fn(),
     sendDamageEvent: vi.fn(),
     sendProjectileSpawn: vi.fn(),
@@ -27,6 +30,10 @@ function createMockGameMode(): GameMode & {
     onRemotePlayerUpdate: (cb) => { updateCb = cb },
     onRemoteDamage: (cb) => { damageCb = cb },
     onRemoteProjectileSpawn: (cb) => { projectileCb = cb },
+    onServerHeroUpdate: vi.fn(),
+    onServerHeroRemove: vi.fn(),
+    onServerTowerUpdate: vi.fn(),
+    onServerProjectileUpdate: vi.fn(),
     dispose: vi.fn(),
     _triggerJoin: (s) => joinCb?.(s),
     _triggerLeave: (id) => leaveCb?.(id),

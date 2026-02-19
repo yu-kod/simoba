@@ -1,14 +1,25 @@
 import { Schema, type, MapSchema } from '@colyseus/schema'
-import { PlayerSchema } from './PlayerSchema.js'
+import { HeroSchema } from './HeroSchema.js'
+import { TowerSchema } from './TowerSchema.js'
+import { ProjectileSchema } from './ProjectileSchema.js'
 
 /**
  * Root state schema for a game room.
- * Contains a map of player session IDs to their state.
+ * Server-authoritative: all entities are managed here.
  */
 export class GameRoomState extends Schema {
-  @type({ map: PlayerSchema })
-  players = new MapSchema<PlayerSchema>()
+  @type({ map: HeroSchema })
+  heroes = new MapSchema<HeroSchema>()
+
+  @type({ map: TowerSchema })
+  towers = new MapSchema<TowerSchema>()
+
+  @type({ map: ProjectileSchema })
+  projectiles = new MapSchema<ProjectileSchema>()
 
   @type('boolean')
   gameStarted = false
+
+  @type('float32')
+  matchTime = 0
 }

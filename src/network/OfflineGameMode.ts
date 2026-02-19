@@ -1,9 +1,13 @@
 import type { HeroState } from '@/domain/entities/Hero'
+import type { InputMessage } from '@shared/messages'
 import type {
   GameMode,
   DamageEvent,
   ProjectileSpawnEvent,
   RemotePlayerState,
+  ServerHeroState,
+  ServerTowerState,
+  ServerProjectileState,
 } from '@/network/GameMode'
 
 /**
@@ -11,8 +15,15 @@ import type {
  * The game runs in local bot battle mode with no network communication.
  */
 export class OfflineGameMode implements GameMode {
+  readonly isServerAuthoritative = false
+  readonly localSessionId = null
+
   async onSceneCreate(): Promise<void> {
     // No network initialization needed
+  }
+
+  sendInput(_input: InputMessage): void {
+    // No-op: offline mode uses local game logic
   }
 
   sendLocalState(_state: HeroState): void {
@@ -44,6 +55,22 @@ export class OfflineGameMode implements GameMode {
   }
 
   onRemoteProjectileSpawn(_callback: (event: ProjectileSpawnEvent & { ownerId: string }) => void): void {
+    // No-op
+  }
+
+  onServerHeroUpdate(_callback: (state: ServerHeroState) => void): void {
+    // No-op
+  }
+
+  onServerHeroRemove(_callback: (sessionId: string) => void): void {
+    // No-op
+  }
+
+  onServerTowerUpdate(_callback: (state: ServerTowerState) => void): void {
+    // No-op
+  }
+
+  onServerProjectileUpdate(_callback: (projectiles: readonly ServerProjectileState[]) => void): void {
     // No-op
   }
 

@@ -31,6 +31,7 @@ vi.mock('@/scenes/effects/MeleeSwingRenderer', () => ({
 vi.mock('@/scenes/effects/ProjectileRenderer', () => ({
   ProjectileRenderer: vi.fn().mockImplementation(() => ({
     draw: vi.fn(),
+    drawServer: vi.fn(),
   })),
 }))
 vi.mock('@/scenes/effects/TowerRenderer', () => ({
@@ -61,7 +62,10 @@ import type { GameMode } from '@/network/GameMode'
 
 function createMockGameMode(): GameMode {
   return {
+    isServerAuthoritative: false,
+    localSessionId: null,
     onSceneCreate: vi.fn().mockResolvedValue(undefined),
+    sendInput: vi.fn(),
     sendLocalState: vi.fn(),
     sendDamageEvent: vi.fn(),
     sendProjectileSpawn: vi.fn(),
@@ -70,6 +74,10 @@ function createMockGameMode(): GameMode {
     onRemotePlayerLeave: vi.fn(),
     onRemoteDamage: vi.fn(),
     onRemoteProjectileSpawn: vi.fn(),
+    onServerHeroUpdate: vi.fn(),
+    onServerHeroRemove: vi.fn(),
+    onServerTowerUpdate: vi.fn(),
+    onServerProjectileUpdate: vi.fn(),
     dispose: vi.fn(),
   }
 }
