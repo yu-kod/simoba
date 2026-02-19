@@ -79,10 +79,10 @@ describe('NetworkBridge', () => {
       expect(entity!.hp).toBe(80)
     })
 
-    it('applies remote damage to enemy', () => {
+    it('applies remote damage to enemy via unified path', () => {
       const { em, gm } = createSetup()
       gm._triggerDamage({ targetId: 'enemy-1', amount: 50, attackerId: 'sess-1' })
-      expect(em.enemy.hp).toBe(600) // 650 - 50
+      expect(em.getEntity('enemy-1')!.hp).toBe(600) // 650 - 50
     })
 
     it('adds remote projectile on spawn event', () => {

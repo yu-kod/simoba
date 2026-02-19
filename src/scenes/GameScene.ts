@@ -6,7 +6,9 @@ import {
   CAMERA_LERP,
   DEFAULT_RESPAWN_TIME,
 } from '@/domain/constants'
+import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
+import { isHero, isTower } from '@/domain/entities/typeGuards'
 import { move } from '@/domain/systems/MovementSystem'
 import { updateFacing } from '@/domain/systems/updateFacing'
 import { checkHeroDeath, updateRespawnTimer, respawn } from '@/domain/systems/deathRespawn'
@@ -22,7 +24,7 @@ import { NetworkBridge } from '@/scenes/NetworkBridge'
 import type { HeroType, Team, Position } from '@/domain/types'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode } from '@/network/GameMode'
-import { createTowerState, type TowerState } from '@/domain/entities/Tower'
+import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 import { MAP_LAYOUT } from '@/domain/mapLayout'
 import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
@@ -37,18 +39,22 @@ const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
   { key: 'THREE', type: 'AURA' },
 ]
 
+interface EntityRenderer {
+  readonly gameObject: Phaser.GameObjects.Container
+  update(delta: number): void
+  flash(): void
+  destroy(): void
+}
+
 export class GameScene extends Phaser.Scene {
   private entityManager!: EntityManager
   private combatManager!: CombatManager
   private networkBridge!: NetworkBridge
   private inputHandler!: InputHandler
 
-  private heroRenderer!: HeroRenderer
-  private enemyRenderer!: HeroRenderer
+  private entityRenderers = new Map<string, EntityRenderer>()
   private meleeSwing!: MeleeSwingRenderer
   private projectileRenderer!: ProjectileRenderer
-  private remoteRenderers = new Map<string, HeroRenderer>()
-  private towerRenderers = new Map<string, TowerRenderer>()
   private respawnText!: Phaser.GameObjects.Text
   private cameraFollowing = true
   private gameMode: GameMode = new OfflineGameMode()
@@ -98,15 +104,19 @@ export class GameScene extends Phaser.Scene {
     this.entityManager.registerEntity(blueTower)
     this.entityManager.registerEntity(redTower)
 
-    // Renderers
-    this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
-    this.enemyRenderer = new HeroRenderer(this, this.entityManager.enemy, false)
+    // Renderers (unified Map)
+    const localHero = this.entityManager.getEntity(this.entityManager.localHeroId) as HeroState
+    const enemy = this.entityManager.getEntity('enemy-1') as HeroState
+    this.entityRenderers.set(this.entityManager.localHeroId, new HeroRenderer(this, localHero, true))
+    this.entityRenderers.set('enemy-1', new HeroRenderer(this, enemy, false))
+    this.entityRenderers.set('tower-blue', new TowerRenderer(this, blueTower, this.localTeam === 'blue'))
+    this.entityRenderers.set('tower-red', new TowerRenderer(this, redTower, this.localTeam === 'red'))
+
     this.meleeSwing = new MeleeSwingRenderer(this)
     this.projectileRenderer = new ProjectileRenderer(this)
-    this.towerRenderers.set('tower-blue', new TowerRenderer(this, blueTower, this.localTeam === 'blue'))
-    this.towerRenderers.set('tower-red', new TowerRenderer(this, redTower, this.localTeam === 'red'))
 
-    this.cameras.main.startFollow(this.heroRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
+    const localRenderer = this.entityRenderers.get(this.entityManager.localHeroId)!
+    this.cameras.main.startFollow(localRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
 
     this.inputHandler = new InputHandler(this)
 
@@ -129,8 +139,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     // E2E test API (dev only)
-    // Static import is tree-shaken by Vite in production builds
-    // because the only call site is inside this dead-code branch.
     if (import.meta.env.DEV) {
       registerTestApi(this.entityManager, this.combatManager)
     }
@@ -142,19 +150,22 @@ export class GameScene extends Phaser.Scene {
   private initGameMode(): void {
     this.networkBridge = new NetworkBridge(this.gameMode, this.entityManager, this.combatManager, {
       onRemotePlayerAdded: (sessionId) => {
-        const state = this.entityManager.getRemotePlayer(sessionId)
-        if (state) this.remoteRenderers.set(sessionId, new HeroRenderer(this, state, false))
+        const state = this.entityManager.getEntity(sessionId) as HeroState | null
+        if (state) this.entityRenderers.set(sessionId, new HeroRenderer(this, state, false))
       },
       onRemotePlayerRemoved: (sessionId) => {
-        this.remoteRenderers.get(sessionId)?.destroy()
-        this.remoteRenderers.delete(sessionId)
+        this.entityRenderers.get(sessionId)?.destroy()
+        this.entityRenderers.delete(sessionId)
       },
       onRemotePlayerUpdated: (sessionId) => {
-        const state = this.entityManager.getRemotePlayer(sessionId)
-        if (state) this.remoteRenderers.get(sessionId)?.sync(state)
+        const state = this.entityManager.getEntity(sessionId)
+        const renderer = this.entityRenderers.get(sessionId)
+        if (state && renderer && isHero(state) && renderer instanceof HeroRenderer) {
+          renderer.sync(state)
+        }
       },
       onDamageApplied: (targetId) => {
-        this.flashEntityRenderer(targetId)
+        this.entityRenderers.get(targetId)?.flash()
       },
     })
     this.networkBridge.setupCallbacks()
@@ -168,12 +179,17 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     const deltaSeconds = delta / 1000
-    const input = this.inputHandler.read(this.entityManager.localHero.position)
+    const localHeroId = this.entityManager.localHeroId
+    const localHero = this.entityManager.getEntity(localHeroId) as HeroState
+    const input = this.inputHandler.read(localHero.position)
     const isMoving = input.movement.x !== 0 || input.movement.y !== 0
-    const localDead = this.entityManager.localHero.dead
 
-    // --- Death / Respawn timers (local hero + enemy) ---
+    // --- Death / Respawn timers (all heroes) ---
     this.updateDeathRespawn(deltaSeconds)
+
+    // Re-fetch after death/respawn updates
+    const localHeroAfterRespawn = this.entityManager.getEntity(localHeroId) as HeroState
+    const localDead = localHeroAfterRespawn.dead
 
     // --- Local hero actions (skip if dead) ---
     if (!localDead) {
@@ -181,9 +197,10 @@ export class GameScene extends Phaser.Scene {
       if (input.attack) {
         this.combatManager.handleAttackInput(input.aimWorldPosition)
       }
-      if (isMoving && this.entityManager.localHero.attackTargetId !== null
-        && !HERO_DEFINITIONS[this.entityManager.localHero.type].canMoveWhileAttacking) {
-        this.entityManager.updateLocalHero((h) => ({ ...h, attackTargetId: null }))
+      const heroNow = this.entityManager.getEntity(localHeroId) as HeroState
+      if (isMoving && heroNow.attackTargetId !== null
+        && !HERO_DEFINITIONS[heroNow.type].canMoveWhileAttacking) {
+        this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, attackTargetId: null }))
       }
 
       // Hero combat
@@ -192,7 +209,7 @@ export class GameScene extends Phaser.Scene {
       // Hero attack events + effects
       for (const e of attackEvents.damageEvents) {
         this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
-        this.flashEntityRenderer(e.targetId)
+        this.entityRenderers.get(e.targetId)?.flash()
       }
       for (const swing of attackEvents.meleeSwings) {
         this.meleeSwing.play(swing)
@@ -207,26 +224,27 @@ export class GameScene extends Phaser.Scene {
       }
 
       // Facing
-      const hero = this.entityManager.localHero
-      const target = hero.attackTargetId !== null
-        ? this.entityManager.getEntity(hero.attackTargetId)
+      const heroForFacing = this.entityManager.getEntity(localHeroId) as HeroState
+      const target = heroForFacing.attackTargetId !== null
+        ? this.entityManager.getEntity(heroForFacing.attackTargetId)
         : null
-      const newFacing = updateFacing(hero.facing, input.movement, target?.position ?? null, hero.position)
-      if (newFacing !== hero.facing) {
-        this.entityManager.updateLocalHero((h) => ({ ...h, facing: newFacing }))
+      const newFacing = updateFacing(heroForFacing.facing, input.movement, target?.position ?? null, heroForFacing.position)
+      if (newFacing !== heroForFacing.facing) {
+        this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, facing: newFacing }))
       }
 
       // Movement
       if (isMoving) {
-        const radius = HERO_DEFINITIONS[this.entityManager.localHero.type].radius
+        const heroForMove = this.entityManager.getEntity(localHeroId) as HeroState
+        const radius = HERO_DEFINITIONS[heroForMove.type].radius
         const newPosition = move(
-          this.entityManager.localHero.position,
+          heroForMove.position,
           input.movement,
-          this.entityManager.localHero.stats.speed,
+          heroForMove.stats.speed,
           deltaSeconds,
           radius
         )
-        this.entityManager.updateLocalHero((h) => ({ ...h, position: newPosition }))
+        this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, position: newPosition }))
       }
     } else {
       // Dead: free camera movement with WASD
@@ -245,14 +263,14 @@ export class GameScene extends Phaser.Scene {
     }
     for (const e of towerEvents.damageEvents) {
       this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
-      this.flashEntityRenderer(e.targetId)
+      this.entityRenderers.get(e.targetId)?.flash()
     }
 
     // --- Projectile resolution (always processed) ---
     const projectileEvents = this.combatManager.processProjectiles(deltaSeconds)
     for (const e of projectileEvents.damageEvents) {
       this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
-      this.flashEntityRenderer(e.targetId)
+      this.entityRenderers.get(e.targetId)?.flash()
     }
 
     // --- Respawn timer UI ---
@@ -260,51 +278,48 @@ export class GameScene extends Phaser.Scene {
 
     // --- Effects + renderers ---
     this.meleeSwing.update(delta)
-    this.heroRenderer.update(delta)
-    this.enemyRenderer.update(delta)
-    for (const renderer of this.remoteRenderers.values()) {
+    for (const renderer of this.entityRenderers.values()) {
       renderer.update(delta)
     }
-    for (const renderer of this.towerRenderers.values()) {
-      renderer.update(delta)
-    }
-    this.heroRenderer.sync(this.entityManager.localHero)
-    this.enemyRenderer.sync(this.entityManager.enemy)
-    this.syncTowerRenderers()
+    this.syncEntityRenderers()
     this.projectileRenderer.draw(this.combatManager.projectiles)
 
     this.networkBridge.sendLocalState()
   }
 
   private updateDeathRespawn(deltaSeconds: number): void {
-    // Check death for local hero
-    this.entityManager.updateLocalHero((h) => checkHeroDeath(h, DEFAULT_RESPAWN_TIME))
-    // Check death for enemy
-    this.entityManager.updateEnemy((e) => checkHeroDeath(e, DEFAULT_RESPAWN_TIME))
+    const localHeroId = this.entityManager.localHeroId
+
+    // Check death + update timers for all heroes
+    for (const hero of this.entityManager.getHeroes()) {
+      this.entityManager.updateEntity<HeroState>(hero.id, (h) => {
+        const afterDeath = checkHeroDeath(h, DEFAULT_RESPAWN_TIME)
+        return updateRespawnTimer(afterDeath, deltaSeconds)
+      })
+    }
 
     // Handle local hero death → stop camera follow
-    if (this.entityManager.localHero.dead && this.cameraFollowing) {
+    const localHero = this.entityManager.getEntity(localHeroId) as HeroState
+    if (localHero.dead && this.cameraFollowing) {
       this.cameras.main.stopFollow()
       this.cameraFollowing = false
     }
 
-    // Update respawn timers
-    this.entityManager.updateLocalHero((h) => updateRespawnTimer(h, deltaSeconds))
-    this.entityManager.updateEnemy((e) => updateRespawnTimer(e, deltaSeconds))
+    // Respawn heroes that are ready
+    for (const hero of this.entityManager.getHeroes()) {
+      if (hero.dead && hero.respawnTimer <= 0) {
+        const respawnPos = baseRespawn(hero)
+        this.entityManager.updateEntity<HeroState>(hero.id, (h) => respawn(h, respawnPos))
 
-    // Respawn local hero
-    if (this.entityManager.localHero.dead && this.entityManager.localHero.respawnTimer <= 0) {
-      const respawnPos = baseRespawn(this.entityManager.localHero)
-      this.entityManager.updateLocalHero((h) => respawn(h, respawnPos))
-      this.cameras.main.centerOn(respawnPos.x, respawnPos.y)
-      this.cameras.main.startFollow(this.heroRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
-      this.cameraFollowing = true
-    }
-
-    // Respawn enemy
-    if (this.entityManager.enemy.dead && this.entityManager.enemy.respawnTimer <= 0) {
-      const respawnPos = baseRespawn(this.entityManager.enemy)
-      this.entityManager.updateEnemy((e) => respawn(e, respawnPos))
+        if (hero.id === localHeroId) {
+          this.cameras.main.centerOn(respawnPos.x, respawnPos.y)
+          const renderer = this.entityRenderers.get(localHeroId)
+          if (renderer) {
+            this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
+          }
+          this.cameraFollowing = true
+        }
+      }
     }
   }
 
@@ -324,8 +339,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateRespawnUI(): void {
-    if (this.entityManager.localHero.dead) {
-      const seconds = Math.ceil(this.entityManager.localHero.respawnTimer)
+    const localHero = this.entityManager.getEntity(this.entityManager.localHeroId) as HeroState
+    if (localHero.dead) {
+      const seconds = Math.ceil(localHero.respawnTimer)
       this.respawnText.setText(`Respawning in ${seconds}...`)
       this.respawnText.setVisible(true)
     } else {
@@ -333,46 +349,36 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private flashEntityRenderer(targetId: string): void {
-    if (targetId === this.entityManager.localHero.id) {
-      this.heroRenderer.flash()
-      return
-    }
-    if (targetId === this.entityManager.enemy.id) {
-      this.enemyRenderer.flash()
-      return
-    }
-    const remoteRenderer = this.remoteRenderers.get(targetId)
-    if (remoteRenderer) {
-      remoteRenderer.flash()
-      return
-    }
-    this.towerRenderers.get(targetId)?.flash()
-  }
-
-  private syncTowerRenderers(): void {
-    for (const [id, renderer] of this.towerRenderers) {
+  private syncEntityRenderers(): void {
+    for (const [id, renderer] of this.entityRenderers) {
       const entity = this.entityManager.getEntity(id)
-      if (entity && entity.entityType === 'tower') {
-        renderer.sync(entity as TowerState)
+      if (!entity) continue
+      if (isHero(entity) && renderer instanceof HeroRenderer) {
+        renderer.sync(entity)
+      } else if (isTower(entity) && renderer instanceof TowerRenderer) {
+        renderer.sync(entity)
       }
     }
   }
 
   private debugSwitchHero(type: HeroType): void {
-    if (this.entityManager.localHero.type === type) return
+    const localHeroId = this.entityManager.localHeroId
+    const hero = this.entityManager.getEntity(localHeroId) as HeroState
+    if (hero.type === type) return
 
-    this.heroRenderer.destroy()
+    this.entityRenderers.get(localHeroId)?.destroy()
     this.combatManager.resetProjectiles()
 
-    this.entityManager.resetLocalHero({
-      id: 'player-1',
+    this.entityManager.registerEntity(createHeroState({
+      id: localHeroId,
       type,
       team: this.localTeam,
       position: this.localSpawnPosition,
-    })
+    }))
 
-    this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
-    this.cameras.main.startFollow(this.heroRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
+    const newHero = this.entityManager.getEntity(localHeroId) as HeroState
+    const renderer = new HeroRenderer(this, newHero, true)
+    this.entityRenderers.set(localHeroId, renderer)
+    this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
   }
 }

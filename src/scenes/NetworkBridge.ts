@@ -1,3 +1,4 @@
+import type { HeroState } from '@/domain/entities/Hero'
 import type { GameMode, DamageEvent, ProjectileSpawnEvent } from '@/network/GameMode'
 import type { EntityManager } from '@/scenes/EntityManager'
 import type { CombatManager } from '@/scenes/CombatManager'
@@ -51,7 +52,8 @@ export class NetworkBridge {
   }
 
   sendLocalState(): void {
-    this.gameMode.sendLocalState(this.entityManager.localHero)
+    const hero = this.entityManager.getEntity(this.entityManager.localHeroId) as HeroState | null
+    if (hero) this.gameMode.sendLocalState(hero)
   }
 
   sendDamageEvent(event: DamageEvent): void {

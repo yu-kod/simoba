@@ -33,6 +33,15 @@ vi.mock('@/scenes/effects/ProjectileRenderer', () => ({
     draw: vi.fn(),
   })),
 }))
+vi.mock('@/scenes/effects/TowerRenderer', () => ({
+  TowerRenderer: vi.fn().mockImplementation(() => ({
+    gameObject: {},
+    sync: vi.fn(),
+    update: vi.fn(),
+    flash: vi.fn(),
+    destroy: vi.fn(),
+  })),
+}))
 vi.mock('@/scenes/InputHandler', () => ({
   InputHandler: vi.fn().mockImplementation(() => ({
     read: vi.fn().mockReturnValue({

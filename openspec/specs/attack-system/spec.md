@@ -81,7 +81,7 @@
 - **THEN** DamageEvent の代わりに ProjectileSpawnEvent が発行され、プロジェクタイルが生成される
 
 ### Requirement: ダメージ適用
-ダメージを受けたエンティティの HP を `attackDamage` 分減少させる純粋関数を提供しなければならない（SHALL）。HP は 0 未満にならないよう下限クランプしなければならない（SHALL）。ダメージ適用先はヒーローに限らず、レジストリに登録された全エンティティ（タワー、ミニオン等）を対象としなければならない（SHALL）。
+ダメージを受けたエンティティの HP を `attackDamage` 分減少させる純粋関数を提供しなければならない（SHALL）。HP は 0 未満にならないよう下限クランプしなければならない（SHALL）。`CombatManager.applyLocalDamage(targetId, amount)` は単一の `entityManager.updateEntity(targetId, (e) => applyDamage(e, amount))` で実装しなければならない（SHALL）。ヒーロー/リモートプレイヤー/レジストリエンティティによる分岐を行ってはならない（SHALL NOT）。
 
 #### Scenario: 通常ダメージ
 - **WHEN** HP 650 のエンティティに 60 ダメージを適用する
@@ -95,10 +95,13 @@
 - **WHEN** ダメージを適用する
 - **THEN** 元のエンティティオブジェクトは変更されず、新しいオブジェクトが返される
 
-#### Scenario: レジストリ内エンティティへのダメージ適用
-- **WHEN** レジストリに登録されたタワー（`entityType === 'tower'`）にダメージを適用する
-- **THEN** タワーの HP が減少する
-- **THEN** ヒーローと同じダメージ計算ロジックが使用される
+#### Scenario: ヒーローへのダメージが統一パスで適用される
+- **WHEN** ローカルヒーローにタワーからダメージが発生する
+- **THEN** `updateEntity(targetId, ...)` 経由でダメージが適用される（localHero 専用パスを経由しない）
+
+#### Scenario: 全エンティティが同一パスでダメージを受ける
+- **WHEN** ヒーロー、タワー、ミニオンにそれぞれダメージが適用される
+- **THEN** 3つとも同一の `updateEntity` + `applyDamage` 経路で処理される（分岐なし）
 
 ### Requirement: 攻撃中の facing 制御
 攻撃中（`attackTargetId` が設定済み）はヒーローの facing をターゲット方向に固定しなければならない（SHALL）。移動方向ではなくターゲット方向を優先しなければならない（SHALL）。
