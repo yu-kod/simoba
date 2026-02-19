@@ -7,10 +7,13 @@ function makeTarget(
 ): CombatEntityState {
   return {
     id: 'enemy-1',
+    entityType: 'hero',
     position: { x: 200, y: 100 },
     team: 'red',
     hp: 100,
     maxHp: 100,
+    dead: false,
+    radius: 18,
     ...overrides,
   }
 }

@@ -7,7 +7,16 @@ function makeEnemy(
   y: number,
   hp = 100
 ): CombatEntityState {
-  return { id, position: { x, y }, team: 'red', hp, maxHp: hp }
+  return {
+    id,
+    entityType: 'hero',
+    position: { x, y },
+    team: 'red',
+    hp,
+    maxHp: hp,
+    dead: false,
+    radius: 20,
+  }
 }
 
 const defaultRadius = () => 20

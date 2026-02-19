@@ -1,19 +1,28 @@
 import type { HeroState } from '@/domain/entities/Hero'
-import type { Position } from '@/domain/types'
+import type { CombatEntityState, Position } from '@/domain/types'
 import { DEFAULT_RESPAWN_TIME } from '@/domain/constants'
 
 /**
- * Check if hero should transition to dead state.
- * Pure function — returns new state if HP <= 0 and not already dead.
+ * Check if any combat entity should transition to dead state.
+ * Pure function — returns new state with dead: true if HP <= 0 and not already dead.
  */
-export function checkDeath(
+export function checkDeath<T extends CombatEntityState>(entity: T): T {
+  if (entity.dead || entity.hp > 0) return entity
+  return { ...entity, dead: true }
+}
+
+/**
+ * Check if hero should transition to dead state.
+ * Sets hero-specific fields (respawnTimer, deathPosition, attackTargetId)
+ * in addition to the generic dead flag.
+ */
+export function checkHeroDeath(
   hero: HeroState,
   respawnTime: number = DEFAULT_RESPAWN_TIME
 ): HeroState {
   if (hero.dead || hero.hp > 0) return hero
   return {
-    ...hero,
-    dead: true,
+    ...checkDeath(hero),
     respawnTimer: respawnTime,
     deathPosition: hero.position,
     attackTargetId: null,

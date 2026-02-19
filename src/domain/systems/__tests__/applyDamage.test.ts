@@ -2,7 +2,16 @@ import { applyDamage } from '@/domain/systems/applyDamage'
 import type { CombatEntityState } from '@/domain/types'
 
 function makeEntity(hp: number): CombatEntityState {
-  return { id: 'e1', position: { x: 0, y: 0 }, team: 'red', hp, maxHp: 650 }
+  return {
+    id: 'e1',
+    entityType: 'hero',
+    position: { x: 0, y: 0 },
+    team: 'red',
+    hp,
+    maxHp: 650,
+    dead: false,
+    radius: 20,
+  }
 }
 
 describe('applyDamage', () => {

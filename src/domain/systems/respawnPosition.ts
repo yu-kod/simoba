@@ -5,6 +5,7 @@ import { MAP_LAYOUT } from '@/domain/mapLayout'
 export type RespawnPositionResolver = (hero: HeroState) => Position
 
 export const baseRespawn: RespawnPositionResolver = (hero) => {
-  const base = MAP_LAYOUT.bases[hero.team]
+  const teamKey = hero.team as 'blue' | 'red'
+  const base = MAP_LAYOUT.bases[teamKey]
   return { x: base.x + base.width / 2, y: base.y + base.height / 2 }
 }

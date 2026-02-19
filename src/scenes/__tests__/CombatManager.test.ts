@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
+import { createMockCombatEntity } from '@/test/helpers/entityHelpers'
 
 const LOCAL_HERO_PARAMS = {
   id: 'player-1',
@@ -126,6 +127,22 @@ describe('CombatManager', () => {
       cm.applyLocalDamage('remote-1', 50)
       const remote = em.getRemotePlayer('remote-1')
       expect(remote!.hp).toBe(600) // BLADE maxHp 650 - 50
+    })
+
+    it('reduces registry entity HP', () => {
+      const { em, cm } = createManagers()
+      const tower = createMockCombatEntity({
+        id: 'tower-1',
+        entityType: 'tower',
+        team: 'red',
+        hp: 500,
+        maxHp: 500,
+        radius: 30,
+      })
+      em.registerEntity(tower)
+      cm.applyLocalDamage('tower-1', 100)
+      const updated = em.getEntity('tower-1')
+      expect(updated!.hp).toBe(400)
     })
   })
 

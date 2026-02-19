@@ -1,5 +1,11 @@
-import { checkDeath, updateRespawnTimer, respawn } from '@/domain/systems/deathRespawn'
+import {
+  checkDeath,
+  checkHeroDeath,
+  updateRespawnTimer,
+  respawn,
+} from '@/domain/systems/deathRespawn'
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
+import { createMockCombatEntity } from '@/test/helpers/entityHelpers'
 
 function makeHero(overrides: Partial<HeroState> = {}): HeroState {
   const base = createHeroState({
@@ -11,10 +17,37 @@ function makeHero(overrides: Partial<HeroState> = {}): HeroState {
   return { ...base, ...overrides }
 }
 
-describe('checkDeath', () => {
+describe('checkDeath (generic)', () => {
+  it('should set dead to true when HP is 0', () => {
+    const entity = createMockCombatEntity({ hp: 0 })
+    const result = checkDeath(entity)
+    expect(result.dead).toBe(true)
+  })
+
+  it('should not change state if HP > 0', () => {
+    const entity = createMockCombatEntity({ hp: 50 })
+    const result = checkDeath(entity)
+    expect(result).toBe(entity)
+  })
+
+  it('should not double-die if already dead', () => {
+    const entity = createMockCombatEntity({ hp: 0, dead: true })
+    const result = checkDeath(entity)
+    expect(result).toBe(entity)
+  })
+
+  it('should return new object (immutable)', () => {
+    const entity = createMockCombatEntity({ hp: 0 })
+    const result = checkDeath(entity)
+    expect(result).not.toBe(entity)
+    expect(entity.dead).toBe(false)
+  })
+})
+
+describe('checkHeroDeath', () => {
   it('should transition to dead when HP is 0', () => {
     const hero = makeHero({ hp: 0, position: { x: 500, y: 300 } })
-    const result = checkDeath(hero)
+    const result = checkHeroDeath(hero)
     expect(result.dead).toBe(true)
     expect(result.respawnTimer).toBe(5)
     expect(result.deathPosition).toEqual({ x: 500, y: 300 })
@@ -23,26 +56,26 @@ describe('checkDeath', () => {
 
   it('should not change state if HP > 0', () => {
     const hero = makeHero({ hp: 100 })
-    const result = checkDeath(hero)
+    const result = checkHeroDeath(hero)
     expect(result).toBe(hero)
   })
 
   it('should not double-die if already dead', () => {
     const hero = makeHero({ hp: 0, dead: true, respawnTimer: 3 })
-    const result = checkDeath(hero)
+    const result = checkHeroDeath(hero)
     expect(result).toBe(hero)
     expect(result.respawnTimer).toBe(3)
   })
 
   it('should use custom respawn time', () => {
     const hero = makeHero({ hp: 0 })
-    const result = checkDeath(hero, 10)
+    const result = checkHeroDeath(hero, 10)
     expect(result.respawnTimer).toBe(10)
   })
 
   it('should return new object (immutable)', () => {
     const hero = makeHero({ hp: 0 })
-    const result = checkDeath(hero)
+    const result = checkHeroDeath(hero)
     expect(result).not.toBe(hero)
     expect(hero.dead).toBe(false)
   })

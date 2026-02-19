@@ -18,15 +18,17 @@ describe('Domain Types', () => {
   })
 
   describe('Team', () => {
-    it('should only allow blue or red', () => {
-      expectTypeOf<Team>().toEqualTypeOf<'blue' | 'red'>()
+    it('should only allow blue, red, or neutral', () => {
+      expectTypeOf<Team>().toEqualTypeOf<'blue' | 'red' | 'neutral'>()
     })
 
     it('should accept valid team values', () => {
       const blue: Team = 'blue'
       const red: Team = 'red'
+      const neutral: Team = 'neutral'
       expect(blue).toBe('blue')
       expect(red).toBe('red')
+      expect(neutral).toBe('neutral')
     })
   })
 

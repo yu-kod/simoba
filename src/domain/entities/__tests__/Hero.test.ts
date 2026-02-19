@@ -33,6 +33,9 @@ describe('Hero', () => {
       expect(hero.level).toBe(1)
       expect(hero.xp).toBe(0)
       expect(hero.facing).toBe(0)
+      expect(hero.entityType).toBe('hero')
+      expect(hero.dead).toBe(false)
+      expect(hero.radius).toBe(HERO_DEFINITIONS.BLADE.radius)
     })
 
     it.each<HeroType>(['BLADE', 'BOLT', 'AURA'])(
