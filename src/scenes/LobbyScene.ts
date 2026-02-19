@@ -155,7 +155,15 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private watchForGameReady(room: Room): void {
-    room.onMessage('gameStart', () => this.onGameStart())
+    // Use state change instead of message to avoid race condition:
+    // broadcast('gameStart') can fire before client registers onMessage listener.
+    // State sync is guaranteed to arrive after joinOrCreate resolves.
+    room.onStateChange((state) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((state as any).gameStarted === true) {
+        this.onGameStart()
+      }
+    })
   }
 
   private onGameStart(): void {

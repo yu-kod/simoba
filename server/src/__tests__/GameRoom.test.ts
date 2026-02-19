@@ -98,7 +98,7 @@ describe('Team assignment pattern', () => {
   })
 })
 
-describe('gameStart broadcast logic', () => {
+describe('gameStart state flag logic', () => {
   function createMockRoom() {
     const state = new GameRoomState()
     const broadcasts: { type: string }[] = []
@@ -120,26 +120,39 @@ describe('gameStart broadcast logic', () => {
         player.maxHp = 100
         state.players.set(client.sessionId, player)
         if (state.players.size === room.maxClients) {
-          room.broadcast('gameStart')
+          state.gameStarted = true
         }
       },
     }
     return { room, broadcasts }
   }
 
-  it('should broadcast gameStart when players reach maxClients', () => {
-    const { room, broadcasts } = createMockRoom()
+  it('should set gameStarted to true when players reach maxClients', () => {
+    const { room } = createMockRoom()
     room.onJoin({ sessionId: 'session-1' })
-    expect(broadcasts).toEqual([])
+    expect(room.state.gameStarted).toBe(false)
 
     room.onJoin({ sessionId: 'session-2' })
-    expect(broadcasts).toEqual([{ type: 'gameStart' }])
+    expect(room.state.gameStarted).toBe(true)
   })
 
-  it('should not broadcast gameStart with only one player', () => {
+  it('should keep gameStarted false with only one player', () => {
+    const { room } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' })
+    expect(room.state.gameStarted).toBe(false)
+  })
+
+  it('should NOT use broadcast for gameStart (prevents race condition)', () => {
     const { room, broadcasts } = createMockRoom()
     room.onJoin({ sessionId: 'session-1' })
-    expect(broadcasts).toEqual([])
+    room.onJoin({ sessionId: 'session-2' })
+    const gameStartBroadcasts = broadcasts.filter(b => b.type === 'gameStart')
+    expect(gameStartBroadcasts).toEqual([])
+  })
+
+  it('should have gameStarted default to false on new GameRoomState', () => {
+    const state = new GameRoomState()
+    expect(state.gameStarted).toBe(false)
   })
 })
 

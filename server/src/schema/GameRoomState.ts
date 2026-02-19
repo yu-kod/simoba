@@ -8,4 +8,7 @@ import { PlayerSchema } from './PlayerSchema.js'
 export class GameRoomState extends Schema {
   @type({ map: PlayerSchema })
   players = new MapSchema<PlayerSchema>()
+
+  @type('boolean')
+  gameStarted = false
 }
