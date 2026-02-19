@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { type TestWindow, waitForTestApi, rightClickOnEnemy } from './helpers'
+import { type TestWindow, startOfflineGame, rightClickOnEnemy } from './helpers'
 
 test.describe('Projectile Attack', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await waitForTestApi(page)
+    await startOfflineGame(page)
   })
 
   test('should reduce enemy HP when BOLT attacks with projectile', async ({ page }) => {

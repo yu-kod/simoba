@@ -21,6 +21,27 @@ const GAME_HEIGHT = 720
 const WORLD_WIDTH = 3200
 const WORLD_HEIGHT = 720
 
+// Lobby button positions (must match LobbyScene layout)
+const OFFLINE_PLAY_BUTTON = { x: 640, y: 420 }
+
+type GameWindow = {
+  game: { scene: { isActive: (key: string) => boolean } }
+}
+
+/**
+ * Wait for a specific Phaser scene to be active.
+ */
+export async function waitForScene(page: Page, sceneKey: string): Promise<void> {
+  await page.waitForFunction(
+    (key: string) => {
+      const game = (window as unknown as GameWindow).game
+      return game?.scene?.isActive(key)
+    },
+    sceneKey,
+    { timeout: 10000 }
+  )
+}
+
 /**
  * Wait for the E2E test API to become available.
  */
@@ -30,6 +51,31 @@ export async function waitForTestApi(page: Page): Promise<void> {
     { timeout: 10000 }
   )
   await page.waitForTimeout(500)
+}
+
+/**
+ * Navigate to the page, click "Offline Play" in the lobby, and wait for GameScene.
+ * Use this as the standard entry point for E2E tests that need GameScene.
+ */
+export async function startOfflineGame(page: Page): Promise<void> {
+  await page.goto('/')
+
+  const canvas = page.locator('#game-container canvas')
+  await canvas.waitFor({ state: 'visible', timeout: 10000 })
+
+  await waitForScene(page, 'LobbyScene')
+
+  const bounds = await canvas.boundingBox()
+  if (!bounds) throw new Error('Canvas not found')
+
+  const scaleX = bounds.width / GAME_WIDTH
+  const scaleY = bounds.height / GAME_HEIGHT
+  await page.mouse.click(
+    bounds.x + OFFLINE_PLAY_BUTTON.x * scaleX,
+    bounds.y + OFFLINE_PLAY_BUTTON.y * scaleY
+  )
+
+  await waitForTestApi(page)
 }
 
 /**

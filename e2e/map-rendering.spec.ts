@@ -1,19 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { startOfflineGame } from './helpers'
 
 test.describe('Map Rendering', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await page.waitForFunction(
-      () => {
-        const game = (
-          window as unknown as {
-            game: { scene: { isActive: (key: string) => boolean } }
-          }
-        ).game
-        return game?.scene?.isActive('GameScene')
-      },
-      { timeout: 10000 }
-    )
+    await startOfflineGame(page)
     // Allow a frame for rendering to complete
     await page.waitForTimeout(500)
   })
