@@ -1,5 +1,4 @@
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
-import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import type { CombatEntityState, HeroType, Position, Team } from '@/domain/types'
 import type { RemotePlayerState } from '@/network/GameMode'
 
@@ -16,6 +15,7 @@ export class EntityManager {
   private _localHero: HeroState
   private _enemy: HeroState
   private readonly _remotePlayers = new Map<string, HeroState>()
+  private readonly _entities = new Map<string, CombatEntityState>()
 
   constructor(
     localHeroParams: CreateLocalHeroParams,
@@ -24,6 +24,8 @@ export class EntityManager {
     this._localHero = createHeroState(localHeroParams)
     this._enemy = createHeroState(enemyParams)
   }
+
+  // ---- Hero API (backward compatible) ----
 
   get localHero(): HeroState {
     return this._localHero
@@ -45,34 +47,73 @@ export class EntityManager {
     this._localHero = createHeroState(params)
   }
 
+  // ---- Generic entity registry ----
+
+  registerEntity(entity: CombatEntityState): void {
+    this._entities.set(entity.id, entity)
+  }
+
+  removeEntity(id: string): void {
+    this._entities.delete(id)
+  }
+
+  /**
+   * Update an entity in the registry.
+   * T must match the concrete type the entity was registered with.
+   * No runtime type checking is performed — passing an incompatible T
+   * may cause runtime errors when the updater accesses subtype-specific fields.
+   */
+  updateEntity<T extends CombatEntityState>(
+    id: string,
+    updater: (entity: T) => T
+  ): void {
+    const entity = this._entities.get(id)
+    if (!entity) return
+    this._entities.set(id, updater(entity as T))
+  }
+
+  // ---- Unified search (heroes + registry) ----
+
   getEntity(id: string): CombatEntityState | null {
     if (id === this._localHero.id) return this._localHero
     if (id === this._enemy.id) return this._enemy
-    return this._remotePlayers.get(id) ?? null
+    const remote = this._remotePlayers.get(id)
+    if (remote) return remote
+    return this._entities.get(id) ?? null
   }
 
-  getEnemies(): CombatEntityState[] {
+  getEnemiesOf(team: Team): CombatEntityState[] {
     const enemies: CombatEntityState[] = []
-    if (!this._enemy.dead) enemies.push(this._enemy)
+
+    const isEnemy = (entity: CombatEntityState): boolean =>
+      !entity.dead && entity.team !== team
+
+    // Heroes
+    if (isEnemy(this._localHero)) enemies.push(this._localHero)
+    if (isEnemy(this._enemy)) enemies.push(this._enemy)
     for (const remote of this._remotePlayers.values()) {
-      if (!remote.dead) enemies.push(remote)
+      if (isEnemy(remote)) enemies.push(remote)
     }
+
+    // Registry entities (towers, minions, boss, etc.)
+    for (const entity of this._entities.values()) {
+      if (isEnemy(entity)) enemies.push(entity)
+    }
+
     return enemies
   }
 
-  getEntityRadius(id: string): number {
-    if (id === this._localHero.id) {
-      return HERO_DEFINITIONS[this._localHero.type].radius
-    }
-    if (id === this._enemy.id) {
-      return HERO_DEFINITIONS[this._enemy.type].radius
-    }
-    const remote = this._remotePlayers.get(id)
-    if (remote) {
-      return HERO_DEFINITIONS[remote.type].radius
-    }
-    return DEFAULT_ENTITY_RADIUS
+  /** @deprecated Use getEnemiesOf(team) instead. Kept for backward compatibility. */
+  getEnemies(): CombatEntityState[] {
+    return this.getEnemiesOf(this._localHero.team)
   }
+
+  getEntityRadius(id: string): number {
+    const entity = this.getEntity(id)
+    return entity?.radius ?? DEFAULT_ENTITY_RADIUS
+  }
+
+  // ---- Remote player management ----
 
   getRemotePlayer(sessionId: string): HeroState | undefined {
     return this._remotePlayers.get(sessionId)

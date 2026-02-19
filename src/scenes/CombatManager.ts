@@ -63,7 +63,7 @@ export class CombatManager {
       heroDef.projectileSpeed,
       heroDef.projectileRadius
     )
-    this.entityManager.updateLocalHero(() => attackResult.hero)
+    this.entityManager.updateLocalHero(() => attackResult.entity)
 
     const damageEvents: Array<{ targetId: string; damage: number }> = []
     const projectileSpawnEvents: ProjectileSpawnEvent[] = []
@@ -73,8 +73,8 @@ export class CombatManager {
       this.applyLocalDamage(event.targetId, event.damage)
       damageEvents.push({ targetId: event.targetId, damage: event.damage })
       meleeSwings.push({
-        position: attackResult.hero.position,
-        facing: attackResult.hero.facing,
+        position: attackResult.entity.position,
+        facing: attackResult.entity.facing,
       })
     }
 
@@ -114,7 +114,9 @@ export class CombatManager {
       return EMPTY_EVENTS
     }
 
-    const targets: CombatEntityState[] = this.entityManager.getEnemies()
+    const targets: CombatEntityState[] = this.entityManager.getEnemiesOf(
+      this.entityManager.localHero.team
+    )
     const result = updateProjectiles(
       this._projectiles,
       targets,
@@ -140,7 +142,7 @@ export class CombatManager {
 
   handleAttackInput(aimWorldPosition: Position): void {
     const hero = this.entityManager.localHero
-    const enemies = this.entityManager.getEnemies()
+    const enemies = this.entityManager.getEnemiesOf(hero.team)
     const clickedTarget = findClickTarget(
       aimWorldPosition,
       enemies,
@@ -218,7 +220,8 @@ export class CombatManager {
       em.updateEnemy((e) => applyDamage(e, amount))
       return
     }
-    em.applyDamageToRemote(targetId, amount)
+    if (em.applyDamageToRemote(targetId, amount)) return
+    em.updateEntity(targetId, (e) => applyDamage(e, amount))
   }
 
   private resolveTarget(targetId: string | null): CombatEntityState | null {

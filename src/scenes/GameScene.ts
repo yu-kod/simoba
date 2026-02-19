@@ -9,7 +9,7 @@ import {
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import { move } from '@/domain/systems/MovementSystem'
 import { updateFacing } from '@/domain/systems/updateFacing'
-import { checkDeath, updateRespawnTimer, respawn } from '@/domain/systems/deathRespawn'
+import { checkHeroDeath, updateRespawnTimer, respawn } from '@/domain/systems/deathRespawn'
 import { baseRespawn } from '@/domain/systems/respawnPosition'
 import { renderMap } from '@/scenes/mapRenderer'
 import { HeroRenderer } from '@/scenes/HeroRenderer'
@@ -238,9 +238,9 @@ export class GameScene extends Phaser.Scene {
 
   private updateDeathRespawn(deltaSeconds: number): void {
     // Check death for local hero
-    this.entityManager.updateLocalHero((h) => checkDeath(h, DEFAULT_RESPAWN_TIME))
+    this.entityManager.updateLocalHero((h) => checkHeroDeath(h, DEFAULT_RESPAWN_TIME))
     // Check death for enemy
-    this.entityManager.updateEnemy((e) => checkDeath(e, DEFAULT_RESPAWN_TIME))
+    this.entityManager.updateEnemy((e) => checkHeroDeath(e, DEFAULT_RESPAWN_TIME))
 
     // Handle local hero death → stop camera follow
     if (this.entityManager.localHero.dead && this.cameraFollowing) {

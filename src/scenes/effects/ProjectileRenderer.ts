@@ -5,6 +5,7 @@ import type { Team } from '@/domain/types'
 const PROJECTILE_COLORS: Record<Team, number> = {
   blue: 0x3498db,
   red: 0xe74c3c,
+  neutral: 0x95a5a6,
 }
 
 const PROJECTILE_DEPTH = 8

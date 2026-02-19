@@ -5,11 +5,14 @@ import type { CombatEntityState } from '@/domain/types'
 function makeHero(overrides: Partial<HeroState> = {}): HeroState {
   return {
     id: 'hero-1',
+    entityType: 'hero',
     type: 'BLADE',
     team: 'blue',
     position: { x: 0, y: 0 },
     hp: 650,
     maxHp: 650,
+    dead: false,
+    radius: 22,
     level: 1,
     xp: 0,
     stats: {
@@ -22,7 +25,6 @@ function makeHero(overrides: Partial<HeroState> = {}): HeroState {
     facing: 0,
     attackCooldown: 0,
     attackTargetId: null,
-    dead: false,
     respawnTimer: 0,
     deathPosition: { x: 0, y: 0 },
     ...overrides,
@@ -34,10 +36,13 @@ function makeTarget(
 ): CombatEntityState {
   return {
     id: 'enemy-1',
+    entityType: 'hero',
     position: { x: 100, y: 0 },
     team: 'red',
     hp: 650,
     maxHp: 650,
+    dead: false,
+    radius: 22,
     ...overrides,
   }
 }
@@ -49,7 +54,7 @@ describe('updateAttackState', () => {
   describe('cooldown tick-down', () => {
     it('should decrease attackCooldown by deltaTime', () => {
       const hero = makeHero({ attackCooldown: 1.0 })
-      const { hero: updated } = updateAttackState(
+      const { entity: updated } = updateAttackState(
         hero,
         null,
         0.016,
@@ -61,7 +66,7 @@ describe('updateAttackState', () => {
 
     it('should clamp cooldown at 0', () => {
       const hero = makeHero({ attackCooldown: 0.01 })
-      const { hero: updated } = updateAttackState(
+      const { entity: updated } = updateAttackState(
         hero,
         null,
         0.1,
@@ -95,7 +100,7 @@ describe('updateAttackState', () => {
       })
       const target = makeTarget({ position: { x: 100, y: 0 } })
 
-      const { hero: updated, damageEvents } = updateAttackState(
+      const { entity: updated, damageEvents } = updateAttackState(
         hero,
         target,
         0.016,
@@ -141,7 +146,7 @@ describe('updateAttackState', () => {
       })
       const target = makeTarget({ position: { x: 200, y: 0 } })
 
-      const { hero: updated, damageEvents } = updateAttackState(
+      const { entity: updated, damageEvents } = updateAttackState(
         hero,
         target,
         0.016,
@@ -162,7 +167,7 @@ describe('updateAttackState', () => {
       })
       const target = makeTarget({ position: { x: 100, y: 0 }, hp: 0 })
 
-      const { hero: updated, damageEvents } = updateAttackState(
+      const { entity: updated, damageEvents } = updateAttackState(
         hero,
         target,
         0.016,
@@ -190,7 +195,7 @@ describe('updateAttackState', () => {
       })
       const target = makeTarget({ position: { x: 100, y: 0 } })
 
-      const { hero: updated, damageEvents } = updateAttackState(
+      const { entity: updated, damageEvents } = updateAttackState(
         hero,
         target,
         0.016,
@@ -219,7 +224,7 @@ describe('updateAttackState', () => {
       })
       const target = makeTarget({ position: { x: 100, y: 0 } })
 
-      const { hero: updated } = updateAttackState(
+      const { entity: updated } = updateAttackState(
         hero,
         target,
         0.016,
@@ -287,7 +292,7 @@ describe('updateAttackState', () => {
       })
       const target = makeTarget({ position: { x: 100, y: 0 } })
 
-      const { hero: updated } = updateAttackState(
+      const { entity: updated } = updateAttackState(
         hero,
         target,
         0.016,
