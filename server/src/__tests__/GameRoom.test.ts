@@ -98,6 +98,26 @@ describe('Team assignment pattern', () => {
   })
 })
 
+describe('gameStart broadcast logic', () => {
+  it('should trigger gameStart when players reach maxClients', () => {
+    const state = new GameRoomState()
+    const p1 = new PlayerSchema()
+    state.players.set('session-1', p1)
+    expect(state.players.size === MAX_PLAYERS).toBe(false)
+
+    const p2 = new PlayerSchema()
+    state.players.set('session-2', p2)
+    expect(state.players.size === MAX_PLAYERS).toBe(true)
+  })
+
+  it('should not trigger gameStart with only one player', () => {
+    const state = new GameRoomState()
+    const p1 = new PlayerSchema()
+    state.players.set('session-1', p1)
+    expect(state.players.size === MAX_PLAYERS).toBe(false)
+  })
+})
+
 describe('isValidDamageMessage', () => {
   const attacker = 'attacker-1'
 

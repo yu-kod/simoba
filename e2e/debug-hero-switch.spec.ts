@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { type TestWindow, waitForTestApi } from './helpers'
+import { type TestWindow, startOfflineGame } from './helpers'
 
 test.describe('Debug Hero Switch', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await waitForTestApi(page)
+    await startOfflineGame(page)
   })
 
   test('should start as BLADE by default', async ({ page }) => {

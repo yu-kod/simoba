@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { BootScene } from '@/scenes/BootScene'
+import { LobbyScene } from '@/scenes/LobbyScene'
 import { GameScene } from '@/scenes/GameScene'
 
 export const GAME_WIDTH = 1280
@@ -22,5 +23,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
       debug: import.meta.env.DEV,
     },
   },
-  scene: [BootScene, GameScene],
+  scene: [BootScene, LobbyScene, GameScene],
 }

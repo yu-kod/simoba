@@ -15,7 +15,7 @@ const SEND_INTERVAL_MS = 50 // 20Hz
 type StateCallbacks = (instance: any) => any
 
 export class OnlineGameMode implements GameMode {
-  private networkClient: NetworkClient
+  private networkClient: NetworkClient | null
   private room: Room | null = null
   private $: StateCallbacks | null = null
   private sendTimer = 0
@@ -27,12 +27,19 @@ export class OnlineGameMode implements GameMode {
   private remoteDamageCallbacks: ((event: DamageEvent & { attackerId: string }) => void)[] = []
   private remoteProjectileCallbacks: ((event: ProjectileSpawnEvent & { ownerId: string }) => void)[] = []
 
-  constructor(serverUrl?: string) {
-    this.networkClient = new NetworkClient(serverUrl)
+  constructor(options?: { serverUrl?: string; room?: Room }) {
+    if (options?.room) {
+      this.room = options.room
+      this.networkClient = null
+    } else {
+      this.networkClient = new NetworkClient(options?.serverUrl)
+    }
   }
 
   async onSceneCreate(): Promise<void> {
-    this.room = await this.networkClient.connect('game')
+    if (!this.room) {
+      this.room = await this.networkClient!.connect('game')
+    }
 
     // @colyseus/schema v3: callbacks via getStateCallbacks wrapper
     this.$ = getStateCallbacks(this.room) as StateCallbacks
@@ -153,7 +160,7 @@ export class OnlineGameMode implements GameMode {
   }
 
   dispose(): void {
-    this.networkClient.disconnect()
+    this.networkClient?.disconnect()
     this.remoteUpdateCallbacks = []
     this.remoteJoinCallbacks = []
     this.remoteLeaveCallbacks = []

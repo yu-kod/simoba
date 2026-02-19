@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { type TestWindow, waitForTestApi, rightClickOnEnemy } from './helpers'
+import { type TestWindow, startOfflineGame, rightClickOnEnemy } from './helpers'
 
 // Killing enemy takes ~15s (BLADE 60dmg * 0.8atk/s vs 650HP) + 5s respawn
 test.describe('Death and Respawn', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await waitForTestApi(page)
+    await startOfflineGame(page)
   })
 
   test('enemy should die when HP reaches zero and respawn after timer', async ({ page }) => {

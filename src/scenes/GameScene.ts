@@ -19,9 +19,9 @@ import { InputHandler } from '@/scenes/InputHandler'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
-import type { HeroType } from '@/domain/types'
+import type { HeroType, Team, Position } from '@/domain/types'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
-import { OnlineGameMode } from '@/network/OnlineGameMode'
+import type { GameMode } from '@/network/GameMode'
 import { registerTestApi } from '@/test/e2eTestApi'
 
 const FREE_CAMERA_SPEED = 400
@@ -46,9 +46,18 @@ export class GameScene extends Phaser.Scene {
   private remoteRenderers = new Map<string, HeroRenderer>()
   private respawnText!: Phaser.GameObjects.Text
   private cameraFollowing = true
+  private gameMode: GameMode = new OfflineGameMode()
+  private localTeam: Team = 'blue'
+  private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
 
   constructor() {
     super({ key: 'GameScene' })
+  }
+
+  init(data?: { gameMode?: GameMode; localTeam?: Team; localPosition?: Position }): void {
+    this.gameMode = data?.gameMode ?? new OfflineGameMode()
+    this.localTeam = data?.localTeam ?? 'blue'
+    this.localSpawnPosition = data?.localPosition ?? { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
   }
 
   create(): void {
@@ -57,9 +66,14 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
     // Managers (Phaser-free)
+    const enemyTeam: Team = this.localTeam === 'blue' ? 'red' : 'blue'
+    const enemyPosition: Position = this.localTeam === 'blue'
+      ? { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 }
+      : { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+
     this.entityManager = new EntityManager(
-      { id: 'player-1', type: 'BLADE', team: 'blue', position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 } },
-      { id: 'enemy-1', type: 'BLADE', team: 'red', position: { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 } }
+      { id: 'player-1', type: 'BLADE', team: this.localTeam, position: this.localSpawnPosition },
+      { id: 'enemy-1', type: 'BLADE', team: enemyTeam, position: enemyPosition }
     )
     this.combatManager = new CombatManager(this.entityManager)
 
@@ -103,8 +117,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private initGameMode(): void {
-    const onlineMode = new OnlineGameMode()
-    this.networkBridge = new NetworkBridge(onlineMode, this.entityManager, this.combatManager, {
+    this.networkBridge = new NetworkBridge(this.gameMode, this.entityManager, this.combatManager, {
       onRemotePlayerAdded: (sessionId) => {
         const state = this.entityManager.getRemotePlayer(sessionId)
         if (state) this.remoteRenderers.set(sessionId, new HeroRenderer(this, state, false))
@@ -127,9 +140,9 @@ export class GameScene extends Phaser.Scene {
     })
     this.networkBridge.setupCallbacks()
 
-    onlineMode.onSceneCreate()
+    this.gameMode.onSceneCreate()
       .catch(() => {
-        onlineMode.dispose()
+        this.gameMode.dispose()
         this.networkBridge.replaceGameMode(new OfflineGameMode())
       })
   }
@@ -289,8 +302,8 @@ export class GameScene extends Phaser.Scene {
     this.entityManager.resetLocalHero({
       id: 'player-1',
       type,
-      team: 'blue',
-      position: { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 },
+      team: this.localTeam,
+      position: this.localSpawnPosition,
     })
 
     this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
