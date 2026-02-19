@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
-import { createMockCombatEntity, createMockAttackerEntity, createMockTowerEntity } from '@/test/helpers/entityHelpers'
+import { createMockCombatEntity, createMockTowerEntity } from '@/test/helpers/entityHelpers'
 
 const LOCAL_HERO_PARAMS = {
   id: 'player-1',
