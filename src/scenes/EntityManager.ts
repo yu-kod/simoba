@@ -108,6 +108,11 @@ export class EntityManager {
     return this.getEnemiesOf(this._localHero.team)
   }
 
+  /** All entities in the generic registry (towers, minions, etc.) */
+  get registeredEntities(): readonly CombatEntityState[] {
+    return [...this._entities.values()]
+  }
+
   getEntityRadius(id: string): number {
     const entity = this.getEntity(id)
     return entity?.radius ?? DEFAULT_ENTITY_RADIUS

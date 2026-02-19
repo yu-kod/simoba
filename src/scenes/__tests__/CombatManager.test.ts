@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
-import { createMockCombatEntity } from '@/test/helpers/entityHelpers'
+import { createMockCombatEntity, createMockTowerEntity } from '@/test/helpers/entityHelpers'
 
 const LOCAL_HERO_PARAMS = {
   id: 'player-1',
@@ -162,6 +162,60 @@ describe('CombatManager', () => {
       })
       expect(cm.projectiles).toHaveLength(1)
       expect(cm.projectiles[0]!.ownerId).toBe('remote-1')
+    })
+  })
+
+  describe('processTowerAttacks', () => {
+    it('returns empty events when no towers are registered', () => {
+      const { cm } = createManagers()
+      const events = cm.processTowerAttacks(0.016)
+      expect(events.damageEvents).toHaveLength(0)
+      expect(events.projectileSpawnEvents).toHaveLength(0)
+    })
+
+    it('spawns projectile when tower has enemy in range', () => {
+      const { em, cm } = createManagers()
+      // Register a red tower near the blue hero (player-1 at x:100)
+      const tower = createMockTowerEntity({
+        id: 'tower-red',
+        team: 'red',
+        position: { x: 300, y: 200 },
+      })
+      em.registerEntity(tower)
+
+      const events = cm.processTowerAttacks(0.016)
+      expect(events.projectileSpawnEvents).toHaveLength(1)
+      expect(events.projectileSpawnEvents[0]!.ownerId).toBe('tower-red')
+    })
+
+    it('skips dead towers', () => {
+      const { em, cm } = createManagers()
+      const deadTower = createMockTowerEntity({
+        id: 'tower-dead',
+        team: 'red',
+        position: { x: 300, y: 200 },
+        hp: 0,
+        dead: true,
+      })
+      em.registerEntity(deadTower)
+
+      const events = cm.processTowerAttacks(0.016)
+      expect(events.projectileSpawnEvents).toHaveLength(0)
+      expect(events.damageEvents).toHaveLength(0)
+    })
+
+    it('returns empty events when enemy is out of tower range', () => {
+      const { em, cm } = createManagers()
+      // Tower at x:2600, hero at x:100 — way out of range (350)
+      const tower = createMockTowerEntity({
+        id: 'tower-far',
+        team: 'red',
+        position: { x: 2600, y: 360 },
+      })
+      em.registerEntity(tower)
+
+      const events = cm.processTowerAttacks(0.016)
+      expect(events.projectileSpawnEvents).toHaveLength(0)
     })
   })
 
