@@ -97,14 +97,6 @@ export class GameScene extends Phaser.Scene {
     })
     this.entityManager.registerEntity(blueTower)
     this.entityManager.registerEntity(redTower)
-    this.combatManager.registerTowerDefinition('tower-blue', {
-      projectileSpeed: DEFAULT_TOWER.projectileSpeed,
-      projectileRadius: DEFAULT_TOWER.projectileRadius,
-    })
-    this.combatManager.registerTowerDefinition('tower-red', {
-      projectileSpeed: DEFAULT_TOWER.projectileSpeed,
-      projectileRadius: DEFAULT_TOWER.projectileRadius,
-    })
 
     // Renderers
     this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
@@ -361,7 +353,7 @@ export class GameScene extends Phaser.Scene {
   private syncTowerRenderers(): void {
     for (const [id, renderer] of this.towerRenderers) {
       const entity = this.entityManager.getEntity(id)
-      if (entity) {
+      if (entity && entity.entityType === 'tower') {
         renderer.sync(entity as TowerState)
       }
     }

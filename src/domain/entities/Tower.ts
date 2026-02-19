@@ -3,6 +3,8 @@ import type { AttackerEntityState, Position, Team } from '@/domain/types'
 
 export interface TowerState extends AttackerEntityState {
   readonly entityType: 'tower'
+  readonly projectileSpeed: number
+  readonly projectileRadius: number
 }
 
 interface CreateTowerParams {
@@ -27,5 +29,7 @@ export function createTowerState(params: CreateTowerParams): TowerState {
     facing: 0,
     attackCooldown: 0,
     attackTargetId: null,
+    projectileSpeed: definition.projectileSpeed,
+    projectileRadius: definition.projectileRadius,
   }
 }

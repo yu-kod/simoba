@@ -18,10 +18,10 @@ export function selectTowerTarget(
     const dx = enemy.position.x - tower.position.x
     const dy = enemy.position.y - tower.position.y
     const centerDistSq = dx * dx + dy * dy
-    const centerDist = Math.sqrt(centerDistSq)
-    const effectiveDist = centerDist - tower.radius - enemy.radius
 
-    if (effectiveDist > tower.stats.attackRange) continue
+    // Use squared distance to avoid Math.sqrt in hot path
+    const rangeThreshold = tower.stats.attackRange + tower.radius + enemy.radius
+    if (centerDistSq > rangeThreshold * rangeThreshold) continue
 
     if (centerDistSq < bestDistSq) {
       bestDistSq = centerDistSq

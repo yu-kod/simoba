@@ -36,16 +36,7 @@ const EMPTY_EVENTS: CombatEvents = {
 export class CombatManager {
   private _projectiles: ProjectileState[] = []
   private _nextProjectileId = 0
-  private readonly _towerDefinitions = new Map<string, { projectileSpeed: number; projectileRadius: number }>()
-
   constructor(private readonly entityManager: EntityManager) {}
-
-  registerTowerDefinition(
-    towerId: string,
-    def: { projectileSpeed: number; projectileRadius: number }
-  ): void {
-    this._towerDefinitions.set(towerId, def)
-  }
 
   get projectiles(): readonly ProjectileState[] {
     return this._projectiles
@@ -168,10 +159,6 @@ export class CombatManager {
         ? { ...tower, attackTargetId: target.id }
         : { ...tower, attackTargetId: null }
 
-      const def = this._towerDefinitions.get(tower.id)
-      const projSpeed = def?.projectileSpeed ?? 400
-      const projRadius = def?.projectileRadius ?? 5
-
       const targetRadius = target
         ? this.entityManager.getEntityRadius(target.id)
         : 0
@@ -182,8 +169,8 @@ export class CombatManager {
         deltaSeconds,
         tower.radius,
         targetRadius,
-        projSpeed,
-        projRadius
+        tower.projectileSpeed,
+        tower.projectileRadius
       )
 
       this.entityManager.updateEntity<TowerState>(tower.id, () => attackResult.entity)

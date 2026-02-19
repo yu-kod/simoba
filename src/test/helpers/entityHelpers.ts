@@ -1,4 +1,5 @@
 import type { CombatEntityState, AttackerEntityState } from '@/domain/types'
+import type { TowerState } from '@/domain/entities/Tower'
 
 export function createMockCombatEntity(
   overrides: Partial<CombatEntityState> = {}
@@ -38,6 +39,34 @@ export function createMockAttackerEntity(
     attackCooldown: 0,
     attackTargetId: null,
     facing: 0,
+    ...overrides,
+  }
+}
+
+export function createMockTowerEntity(
+  overrides: Partial<TowerState> = {}
+): TowerState {
+  return {
+    id: 'tower-1',
+    entityType: 'tower',
+    position: { x: 0, y: 0 },
+    team: 'red',
+    hp: 1500,
+    maxHp: 1500,
+    dead: false,
+    radius: 24,
+    stats: {
+      maxHp: 1500,
+      speed: 0,
+      attackDamage: 80,
+      attackRange: 350,
+      attackSpeed: 0.8,
+    },
+    attackCooldown: 0,
+    attackTargetId: null,
+    facing: 0,
+    projectileSpeed: 400,
+    projectileRadius: 5,
     ...overrides,
   }
 }

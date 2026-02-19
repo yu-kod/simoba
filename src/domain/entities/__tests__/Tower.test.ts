@@ -43,6 +43,11 @@ describe('createTowerState', () => {
     expect(blueTower.facing).toBe(0)
   })
 
+  it('should set projectile properties from definition', () => {
+    expect(blueTower.projectileSpeed).toBe(DEFAULT_TOWER.projectileSpeed)
+    expect(blueTower.projectileRadius).toBe(DEFAULT_TOWER.projectileRadius)
+  })
+
   it('should start with no attack target and zero cooldown', () => {
     expect(blueTower.attackCooldown).toBe(0)
     expect(blueTower.attackTargetId).toBeNull()
