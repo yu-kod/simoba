@@ -17,7 +17,6 @@
     "isolatedModules": true,
     "noEmit": true,
     "types": ["vitest/globals"],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"]
