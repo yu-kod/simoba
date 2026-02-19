@@ -8,7 +8,7 @@ export function renderMap(scene: Phaser.Scene): void {
   drawBackground(g)
   drawLane(g)
   drawBases(g)
-  drawTowers(g)
+  // Towers are now entity-based (TowerRenderer), not static map graphics
   drawBushes(g)
   drawBossSpawn(g)
 }
@@ -32,16 +32,6 @@ function drawBases(g: Phaser.GameObjects.Graphics): void {
 
   g.fillStyle(MAP_COLORS.bases.red, 1)
   g.fillRect(red.x, red.y, red.width, red.height)
-}
-
-function drawTowers(g: Phaser.GameObjects.Graphics): void {
-  const { blue, red } = MAP_LAYOUT.towers
-
-  g.fillStyle(MAP_COLORS.towers.blue, 1)
-  g.fillCircle(blue.x, blue.y, blue.radius)
-
-  g.fillStyle(MAP_COLORS.towers.red, 1)
-  g.fillCircle(red.x, red.y, red.radius)
 }
 
 function drawBushes(g: Phaser.GameObjects.Graphics): void {

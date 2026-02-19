@@ -1,5 +1,14 @@
 import type { Page, Locator } from '@playwright/test'
 
+export type TowerTestData = {
+  id: string
+  team: string
+  position: { x: number; y: number }
+  hp: number
+  maxHp: number
+  dead: boolean
+}
+
 export type TestApi = {
   getHeroType: () => string
   getHeroPosition: () => { x: number; y: number }
@@ -9,6 +18,8 @@ export type TestApi = {
   getEnemyPosition: () => { x: number; y: number }
   getEnemyDead: () => boolean
   getProjectileCount: () => number
+  getHeroAttackTarget: () => string | null
+  getTowers: () => TowerTestData[]
 }
 
 export type TestWindow = { __test__: TestApi }

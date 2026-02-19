@@ -1,5 +1,7 @@
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
+import type { TowerState } from '@/domain/entities/Tower'
 import { updateAttackState } from '@/domain/systems/updateAttackState'
+import { selectTowerTarget } from '@/domain/systems/towerTargeting'
 import { findClickTarget } from '@/domain/systems/findClickTarget'
 import { isInAttackRange } from '@/domain/systems/isInAttackRange'
 import { applyDamage } from '@/domain/systems/applyDamage'
@@ -34,8 +36,16 @@ const EMPTY_EVENTS: CombatEvents = {
 export class CombatManager {
   private _projectiles: ProjectileState[] = []
   private _nextProjectileId = 0
+  private readonly _towerDefinitions = new Map<string, { projectileSpeed: number; projectileRadius: number }>()
 
   constructor(private readonly entityManager: EntityManager) {}
+
+  registerTowerDefinition(
+    towerId: string,
+    def: { projectileSpeed: number; projectileRadius: number }
+  ): void {
+    this._towerDefinitions.set(towerId, def)
+  }
 
   get projectiles(): readonly ProjectileState[] {
     return this._projectiles
@@ -140,6 +150,81 @@ export class CombatManager {
     return { damageEvents, projectileSpawnEvents: [], meleeSwings: [] }
   }
 
+  processTowerAttacks(deltaSeconds: number): CombatEvents {
+    const towers = this.entityManager.registeredEntities.filter(
+      (e): e is TowerState => e.entityType === 'tower' && !e.dead
+    )
+
+    if (towers.length === 0) return EMPTY_EVENTS
+
+    const projectileSpawnEvents: ProjectileSpawnEvent[] = []
+    const damageEvents: Array<{ targetId: string; damage: number }> = []
+
+    for (const tower of towers) {
+      const enemies = this.entityManager.getEnemiesOf(tower.team)
+      const target = selectTowerTarget(tower, enemies)
+
+      const towerWithTarget: TowerState = target
+        ? { ...tower, attackTargetId: target.id }
+        : { ...tower, attackTargetId: null }
+
+      const def = this._towerDefinitions.get(tower.id)
+      const projSpeed = def?.projectileSpeed ?? 400
+      const projRadius = def?.projectileRadius ?? 5
+
+      const targetRadius = target
+        ? this.entityManager.getEntityRadius(target.id)
+        : 0
+
+      const attackResult = updateAttackState(
+        towerWithTarget,
+        target,
+        deltaSeconds,
+        tower.radius,
+        targetRadius,
+        projSpeed,
+        projRadius
+      )
+
+      this.entityManager.updateEntity<TowerState>(tower.id, () => attackResult.entity)
+
+      for (const spawn of attackResult.projectileSpawnEvents) {
+        this._projectiles.push(
+          createProjectile({
+            id: `tower-projectile-${this._nextProjectileId++}`,
+            ownerId: spawn.ownerId,
+            ownerTeam: spawn.ownerTeam,
+            targetId: spawn.targetId,
+            startPosition: spawn.startPosition,
+            damage: spawn.damage,
+            speed: spawn.speed,
+            radius: spawn.radius,
+          })
+        )
+        projectileSpawnEvents.push({
+          ownerId: spawn.ownerId,
+          ownerTeam: spawn.ownerTeam,
+          targetId: spawn.targetId,
+          startPosition: spawn.startPosition,
+          damage: spawn.damage,
+          speed: spawn.speed,
+          radius: spawn.radius,
+        })
+      }
+
+      for (const event of attackResult.damageEvents) {
+        this.applyLocalDamage(event.targetId, event.damage)
+        damageEvents.push({ targetId: event.targetId, damage: event.damage })
+      }
+    }
+
+    if (damageEvents.length === 0 && projectileSpawnEvents.length === 0) {
+      return EMPTY_EVENTS
+    }
+
+    return { damageEvents, projectileSpawnEvents, meleeSwings: [] }
+  }
+
   handleAttackInput(aimWorldPosition: Position): void {
     const hero = this.entityManager.localHero
     const enemies = this.entityManager.getEnemiesOf(hero.team)
@@ -216,6 +301,10 @@ export class CombatManager {
 
   applyLocalDamage(targetId: string, amount: number): void {
     const em = this.entityManager
+    if (targetId === em.localHero.id) {
+      em.updateLocalHero((h) => applyDamage(h, amount))
+      return
+    }
     if (targetId === em.enemy.id) {
       em.updateEnemy((e) => applyDamage(e, amount))
       return

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { registerTestApi, unregisterTestApi } from '@/test/e2eTestApi'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
+import { createTowerState } from '@/domain/entities/Tower'
+import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 
 describe('e2eTestApi', () => {
   let em: EntityManager
@@ -88,6 +90,29 @@ describe('e2eTestApi', () => {
   describe('getProjectileCount', () => {
     it('should return 0 when no projectiles', () => {
       expect(window.__test__!.getProjectileCount()).toBe(0)
+    })
+  })
+
+  describe('getTowers', () => {
+    it('should return empty array when no towers registered', () => {
+      expect(window.__test__!.getTowers()).toEqual([])
+    })
+
+    it('should return registered towers', () => {
+      const tower = createTowerState({
+        id: 'tower-blue',
+        team: 'blue',
+        position: { x: 600, y: 360 },
+        definition: DEFAULT_TOWER,
+      })
+      em.registerEntity(tower)
+      const towers = window.__test__!.getTowers()
+      expect(towers).toHaveLength(1)
+      expect(towers[0].id).toBe('tower-blue')
+      expect(towers[0].team).toBe('blue')
+      expect(towers[0].position).toEqual({ x: 600, y: 360 })
+      expect(towers[0].hp).toBe(towers[0].maxHp)
+      expect(towers[0].dead).toBe(false)
     })
   })
 })

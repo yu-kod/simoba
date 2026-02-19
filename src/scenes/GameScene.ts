@@ -22,6 +22,10 @@ import { NetworkBridge } from '@/scenes/NetworkBridge'
 import type { HeroType, Team, Position } from '@/domain/types'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode } from '@/network/GameMode'
+import { createTowerState, type TowerState } from '@/domain/entities/Tower'
+import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
+import { MAP_LAYOUT } from '@/domain/mapLayout'
+import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
 import { registerTestApi } from '@/test/e2eTestApi'
 
 const FREE_CAMERA_SPEED = 400
@@ -44,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   private meleeSwing!: MeleeSwingRenderer
   private projectileRenderer!: ProjectileRenderer
   private remoteRenderers = new Map<string, HeroRenderer>()
+  private towerRenderers = new Map<string, TowerRenderer>()
   private respawnText!: Phaser.GameObjects.Text
   private cameraFollowing = true
   private gameMode: GameMode = new OfflineGameMode()
@@ -77,11 +82,37 @@ export class GameScene extends Phaser.Scene {
     )
     this.combatManager = new CombatManager(this.entityManager)
 
+    // Towers
+    const blueTower = createTowerState({
+      id: 'tower-blue',
+      team: 'blue',
+      position: { x: MAP_LAYOUT.towers.blue.x, y: MAP_LAYOUT.towers.blue.y },
+      definition: DEFAULT_TOWER,
+    })
+    const redTower = createTowerState({
+      id: 'tower-red',
+      team: 'red',
+      position: { x: MAP_LAYOUT.towers.red.x, y: MAP_LAYOUT.towers.red.y },
+      definition: DEFAULT_TOWER,
+    })
+    this.entityManager.registerEntity(blueTower)
+    this.entityManager.registerEntity(redTower)
+    this.combatManager.registerTowerDefinition('tower-blue', {
+      projectileSpeed: DEFAULT_TOWER.projectileSpeed,
+      projectileRadius: DEFAULT_TOWER.projectileRadius,
+    })
+    this.combatManager.registerTowerDefinition('tower-red', {
+      projectileSpeed: DEFAULT_TOWER.projectileSpeed,
+      projectileRadius: DEFAULT_TOWER.projectileRadius,
+    })
+
     // Renderers
     this.heroRenderer = new HeroRenderer(this, this.entityManager.localHero, true)
     this.enemyRenderer = new HeroRenderer(this, this.entityManager.enemy, false)
     this.meleeSwing = new MeleeSwingRenderer(this)
     this.projectileRenderer = new ProjectileRenderer(this)
+    this.towerRenderers.set('tower-blue', new TowerRenderer(this, blueTower, this.localTeam === 'blue'))
+    this.towerRenderers.set('tower-red', new TowerRenderer(this, redTower, this.localTeam === 'red'))
 
     this.cameras.main.startFollow(this.heroRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
 
@@ -131,11 +162,7 @@ export class GameScene extends Phaser.Scene {
         if (state) this.remoteRenderers.get(sessionId)?.sync(state)
       },
       onDamageApplied: (targetId) => {
-        if (targetId === this.entityManager.enemy.id) {
-          this.enemyRenderer.flash()
-        } else {
-          this.remoteRenderers.get(targetId)?.flash()
-        }
+        this.flashEntityRenderer(targetId)
       },
     })
     this.networkBridge.setupCallbacks()
@@ -167,14 +194,13 @@ export class GameScene extends Phaser.Scene {
         this.entityManager.updateLocalHero((h) => ({ ...h, attackTargetId: null }))
       }
 
-      // Combat
+      // Hero combat
       const attackEvents = this.combatManager.processAttack(deltaSeconds)
-      const projectileEvents = this.combatManager.processProjectiles(deltaSeconds)
 
-      // Network events + effects
+      // Hero attack events + effects
       for (const e of attackEvents.damageEvents) {
         this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
-        this.enemyRenderer.flash()
+        this.flashEntityRenderer(e.targetId)
       }
       for (const swing of attackEvents.meleeSwings) {
         this.meleeSwing.play(swing)
@@ -186,10 +212,6 @@ export class GameScene extends Phaser.Scene {
           damage: spawn.damage,
           speed: spawn.speed,
         })
-      }
-      for (const e of projectileEvents.damageEvents) {
-        this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
-        this.enemyRenderer.flash()
       }
 
       // Facing
@@ -219,6 +241,28 @@ export class GameScene extends Phaser.Scene {
       this.updateFreeCamera(input.movement, deltaSeconds)
     }
 
+    // --- Tower combat (always processed) ---
+    const towerEvents = this.combatManager.processTowerAttacks(deltaSeconds)
+    for (const spawn of towerEvents.projectileSpawnEvents) {
+      this.networkBridge.sendProjectileSpawn({
+        targetId: spawn.targetId,
+        startPosition: spawn.startPosition,
+        damage: spawn.damage,
+        speed: spawn.speed,
+      })
+    }
+    for (const e of towerEvents.damageEvents) {
+      this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
+      this.flashEntityRenderer(e.targetId)
+    }
+
+    // --- Projectile resolution (always processed) ---
+    const projectileEvents = this.combatManager.processProjectiles(deltaSeconds)
+    for (const e of projectileEvents.damageEvents) {
+      this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
+      this.flashEntityRenderer(e.targetId)
+    }
+
     // --- Respawn timer UI ---
     this.updateRespawnUI()
 
@@ -229,8 +273,12 @@ export class GameScene extends Phaser.Scene {
     for (const renderer of this.remoteRenderers.values()) {
       renderer.update(delta)
     }
+    for (const renderer of this.towerRenderers.values()) {
+      renderer.update(delta)
+    }
     this.heroRenderer.sync(this.entityManager.localHero)
     this.enemyRenderer.sync(this.entityManager.enemy)
+    this.syncTowerRenderers()
     this.projectileRenderer.draw(this.combatManager.projectiles)
 
     this.networkBridge.sendLocalState()
@@ -290,6 +338,32 @@ export class GameScene extends Phaser.Scene {
       this.respawnText.setVisible(true)
     } else {
       this.respawnText.setVisible(false)
+    }
+  }
+
+  private flashEntityRenderer(targetId: string): void {
+    if (targetId === this.entityManager.localHero.id) {
+      this.heroRenderer.flash()
+      return
+    }
+    if (targetId === this.entityManager.enemy.id) {
+      this.enemyRenderer.flash()
+      return
+    }
+    const remoteRenderer = this.remoteRenderers.get(targetId)
+    if (remoteRenderer) {
+      remoteRenderer.flash()
+      return
+    }
+    this.towerRenderers.get(targetId)?.flash()
+  }
+
+  private syncTowerRenderers(): void {
+    for (const [id, renderer] of this.towerRenderers) {
+      const entity = this.entityManager.getEntity(id)
+      if (entity) {
+        renderer.sync(entity as TowerState)
+      }
     }
   }
 
