@@ -1,5 +1,37 @@
-import type { CombatEntityState, AttackerEntityState } from '@/domain/types'
+import type { CombatEntityState, AttackerEntityState, HeroType, Team, Position } from '@/domain/types'
 import type { TowerState } from '@/domain/entities/Tower'
+import { EntityManager } from '@/scenes/EntityManager'
+import { CombatManager } from '@/scenes/CombatManager'
+
+interface CreateTestEntityManagerOptions {
+  readonly localHeroId?: string
+  readonly localHeroType?: HeroType
+  readonly localTeam?: Team
+  readonly localPosition?: Position
+  readonly enemyId?: string
+  readonly enemyType?: HeroType
+  readonly enemyTeam?: Team
+  readonly enemyPosition?: Position
+}
+
+export function createTestEntityManager(options: CreateTestEntityManagerOptions = {}) {
+  const em = new EntityManager(
+    {
+      id: options.localHeroId ?? 'player-1',
+      type: options.localHeroType ?? 'BLADE',
+      team: options.localTeam ?? 'blue',
+      position: options.localPosition ?? { x: 100, y: 200 },
+    },
+    {
+      id: options.enemyId ?? 'enemy-1',
+      type: options.enemyType ?? 'BLADE',
+      team: options.enemyTeam ?? 'red',
+      position: options.enemyPosition ?? { x: 300, y: 200 },
+    }
+  )
+  const cm = new CombatManager(em)
+  return { em, cm }
+}
 
 export function createMockCombatEntity(
   overrides: Partial<CombatEntityState> = {}

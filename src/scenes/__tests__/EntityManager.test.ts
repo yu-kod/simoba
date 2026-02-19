@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { EntityManager } from '@/scenes/EntityManager'
+import type { HeroState } from '@/domain/entities/Hero'
 import type { RemotePlayerState } from '@/network/GameMode'
 import { createMockCombatEntity } from '@/test/helpers/entityHelpers'
 
@@ -25,29 +26,40 @@ describe('EntityManager', () => {
   describe('initialization', () => {
     it('creates local hero with correct params', () => {
       const em = createManager()
-      expect(em.localHero.id).toBe('player-1')
-      expect(em.localHero.type).toBe('BLADE')
-      expect(em.localHero.team).toBe('blue')
-      expect(em.localHero.position).toEqual({ x: 100, y: 200 })
+      const hero = em.getEntity('player-1') as HeroState
+      expect(hero.id).toBe('player-1')
+      expect(hero.type).toBe('BLADE')
+      expect(hero.team).toBe('blue')
+      expect(hero.position).toEqual({ x: 100, y: 200 })
     })
 
     it('creates enemy with correct params', () => {
       const em = createManager()
-      expect(em.enemy.id).toBe('enemy-1')
-      expect(em.enemy.type).toBe('BLADE')
-      expect(em.enemy.team).toBe('red')
+      const enemy = em.getEntity('enemy-1') as HeroState
+      expect(enemy.id).toBe('enemy-1')
+      expect(enemy.type).toBe('BLADE')
+      expect(enemy.team).toBe('red')
+    })
+
+    it('sets localHeroId to the first hero', () => {
+      const em = createManager()
+      expect(em.localHeroId).toBe('player-1')
     })
   })
 
   describe('getEntity', () => {
     it('returns local hero by id', () => {
       const em = createManager()
-      expect(em.getEntity('player-1')).toBe(em.localHero)
+      const hero = em.getEntity('player-1')
+      expect(hero).not.toBeNull()
+      expect(hero!.id).toBe('player-1')
     })
 
     it('returns enemy by id', () => {
       const em = createManager()
-      expect(em.getEntity('enemy-1')).toBe(em.enemy)
+      const enemy = em.getEntity('enemy-1')
+      expect(enemy).not.toBeNull()
+      expect(enemy!.id).toBe('enemy-1')
     })
 
     it('returns null for unknown id', () => {
@@ -70,25 +82,113 @@ describe('EntityManager', () => {
     })
   })
 
-  describe('getEnemies', () => {
-    it('returns array containing the enemy', () => {
+  describe('getHeroes', () => {
+    it('returns all heroes', () => {
       const em = createManager()
-      const enemies = em.getEnemies()
+      const heroes = em.getHeroes()
+      expect(heroes).toHaveLength(2)
+      expect(heroes.map((h) => h.id).sort()).toEqual(['enemy-1', 'player-1'])
+    })
+
+    it('includes remote heroes', () => {
+      const em = createManager()
+      em.addRemotePlayer({
+        sessionId: 'remote-1', x: 0, y: 0, facing: 0,
+        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red',
+      })
+      const heroes = em.getHeroes()
+      expect(heroes).toHaveLength(3)
+    })
+
+    it('does not include non-hero entities', () => {
+      const em = createManager()
+      em.registerEntity(createMockCombatEntity({ id: 'tower-1', entityType: 'tower' }))
+      const heroes = em.getHeroes()
+      expect(heroes).toHaveLength(2)
+    })
+
+    it('includes dead heroes', () => {
+      const em = createManager()
+      em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, dead: true, respawnTimer: 5 }))
+      const heroes = em.getHeroes()
+      expect(heroes).toHaveLength(2)
+    })
+  })
+
+  describe('allEntities', () => {
+    it('returns all registered entities', () => {
+      const em = createManager()
+      em.registerEntity(createMockCombatEntity({ id: 'tower-1', entityType: 'tower' }))
+      const all = em.allEntities
+      expect(all).toHaveLength(3) // 2 heroes + 1 tower
+    })
+  })
+
+  describe('getEnemiesOf', () => {
+    it('returns enemies of blue team', () => {
+      const em = createManager()
+      const enemies = em.getEnemiesOf('blue')
       expect(enemies).toHaveLength(1)
       expect(enemies[0]!.id).toBe('enemy-1')
     })
 
-    it('excludes dead enemy', () => {
+    it('returns enemies of red team (includes localHero)', () => {
       const em = createManager()
-      em.updateEnemy((e) => ({ ...e, dead: true, respawnTimer: 5 }))
-      expect(em.getEnemies()).toHaveLength(0)
+      const enemies = em.getEnemiesOf('red')
+      expect(enemies).toHaveLength(1)
+      expect(enemies[0]!.id).toBe('player-1')
     })
 
-    it('includes enemy after respawn', () => {
+    it('includes registry entities as enemies', () => {
       const em = createManager()
-      em.updateEnemy((e) => ({ ...e, dead: true }))
-      em.updateEnemy((e) => ({ ...e, dead: false }))
-      expect(em.getEnemies()).toHaveLength(1)
+      const tower = createMockCombatEntity({
+        id: 'tower-1',
+        entityType: 'tower',
+        team: 'red',
+        hp: 500,
+        maxHp: 500,
+      })
+      em.registerEntity(tower)
+      const enemies = em.getEnemiesOf('blue')
+      expect(enemies.some((e) => e.id === 'tower-1')).toBe(true)
+    })
+
+    it('excludes dead entities', () => {
+      const em = createManager()
+      em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, dead: true, respawnTimer: 5 }))
+      expect(em.getEnemiesOf('blue')).toHaveLength(0)
+    })
+
+    it('includes after respawn', () => {
+      const em = createManager()
+      em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, dead: true }))
+      em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, dead: false }))
+      expect(em.getEnemiesOf('blue')).toHaveLength(1)
+    })
+
+    it('neutral entities are enemies of both teams', () => {
+      const em = createManager()
+      const boss = createMockCombatEntity({
+        id: 'boss-1',
+        entityType: 'boss',
+        team: 'neutral',
+        hp: 1000,
+        maxHp: 1000,
+      })
+      em.registerEntity(boss)
+      expect(em.getEnemiesOf('blue').some((e) => e.id === 'boss-1')).toBe(true)
+      expect(em.getEnemiesOf('red').some((e) => e.id === 'boss-1')).toBe(true)
+    })
+
+    it('excludes dead registry entities', () => {
+      const em = createManager()
+      const tower = createMockCombatEntity({
+        id: 'tower-1',
+        team: 'red',
+        dead: true,
+      })
+      em.registerEntity(tower)
+      expect(em.getEnemiesOf('blue').some((e) => e.id === 'tower-1')).toBe(false)
     })
   })
 
@@ -116,35 +216,65 @@ describe('EntityManager', () => {
       const em = createManager()
       expect(em.getEntityRadius('unknown')).toBe(20)
     })
-  })
 
-  describe('updateLocalHero', () => {
-    it('applies updater function immutably', () => {
+    it('returns radius from registered entity', () => {
       const em = createManager()
-      const original = em.localHero
-      em.updateLocalHero((h) => ({ ...h, facing: 1.5 }))
-      expect(em.localHero.facing).toBe(1.5)
-      expect(em.localHero).not.toBe(original)
+      const tower = createMockCombatEntity({ id: 'tower-1', radius: 30 })
+      em.registerEntity(tower)
+      expect(em.getEntityRadius('tower-1')).toBe(30)
     })
   })
 
-  describe('updateEnemy', () => {
-    it('applies updater function immutably', () => {
+  describe('updateEntity', () => {
+    it('applies updater function immutably to hero', () => {
       const em = createManager()
-      const original = em.enemy
-      em.updateEnemy((e) => ({ ...e, hp: 50 }))
-      expect(em.enemy.hp).toBe(50)
-      expect(em.enemy).not.toBe(original)
+      const original = em.getEntity('player-1')
+      em.updateEntity<HeroState>('player-1', (h) => ({ ...h, facing: 1.5 }))
+      const updated = em.getEntity('player-1') as HeroState
+      expect(updated.facing).toBe(1.5)
+      expect(updated).not.toBe(original)
+    })
+
+    it('applies updater function immutably to enemy', () => {
+      const em = createManager()
+      const original = em.getEntity('enemy-1')
+      em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, hp: 50 }))
+      const updated = em.getEntity('enemy-1')
+      expect(updated!.hp).toBe(50)
+      expect(updated).not.toBe(original)
+    })
+
+    it('applies updater to registry entities', () => {
+      const em = createManager()
+      const tower = createMockCombatEntity({ id: 'tower-1', hp: 500, maxHp: 500 })
+      em.registerEntity(tower)
+      em.updateEntity('tower-1', (e) => ({ ...e, hp: 400 }))
+      const updated = em.getEntity('tower-1')
+      expect(updated).not.toBe(tower)
+      expect(updated!.hp).toBe(400)
+    })
+
+    it('does nothing for unknown id', () => {
+      const em = createManager()
+      em.updateEntity('unknown', (e) => ({ ...e, hp: 0 }))
+      expect(em.getEntity('unknown')).toBeNull()
     })
   })
 
-  describe('resetLocalHero', () => {
-    it('creates a fresh hero state', () => {
+  describe('registerEntity / removeEntity', () => {
+    it('registerEntity adds entity', () => {
       const em = createManager()
-      em.updateLocalHero((h) => ({ ...h, hp: 10 }))
-      em.resetLocalHero({ ...LOCAL_HERO_PARAMS, type: 'BOLT' })
-      expect(em.localHero.type).toBe('BOLT')
-      expect(em.localHero.hp).toBe(em.localHero.maxHp)
+      const tower = createMockCombatEntity({ id: 'tower-1', entityType: 'tower', team: 'red' })
+      em.registerEntity(tower)
+      expect(em.getEntity('tower-1')).toBe(tower)
+    })
+
+    it('removeEntity removes entity', () => {
+      const em = createManager()
+      const tower = createMockCombatEntity({ id: 'tower-1' })
+      em.registerEntity(tower)
+      em.removeEntity('tower-1')
+      expect(em.getEntity('tower-1')).toBeNull()
     })
   })
 
@@ -156,13 +286,15 @@ describe('EntityManager', () => {
       heroType: 'AURA', team: 'red',
     }
 
-    it('addRemotePlayer creates hero state and returns it', () => {
+    it('addRemotePlayer creates hero state in single Map', () => {
       const em = createManager()
       const state = em.addRemotePlayer(remote)
       expect(state.id).toBe('sess-1')
       expect(state.type).toBe('AURA')
       expect(state.team).toBe('red')
       expect(state.position).toEqual({ x: 400, y: 300 })
+      // Verify it's in the same Map via getEntity
+      expect(em.getEntity('sess-1')).not.toBeNull()
     })
 
     it('removeRemotePlayer returns true for existing player', () => {
@@ -193,155 +325,6 @@ describe('EntityManager', () => {
     it('updateRemotePlayer returns null for non-existing player', () => {
       const em = createManager()
       expect(em.updateRemotePlayer(remote)).toBeNull()
-    })
-
-    it('applyDamageToRemote reduces hp', () => {
-      const em = createManager()
-      em.addRemotePlayer(remote)
-      const result = em.applyDamageToRemote('sess-1', 30)
-      expect(result).not.toBeNull()
-      // AURA base maxHp = 500, so 500 - 30 = 470
-      expect(result!.hp).toBe(470)
-    })
-
-    it('applyDamageToRemote clamps hp to 0', () => {
-      const em = createManager()
-      em.addRemotePlayer(remote)
-      const result = em.applyDamageToRemote('sess-1', 9999)
-      expect(result!.hp).toBe(0)
-    })
-
-    it('applyDamageToRemote returns null for non-existing player', () => {
-      const em = createManager()
-      expect(em.applyDamageToRemote('unknown', 10)).toBeNull()
-    })
-  })
-
-  describe('entity registry', () => {
-    it('registerEntity adds entity to registry', () => {
-      const em = createManager()
-      const tower = createMockCombatEntity({
-        id: 'tower-1',
-        entityType: 'tower',
-        team: 'red',
-        hp: 500,
-        maxHp: 500,
-        radius: 30,
-      })
-      em.registerEntity(tower)
-      expect(em.getEntity('tower-1')).toBe(tower)
-    })
-
-    it('removeEntity removes entity from registry', () => {
-      const em = createManager()
-      const tower = createMockCombatEntity({ id: 'tower-1' })
-      em.registerEntity(tower)
-      em.removeEntity('tower-1')
-      expect(em.getEntity('tower-1')).toBeNull()
-    })
-
-    it('updateEntity applies updater immutably', () => {
-      const em = createManager()
-      const tower = createMockCombatEntity({ id: 'tower-1', hp: 500, maxHp: 500 })
-      em.registerEntity(tower)
-      em.updateEntity('tower-1', (e) => ({ ...e, hp: 400 }))
-      const updated = em.getEntity('tower-1')
-      expect(updated).not.toBe(tower)
-      expect(updated!.hp).toBe(400)
-    })
-
-    it('updateEntity does nothing for unknown id', () => {
-      const em = createManager()
-      em.updateEntity('unknown', (e) => ({ ...e, hp: 0 }))
-      expect(em.getEntity('unknown')).toBeNull()
-    })
-
-    it('getEntity searches heroes before registry', () => {
-      const em = createManager()
-      expect(em.getEntity('player-1')).toBe(em.localHero)
-    })
-
-    it('getEntity falls through to registry', () => {
-      const em = createManager()
-      const minion = createMockCombatEntity({ id: 'minion-1', entityType: 'minion' })
-      em.registerEntity(minion)
-      expect(em.getEntity('minion-1')).toBe(minion)
-    })
-  })
-
-  describe('getEnemiesOf', () => {
-    it('returns enemies of blue team', () => {
-      const em = createManager()
-      const enemies = em.getEnemiesOf('blue')
-      expect(enemies).toHaveLength(1)
-      expect(enemies[0]!.id).toBe('enemy-1')
-    })
-
-    it('returns enemies of red team (includes localHero)', () => {
-      const em = createManager()
-      const enemies = em.getEnemiesOf('red')
-      // localHero is blue, so it IS an enemy of red
-      expect(enemies).toHaveLength(1)
-      expect(enemies[0]!.id).toBe('player-1')
-    })
-
-    it('includes registry entities as enemies', () => {
-      const em = createManager()
-      const tower = createMockCombatEntity({
-        id: 'tower-1',
-        entityType: 'tower',
-        team: 'red',
-        hp: 500,
-        maxHp: 500,
-      })
-      em.registerEntity(tower)
-      const enemies = em.getEnemiesOf('blue')
-      expect(enemies.some((e) => e.id === 'tower-1')).toBe(true)
-    })
-
-    it('excludes dead registry entities', () => {
-      const em = createManager()
-      const tower = createMockCombatEntity({
-        id: 'tower-1',
-        team: 'red',
-        dead: true,
-      })
-      em.registerEntity(tower)
-      const enemies = em.getEnemiesOf('blue')
-      expect(enemies.some((e) => e.id === 'tower-1')).toBe(false)
-    })
-
-    it('neutral entities are enemies of both teams', () => {
-      const em = createManager()
-      const boss = createMockCombatEntity({
-        id: 'boss-1',
-        entityType: 'boss',
-        team: 'neutral',
-        hp: 1000,
-        maxHp: 1000,
-      })
-      em.registerEntity(boss)
-      expect(em.getEnemiesOf('blue').some((e) => e.id === 'boss-1')).toBe(true)
-      expect(em.getEnemiesOf('red').some((e) => e.id === 'boss-1')).toBe(true)
-    })
-
-    it('getEnemies delegates to getEnemiesOf(localHero.team)', () => {
-      const em = createManager()
-      expect(em.getEnemies()).toEqual(em.getEnemiesOf('blue'))
-    })
-  })
-
-  describe('getEntityRadius (simplified)', () => {
-    it('returns radius from entity state directly', () => {
-      const em = createManager()
-      const tower = createMockCombatEntity({ id: 'tower-1', radius: 30 })
-      em.registerEntity(tower)
-      expect(em.getEntityRadius('tower-1')).toBe(30)
-    })
-
-    it('returns default radius for unknown entity', () => {
-      const em = createManager()
-      expect(em.getEntityRadius('unknown')).toBe(20)
     })
   })
 })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
+import type { HeroState } from '@/domain/entities/Hero'
 import { createMockCombatEntity, createMockTowerEntity } from '@/test/helpers/entityHelpers'
 
 const LOCAL_HERO_PARAMS = {
@@ -35,8 +36,7 @@ describe('CombatManager', () => {
 
     it('produces melee damage event when BLADE attacks in range', () => {
       const { em, cm } = createManagers()
-      // Set attack target
-      em.updateLocalHero((h) => ({ ...h, attackTargetId: 'enemy-1', attackCooldown: 0 }))
+      em.updateEntity<HeroState>('player-1', (h) => ({ ...h, attackTargetId: 'enemy-1', attackCooldown: 0 }))
 
       const events = cm.processAttack(0.016)
       expect(events.damageEvents).toHaveLength(1)
@@ -47,10 +47,11 @@ describe('CombatManager', () => {
 
     it('applies damage to enemy through EntityManager', () => {
       const { em, cm } = createManagers()
-      em.updateLocalHero((h) => ({ ...h, attackTargetId: 'enemy-1', attackCooldown: 0 }))
+      em.updateEntity<HeroState>('player-1', (h) => ({ ...h, attackTargetId: 'enemy-1', attackCooldown: 0 }))
 
       cm.processAttack(0.016)
-      expect(em.enemy.hp).toBe(650 - 60) // BLADE maxHp - BLADE attackDamage
+      const enemy = em.getEntity('enemy-1')!
+      expect(enemy.hp).toBe(650 - 60) // BLADE maxHp - BLADE attackDamage
     })
 
     it('produces projectile spawn for BOLT hero', () => {
@@ -60,7 +61,7 @@ describe('CombatManager', () => {
       )
       const cm = new CombatManager(em)
 
-      em.updateLocalHero((h) => ({ ...h, attackTargetId: 'enemy-1', attackCooldown: 0 }))
+      em.updateEntity<HeroState>('player-1', (h) => ({ ...h, attackTargetId: 'enemy-1', attackCooldown: 0 }))
       const events = cm.processAttack(0.016)
 
       expect(events.projectileSpawnEvents).toHaveLength(1)
@@ -85,17 +86,17 @@ describe('CombatManager', () => {
   describe('handleAttackInput', () => {
     it('sets attack target when clicking enemy in range', () => {
       const { em, cm } = createManagers()
-      // Enemy is at (140, 200), within BLADE attack range
       cm.handleAttackInput({ x: 140, y: 200 })
-      expect(em.localHero.attackTargetId).toBe('enemy-1')
+      const hero = em.getEntity('player-1') as HeroState
+      expect(hero.attackTargetId).toBe('enemy-1')
     })
 
     it('faces click direction on ground click', () => {
       const { em, cm } = createManagers()
-      // Click far from enemy (ground click)
       cm.handleAttackInput({ x: 1000, y: 200 })
-      expect(em.localHero.attackTargetId).toBeNull()
-      expect(em.localHero.facing).toBeCloseTo(0) // Right direction
+      const hero = em.getEntity('player-1') as HeroState
+      expect(hero.attackTargetId).toBeNull()
+      expect(hero.facing).toBeCloseTo(0)
     })
 
     it('faces enemy when clicking out of range enemy', () => {
@@ -106,30 +107,37 @@ describe('CombatManager', () => {
       const cm = new CombatManager(em)
 
       cm.handleAttackInput({ x: 500, y: 200 })
-      expect(em.localHero.attackTargetId).toBeNull()
-      expect(em.localHero.facing).toBeCloseTo(0) // Facing right toward enemy
+      const hero = em.getEntity('player-1') as HeroState
+      expect(hero.attackTargetId).toBeNull()
+      expect(hero.facing).toBeCloseTo(0)
     })
   })
 
   describe('applyLocalDamage', () => {
-    it('reduces enemy HP', () => {
+    it('reduces enemy HP via unified path', () => {
       const { em, cm } = createManagers()
       cm.applyLocalDamage('enemy-1', 50)
-      expect(em.enemy.hp).toBe(600)
+      expect(em.getEntity('enemy-1')!.hp).toBe(600)
     })
 
-    it('reduces remote player HP', () => {
+    it('reduces local hero HP via unified path', () => {
+      const { em, cm } = createManagers()
+      cm.applyLocalDamage('player-1', 50)
+      expect(em.getEntity('player-1')!.hp).toBe(600)
+    })
+
+    it('reduces remote player HP via unified path', () => {
       const { em, cm } = createManagers()
       em.addRemotePlayer({
         sessionId: 'remote-1', x: 0, y: 0, facing: 0,
         hp: 100, maxHp: 100, heroType: 'BLADE', team: 'red',
       })
       cm.applyLocalDamage('remote-1', 50)
-      const remote = em.getRemotePlayer('remote-1')
+      const remote = em.getEntity('remote-1')
       expect(remote!.hp).toBe(600) // BLADE maxHp 650 - 50
     })
 
-    it('reduces registry entity HP', () => {
+    it('reduces registry entity HP via unified path', () => {
       const { em, cm } = createManagers()
       const tower = createMockCombatEntity({
         id: 'tower-1',
@@ -175,7 +183,6 @@ describe('CombatManager', () => {
 
     it('spawns projectile when tower has enemy in range', () => {
       const { em, cm } = createManagers()
-      // Register a red tower near the blue hero (player-1 at x:100)
       const tower = createMockTowerEntity({
         id: 'tower-red',
         team: 'red',
@@ -206,7 +213,6 @@ describe('CombatManager', () => {
 
     it('returns empty events when enemy is out of tower range', () => {
       const { em, cm } = createManagers()
-      // Tower at x:2600, hero at x:100 — way out of range (350)
       const tower = createMockTowerEntity({
         id: 'tower-far',
         team: 'red',

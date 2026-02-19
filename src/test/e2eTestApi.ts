@@ -1,3 +1,4 @@
+import type { HeroState } from '@/domain/entities/Hero'
 import type { EntityManager } from '@/scenes/EntityManager'
 import type { CombatManager } from '@/scenes/CombatManager'
 
@@ -29,34 +30,43 @@ declare global {
   }
 }
 
+function getLocalHero(entityManager: EntityManager): HeroState {
+  return entityManager.getEntity(entityManager.localHeroId) as HeroState
+}
+
+function getEnemyHero(entityManager: EntityManager): HeroState {
+  const heroes = entityManager.getHeroes()
+  return heroes.find((h) => h.id !== entityManager.localHeroId)!
+}
+
 export function registerTestApi(
   entityManager: EntityManager,
   combatManager: CombatManager
 ): void {
   window.__test__ = {
-    getHeroType: () => entityManager.localHero.type,
+    getHeroType: () => getLocalHero(entityManager).type,
     getHeroPosition: () => {
-      const { x, y } = entityManager.localHero.position
+      const { x, y } = getLocalHero(entityManager).position
       return { x, y }
     },
-    getHeroHp: () => ({
-      current: entityManager.localHero.hp,
-      max: entityManager.localHero.maxHp,
-    }),
-    getHeroDead: () => entityManager.localHero.dead,
-    getEnemyHp: () => ({
-      current: entityManager.enemy.hp,
-      max: entityManager.enemy.maxHp,
-    }),
+    getHeroHp: () => {
+      const hero = getLocalHero(entityManager)
+      return { current: hero.hp, max: hero.maxHp }
+    },
+    getHeroDead: () => getLocalHero(entityManager).dead,
+    getEnemyHp: () => {
+      const enemy = getEnemyHero(entityManager)
+      return { current: enemy.hp, max: enemy.maxHp }
+    },
     getEnemyPosition: () => {
-      const { x, y } = entityManager.enemy.position
+      const { x, y } = getEnemyHero(entityManager).position
       return { x, y }
     },
-    getEnemyDead: () => entityManager.enemy.dead,
+    getEnemyDead: () => getEnemyHero(entityManager).dead,
     getProjectileCount: () => combatManager.projectiles.length,
-    getHeroAttackTarget: () => entityManager.localHero.attackTargetId,
+    getHeroAttackTarget: () => getLocalHero(entityManager).attackTargetId,
     getTowers: () =>
-      entityManager.registeredEntities
+      entityManager.allEntities
         .filter((e) => e.entityType === 'tower')
         .map((t) => ({
           id: t.id,

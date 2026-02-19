@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { registerTestApi, unregisterTestApi } from '@/test/e2eTestApi'
 import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
+import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 
@@ -36,8 +37,8 @@ describe('e2eTestApi', () => {
       expect(window.__test__!.getHeroType()).toBe('BLADE')
     })
 
-    it('should reflect hero type changes', () => {
-      em.resetLocalHero({ id: 'player-1', type: 'BOLT', team: 'blue', position: { x: 0, y: 0 } })
+    it('should reflect hero type changes via registerEntity', () => {
+      em.registerEntity(createHeroState({ id: 'player-1', type: 'BOLT', team: 'blue', position: { x: 0, y: 0 } }))
       expect(window.__test__!.getHeroType()).toBe('BOLT')
     })
   })
@@ -50,7 +51,7 @@ describe('e2eTestApi', () => {
     })
 
     it('should reflect position changes', () => {
-      em.updateLocalHero((h) => ({ ...h, position: { x: 300, y: 400 } }))
+      em.updateEntity<HeroState>('player-1', (h) => ({ ...h, position: { x: 300, y: 400 } }))
       const pos = window.__test__!.getHeroPosition()
       expect(pos.x).toBe(300)
       expect(pos.y).toBe(400)
@@ -73,7 +74,7 @@ describe('e2eTestApi', () => {
     })
 
     it('should reflect damage', () => {
-      em.updateEnemy((e) => ({ ...e, hp: e.hp - 50 }))
+      em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, hp: e.hp - 50 }))
       const hp = window.__test__!.getEnemyHp()
       expect(hp.current).toBe(hp.max - 50)
     })
@@ -108,11 +109,11 @@ describe('e2eTestApi', () => {
       em.registerEntity(tower)
       const towers = window.__test__!.getTowers()
       expect(towers).toHaveLength(1)
-      expect(towers[0].id).toBe('tower-blue')
-      expect(towers[0].team).toBe('blue')
-      expect(towers[0].position).toEqual({ x: 600, y: 360 })
-      expect(towers[0].hp).toBe(towers[0].maxHp)
-      expect(towers[0].dead).toBe(false)
+      expect(towers[0]!.id).toBe('tower-blue')
+      expect(towers[0]!.team).toBe('blue')
+      expect(towers[0]!.position).toEqual({ x: 600, y: 360 })
+      expect(towers[0]!.hp).toBe(towers[0]!.maxHp)
+      expect(towers[0]!.dead).toBe(false)
     })
   })
 })

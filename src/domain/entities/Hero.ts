@@ -12,7 +12,7 @@ export interface HeroState extends AttackerEntityState {
   readonly deathPosition: Position
 }
 
-interface CreateHeroParams {
+export interface CreateHeroParams {
   readonly id: string
   readonly type: HeroType
   readonly team: Team

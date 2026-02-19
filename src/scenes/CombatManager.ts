@@ -1,5 +1,7 @@
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
+import type { HeroState } from '@/domain/entities/Hero'
 import type { TowerState } from '@/domain/entities/Tower'
+import { isTower } from '@/domain/entities/typeGuards'
 import { updateAttackState } from '@/domain/systems/updateAttackState'
 import { selectTowerTarget } from '@/domain/systems/towerTargeting'
 import { findClickTarget } from '@/domain/systems/findClickTarget'
@@ -48,7 +50,10 @@ export class CombatManager {
   }
 
   processAttack(deltaSeconds: number): CombatEvents {
-    const hero = this.entityManager.localHero
+    const localHeroId = this.entityManager.localHeroId
+    const hero = this.entityManager.getEntity(localHeroId) as HeroState | null
+    if (!hero) return EMPTY_EVENTS
+
     const target = this.resolveTarget(hero.attackTargetId)
     const heroDef = HERO_DEFINITIONS[hero.type]
     const targetRadius = target
@@ -64,7 +69,7 @@ export class CombatManager {
       heroDef.projectileSpeed,
       heroDef.projectileRadius
     )
-    this.entityManager.updateLocalHero(() => attackResult.entity)
+    this.entityManager.updateEntity<HeroState>(localHeroId, () => attackResult.entity)
 
     const damageEvents: Array<{ targetId: string; damage: number }> = []
     const projectileSpawnEvents: ProjectileSpawnEvent[] = []
@@ -115,15 +120,13 @@ export class CombatManager {
       return EMPTY_EVENTS
     }
 
-    const targets: CombatEntityState[] = this.entityManager.getEnemiesOf(
-      this.entityManager.localHero.team
-    )
+    const hero = this.entityManager.getEntity(this.entityManager.localHeroId) as HeroState
+    const targets: CombatEntityState[] = this.entityManager.getEnemiesOf(hero.team)
     const result = updateProjectiles(
       this._projectiles,
       targets,
       deltaSeconds,
-      (targetId) =>
-        this.entityManager.getEntityRadius(targetId)
+      (targetId) => this.entityManager.getEntityRadius(targetId)
     )
 
     this._projectiles = [...result.projectiles]
@@ -142,8 +145,8 @@ export class CombatManager {
   }
 
   processTowerAttacks(deltaSeconds: number): CombatEvents {
-    const towers = this.entityManager.registeredEntities.filter(
-      (e): e is TowerState => e.entityType === 'tower' && !e.dead
+    const towers = this.entityManager.allEntities.filter(
+      (e): e is TowerState => isTower(e) && !e.dead
     )
 
     if (towers.length === 0) return EMPTY_EVENTS
@@ -213,7 +216,10 @@ export class CombatManager {
   }
 
   handleAttackInput(aimWorldPosition: Position): void {
-    const hero = this.entityManager.localHero
+    const localHeroId = this.entityManager.localHeroId
+    const hero = this.entityManager.getEntity(localHeroId) as HeroState | null
+    if (!hero) return
+
     const enemies = this.entityManager.getEnemiesOf(hero.team)
     const clickedTarget = findClickTarget(
       aimWorldPosition,
@@ -233,7 +239,7 @@ export class CombatManager {
       )
 
       if (inRange) {
-        this.entityManager.updateLocalHero((h) => ({
+        this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
           ...h,
           attackTargetId: clickedTarget.id,
         }))
@@ -244,7 +250,7 @@ export class CombatManager {
       const dx = clickedTarget.position.x - hero.position.x
       const dy = clickedTarget.position.y - hero.position.y
       const facingToTarget = Math.atan2(dy, dx)
-      this.entityManager.updateLocalHero((h) => ({
+      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
         ...h,
         facing: facingToTarget,
       }))
@@ -256,7 +262,7 @@ export class CombatManager {
     const dy = aimWorldPosition.y - hero.position.y
     if (dx !== 0 || dy !== 0) {
       const facingToClick = Math.atan2(dy, dx)
-      this.entityManager.updateLocalHero((h) => ({
+      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
         ...h,
         facing: facingToClick,
       }))
@@ -270,8 +276,8 @@ export class CombatManager {
     damage: number
     speed: number
   }): void {
-    const ownerEntry = this.entityManager.getRemotePlayer(event.ownerId)
-    const ownerTeam = ownerEntry?.team ?? 'red'
+    const owner = this.entityManager.getEntity(event.ownerId)
+    const ownerTeam = owner?.team ?? 'red'
     this._projectiles.push(
       createProjectile({
         id: `remote-${event.ownerId}-${this._nextProjectileId++}`,
@@ -287,17 +293,7 @@ export class CombatManager {
   }
 
   applyLocalDamage(targetId: string, amount: number): void {
-    const em = this.entityManager
-    if (targetId === em.localHero.id) {
-      em.updateLocalHero((h) => applyDamage(h, amount))
-      return
-    }
-    if (targetId === em.enemy.id) {
-      em.updateEnemy((e) => applyDamage(e, amount))
-      return
-    }
-    if (em.applyDamageToRemote(targetId, amount)) return
-    em.updateEntity(targetId, (e) => applyDamage(e, amount))
+    this.entityManager.updateEntity(targetId, (e) => applyDamage(e, amount))
   }
 
   private resolveTarget(targetId: string | null): CombatEntityState | null {
