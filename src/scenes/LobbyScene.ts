@@ -158,13 +158,16 @@ export class LobbyScene extends Phaser.Scene {
     // Use state change instead of message to avoid race condition:
     // broadcast('gameStart') can fire before client registers onMessage listener.
     // State sync is guaranteed to arrive after joinOrCreate resolves.
-    const unsubscribe = room.onStateChange((state) => {
+    // Colyseus 0.16: onStateChange is an EventEmitter with .once()/.remove(),
+    // NOT a function that returns an unsubscribe callback.
+    const cb = (state: unknown): void => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((state as any).gameStarted === true) {
-        unsubscribe()
+        room.onStateChange.remove(cb)
         this.onGameStart()
       }
-    })
+    }
+    room.onStateChange(cb)
   }
 
   private onGameStart(): void {
