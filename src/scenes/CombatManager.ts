@@ -120,7 +120,8 @@ export class CombatManager {
       return EMPTY_EVENTS
     }
 
-    const hero = this.entityManager.getEntity(this.entityManager.localHeroId) as HeroState
+    const hero = this.entityManager.getEntity(this.entityManager.localHeroId) as HeroState | null
+    if (!hero) return EMPTY_EVENTS
     const targets: CombatEntityState[] = this.entityManager.getEnemiesOf(hero.team)
     const result = updateProjectiles(
       this._projectiles,

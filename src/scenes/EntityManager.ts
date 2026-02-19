@@ -1,20 +1,13 @@
-import { createHeroState, type HeroState } from '@/domain/entities/Hero'
+import { createHeroState, type HeroState, type CreateHeroParams } from '@/domain/entities/Hero'
 import { isHero } from '@/domain/entities/typeGuards'
 import type { CombatEntityState, HeroType, Position, Team } from '@/domain/types'
 import type { RemotePlayerState } from '@/network/GameMode'
 
 const DEFAULT_ENTITY_RADIUS = 20
 
-interface CreateHeroParams {
-  readonly id: string
-  readonly type: HeroType
-  readonly team: Team
-  readonly position: Position
-}
-
 export class EntityManager {
   private readonly _entities = new Map<string, CombatEntityState>()
-  private _localHeroId: string
+  private readonly _localHeroId: string
 
   constructor(
     localHeroParams: CreateHeroParams,
