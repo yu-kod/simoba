@@ -86,7 +86,7 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.players.set(client.sessionId, player)
 
     if (this.state.players.size === this.maxClients) {
-      this.broadcast('gameStart')
+      this.state.gameStarted = true
     }
   }
 
