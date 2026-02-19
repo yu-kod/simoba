@@ -1,5 +1,3 @@
-import type { StatBlock } from '@/domain/entities/StatBlock'
-
 export interface Position {
   readonly x: number
   readonly y: number
@@ -24,6 +22,16 @@ export interface CombatEntityState extends EntityState {
   readonly maxHp: number
   readonly dead: boolean
   readonly radius: number
+}
+
+/** Combat stats shared by base values, growth rates, and effective values */
+export interface StatBlock {
+  readonly maxHp: number
+  readonly speed: number
+  readonly attackDamage: number
+  readonly attackRange: number
+  /** Attacks per second */
+  readonly attackSpeed: number
 }
 
 /** Common state for entities that can perform attacks (hero, tower, minion, boss) */
