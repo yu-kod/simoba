@@ -15,11 +15,10 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "declaration": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": false,
-    "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
     }
