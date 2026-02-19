@@ -99,6 +99,9 @@ describe('Team assignment pattern', () => {
 })
 
 describe('gameStart state flag logic', () => {
+  // NOTE: createMockRoom mirrors GameRoom.onJoin logic. If GameRoom.onJoin changes,
+  // this mock must be updated in sync. Ideally use @colyseus/testing for integration
+  // tests that exercise the real class. See Issue #91 for race condition context.
   function createMockRoom() {
     const state = new GameRoomState()
     const broadcasts: { type: string }[] = []
