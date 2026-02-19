@@ -99,22 +99,47 @@ describe('Team assignment pattern', () => {
 })
 
 describe('gameStart broadcast logic', () => {
-  it('should trigger gameStart when players reach maxClients', () => {
+  function createMockRoom() {
     const state = new GameRoomState()
-    const p1 = new PlayerSchema()
-    state.players.set('session-1', p1)
-    expect(state.players.size === MAX_PLAYERS).toBe(false)
+    const broadcasts: { type: string }[] = []
+    const room = {
+      state,
+      maxClients: MAX_PLAYERS,
+      broadcast(type: string) {
+        broadcasts.push({ type })
+      },
+      onJoin(client: { sessionId: string }) {
+        const player = new PlayerSchema()
+        const isBlue = state.players.size === 0
+        const spawn = isBlue ? BLUE_SPAWN : RED_SPAWN
+        player.x = spawn.x
+        player.y = spawn.y
+        player.team = isBlue ? 'blue' : 'red'
+        player.heroType = 'BLADE'
+        player.hp = 100
+        player.maxHp = 100
+        state.players.set(client.sessionId, player)
+        if (state.players.size === room.maxClients) {
+          room.broadcast('gameStart')
+        }
+      },
+    }
+    return { room, broadcasts }
+  }
 
-    const p2 = new PlayerSchema()
-    state.players.set('session-2', p2)
-    expect(state.players.size === MAX_PLAYERS).toBe(true)
+  it('should broadcast gameStart when players reach maxClients', () => {
+    const { room, broadcasts } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' })
+    expect(broadcasts).toEqual([])
+
+    room.onJoin({ sessionId: 'session-2' })
+    expect(broadcasts).toEqual([{ type: 'gameStart' }])
   })
 
-  it('should not trigger gameStart with only one player', () => {
-    const state = new GameRoomState()
-    const p1 = new PlayerSchema()
-    state.players.set('session-1', p1)
-    expect(state.players.size === MAX_PLAYERS).toBe(false)
+  it('should not broadcast gameStart with only one player', () => {
+    const { room, broadcasts } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' })
+    expect(broadcasts).toEqual([])
   })
 })
 

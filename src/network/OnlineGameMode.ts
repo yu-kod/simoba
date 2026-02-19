@@ -37,6 +37,8 @@ export class OnlineGameMode implements GameMode {
   }
 
   async onSceneCreate(): Promise<void> {
+    const roomWasPreProvided = this.room !== null
+
     if (!this.room) {
       this.room = await this.networkClient!.connect('game')
     }
@@ -44,10 +46,13 @@ export class OnlineGameMode implements GameMode {
     // @colyseus/schema v3: callbacks via getStateCallbacks wrapper
     this.$ = getStateCallbacks(this.room) as StateCallbacks
 
-    // Wait for first state patch so schema reflection fully initializes MapSchema fields
-    await new Promise<void>((resolve) => {
-      this.room!.onStateChange(() => resolve())
-    })
+    // When room is pre-provided from lobby, initial state sync already happened.
+    // Skip the onStateChange wait to avoid hanging if no further changes fire.
+    if (!roomWasPreProvided) {
+      await new Promise<void>((resolve) => {
+        this.room!.onStateChange(() => resolve())
+      })
+    }
 
     this.setupListeners()
   }
@@ -160,7 +165,12 @@ export class OnlineGameMode implements GameMode {
   }
 
   dispose(): void {
-    this.networkClient?.disconnect()
+    if (this.networkClient) {
+      this.networkClient.disconnect()
+    } else {
+      this.room?.leave()
+    }
+    this.room = null
     this.remoteUpdateCallbacks = []
     this.remoteJoinCallbacks = []
     this.remoteLeaveCallbacks = []

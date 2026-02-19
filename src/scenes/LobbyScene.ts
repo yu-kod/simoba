@@ -9,8 +9,6 @@ import type { Team, Position } from '@/domain/types'
 
 type LobbyState = 'menu' | 'connecting' | 'waiting' | 'starting' | 'error'
 
-const REQUIRED_PLAYERS = 2
-
 const TITLE_FONT_SIZE = '48px'
 const BUTTON_FONT_SIZE = '28px'
 const STATUS_FONT_SIZE = '24px'
@@ -71,13 +69,15 @@ export class LobbyScene extends Phaser.Scene {
     this.waitingContainer = this.add.container(0, 0)
     this.waitingContainer.setVisible(false)
 
+    // statusText is a standalone object (not in waitingContainer)
+    // so it can remain visible in 'starting' state when waitingContainer is hidden.
     this.statusText = this.add.text(GAME_WIDTH / 2, 360, '', {
       fontSize: STATUS_FONT_SIZE,
       color: TEXT_COLOR,
       align: 'center',
     })
     this.statusText.setOrigin(0.5)
-    this.waitingContainer.add(this.statusText)
+    this.statusText.setVisible(false)
 
     this.createButton(
       GAME_WIDTH / 2, 440,
@@ -103,6 +103,7 @@ export class LobbyScene extends Phaser.Scene {
 
     this.menuContainer.setVisible(newState === 'menu')
     this.waitingContainer.setVisible(newState === 'waiting')
+    this.statusText.setVisible(false)
     this.errorText.setVisible(newState === 'error')
 
     switch (newState) {
@@ -113,9 +114,11 @@ export class LobbyScene extends Phaser.Scene {
       case 'connecting':
         this.menuContainer.setVisible(false)
         this.waitingContainer.setVisible(true)
+        this.statusText.setVisible(true)
         this.statusText.setText('Connecting...')
         break
       case 'waiting':
+        this.statusText.setVisible(true)
         this.statusText.setText('Waiting for opponent...')
         break
       case 'starting':
@@ -151,26 +154,8 @@ export class LobbyScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Detect game readiness via Colyseus state sync (event-driven).
-   *
-   * - Player 1: state has 1 player → onStateChange fires when Player 2 joins
-   * - Player 2: state already has 2 players → immediate check triggers start
-   */
   private watchForGameReady(room: Room): void {
-    const check = (): void => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const playerCount = (room.state as any)?.players?.size ?? 0
-      if (playerCount >= REQUIRED_PLAYERS) {
-        this.onGameStart()
-      }
-    }
-
-    // Listen for future state changes (Player 1 path)
-    room.onStateChange(() => check())
-
-    // Check immediately — state may already include all players (Player 2 path)
-    check()
+    room.onMessage('gameStart', () => this.onGameStart())
   }
 
   private onGameStart(): void {
@@ -179,7 +164,8 @@ export class LobbyScene extends Phaser.Scene {
     this.setState('starting')
 
     this.time.delayedCall(GAME_START_DELAY_MS, () => {
-      const room = this.networkClient!.currentRoom!
+      const room = this.networkClient?.currentRoom
+      if (!room) return
       const gameMode: GameMode = new OnlineGameMode({ room })
 
       // Read local player's team and position from server state
@@ -209,6 +195,9 @@ export class LobbyScene extends Phaser.Scene {
     onClick: () => void,
     container: Phaser.GameObjects.Container
   ): void {
+    // NOTE: Graphics draw calls use absolute coordinates, not container-relative.
+    // This works because all containers are positioned at (0, 0).
+    // If containers are repositioned in the future, Graphics coordinates must be adjusted.
     const bg = this.add.graphics()
     bg.fillStyle(Phaser.Display.Color.HexStringToColor(BUTTON_COLOR).color, 1)
     bg.fillRoundedRect(

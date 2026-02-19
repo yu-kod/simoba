@@ -21,6 +21,9 @@ const GAME_HEIGHT = 720
 const WORLD_WIDTH = 3200
 const WORLD_HEIGHT = 720
 
+// Lobby button positions (must match LobbyScene layout)
+const OFFLINE_PLAY_BUTTON = { x: 640, y: 420 }
+
 type GameWindow = {
   game: { scene: { isActive: (key: string) => boolean } }
 }
@@ -65,12 +68,11 @@ export async function startOfflineGame(page: Page): Promise<void> {
   const bounds = await canvas.boundingBox()
   if (!bounds) throw new Error('Canvas not found')
 
-  // "Offline Play" button center: (GAME_WIDTH/2, 420) = (640, 420)
   const scaleX = bounds.width / GAME_WIDTH
   const scaleY = bounds.height / GAME_HEIGHT
   await page.mouse.click(
-    bounds.x + 640 * scaleX,
-    bounds.y + 420 * scaleY
+    bounds.x + OFFLINE_PLAY_BUTTON.x * scaleX,
+    bounds.y + OFFLINE_PLAY_BUTTON.y * scaleY
   )
 
   await waitForTestApi(page)
