@@ -1,5 +1,5 @@
 import type { HeroState } from '@/domain/entities/Hero'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 import type {
   GameMode,
   DamageEvent,
@@ -22,6 +22,12 @@ export interface NetworkBridgeCallbacks {
   onServerTowerUpdated?: (state: ServerTowerState) => void
   /** Server-authoritative: projectiles changed */
   onServerProjectilesUpdated?: (projectiles: readonly ServerProjectileState[]) => void
+  /** Server-authoritative: combat event — attack occurred */
+  onAttackEvent?: (event: AttackEvent) => void
+  /** Server-authoritative: combat event — damage applied */
+  onDamageEvent?: (event: ServerDamageEvent) => void
+  /** Server-authoritative: combat event — death or respawn */
+  onDeathEvent?: (event: DeathEvent) => void
 }
 
 export class NetworkBridge {
@@ -89,6 +95,19 @@ export class NetworkBridge {
 
     this.gameMode.onServerProjectileUpdate((projectiles) => {
       this.callbacks.onServerProjectilesUpdated?.(projectiles)
+    })
+
+    // Server-authoritative combat events
+    this.gameMode.onAttackEvent((event) => {
+      this.callbacks.onAttackEvent?.(event)
+    })
+
+    this.gameMode.onDamageEvent((event) => {
+      this.callbacks.onDamageEvent?.(event)
+    })
+
+    this.gameMode.onDeathEvent((event) => {
+      this.callbacks.onDeathEvent?.(event)
     })
   }
 

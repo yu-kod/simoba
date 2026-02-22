@@ -126,6 +126,30 @@ describe('ServerProjectileSystem', () => {
       expect(projectiles.size).toBe(0)
     })
 
+    it('should return DamageEvent on collision', () => {
+      const target = createHero('enemy', { x: 200, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('enemy', target)
+
+      const proj = createProjectile({ x: 195, y: 100, targetX: 300, targetY: 100, team: 'blue', damage: 60, ownerId: 'shooter' })
+      projectiles.set(proj.id, proj)
+
+      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+
+      expect(events).toHaveLength(1)
+      expect(events[0]).toEqual({
+        kind: 'damage',
+        event: { targetId: 'enemy', amount: 60, sourceId: 'shooter' },
+      })
+    })
+
+    it('should return empty events when no collision', () => {
+      const proj = createProjectile({ x: 100, y: 100, targetX: 300, targetY: 100 })
+      projectiles.set(proj.id, proj)
+
+      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+      expect(events).toHaveLength(0)
+    })
+
     it('should handle multiple projectiles', () => {
       const target = createHero('enemy', { x: 300, y: 100, team: 'red', radius: 22, hp: 650 })
       heroes.set('enemy', target)

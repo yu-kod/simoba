@@ -3,6 +3,7 @@ import { isInAttackRange } from '@shared/combat'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
+import type { CombatEventMessage } from '@shared/messages'
 
 let towerProjectileIdCounter = 0
 
@@ -58,6 +59,7 @@ function selectNearestEnemy(
 /**
  * Process a single tower's attack logic for one tick.
  * Handles auto-targeting, cooldown management, and projectile spawning.
+ * Returns combat events for broadcasting to clients.
  */
 export function processTowerCombat(
   tower: TowerSchema,
@@ -66,11 +68,13 @@ export function processTowerCombat(
   projectiles: MapSchema<ProjectileSchema>,
   ProjectileSchemaClass: new () => ProjectileSchema,
   deltaTime: number
-): void {
+): CombatEventMessage[] {
+  const events: CombatEventMessage[] = []
+
   if (tower.dead) {
     tower.attackTargetId = ''
     tower.attackCooldown = 0
-    return
+    return events
   }
 
   // Reduce cooldown
@@ -82,7 +86,7 @@ export function processTowerCombat(
   const target = selectNearestEnemy(tower, heroes)
   if (!target) {
     tower.attackTargetId = ''
-    return
+    return events
   }
 
   tower.attackTargetId = target.id
@@ -103,5 +107,18 @@ export function processTowerCombat(
     proj.ownerId = towerId
     proj.team = tower.team
     projectiles.set(proj.id, proj)
+
+    events.push({
+      kind: 'attack',
+      event: {
+        attackerId: towerId,
+        targetId: target.id,
+        attackType: 'ranged',
+        position: { x: tower.x, y: tower.y },
+        facing: 0,
+      },
+    })
   }
+
+  return events
 }

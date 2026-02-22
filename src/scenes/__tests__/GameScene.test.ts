@@ -85,6 +85,9 @@ function createMockGameMode(overrides?: Partial<GameMode>): GameMode {
     onServerHeroRemove: vi.fn(),
     onServerTowerUpdate: vi.fn(),
     onServerProjectileUpdate: vi.fn(),
+    onAttackEvent: vi.fn(),
+    onDamageEvent: vi.fn(),
+    onDeathEvent: vi.fn(),
     dispose: vi.fn(),
     ...overrides,
   }
@@ -123,7 +126,8 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
   movementPredictor.setPosition(100, 200)
 
   // Assign private fields
-  const s = scene as Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = scene as any as Record<string, unknown>
   s.entityManager = em
   s.combatManager = cm
   s.networkBridge = bridge
@@ -221,22 +225,8 @@ describe('GameScene', () => {
     })
   })
 
-  describe('handleServerHeroUpdate — damage flash', () => {
-    it('triggers flash when hero HP decreases', () => {
-      const { scene, localRenderer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
-
-      // First update: set initial HP
-      call(makeServerHeroState({ hp: 650 }))
-      localRenderer.flash.mockClear()
-
-      // Second update: HP decreased
-      call(makeServerHeroState({ hp: 600 }))
-      expect(localRenderer.flash).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not trigger flash when HP stays the same', () => {
+  describe('handleServerHeroUpdate — state-diff removal verification', () => {
+    it('does NOT trigger flash when hero HP decreases (now event-based)', () => {
       const { scene, localRenderer } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerHeroUpdate.bind(scene)
@@ -244,109 +234,85 @@ describe('GameScene', () => {
       call(makeServerHeroState({ hp: 650 }))
       localRenderer.flash.mockClear()
 
-      call(makeServerHeroState({ hp: 650 }))
-      expect(localRenderer.flash).not.toHaveBeenCalled()
-    })
-
-    it('does not trigger flash when HP increases', () => {
-      const { scene, localRenderer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
-
-      call(makeServerHeroState({ hp: 500 }))
-      localRenderer.flash.mockClear()
-
+      // HP decreased — but flash should NOT fire (handled by onDamageEvent instead)
       call(makeServerHeroState({ hp: 600 }))
       expect(localRenderer.flash).not.toHaveBeenCalled()
     })
 
-    it('triggers flash for remote hero HP decrease', () => {
-      const { scene, setRenderer } = setupSceneForServerUpdate()
+    it('does NOT trigger meleeSwing when attackCooldown increases (now event-based)', () => {
+      const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerHeroUpdate.bind(scene)
-      const remoteRenderer = createMockRenderer()
 
-      // First update creates remote entity internally
-      call(makeServerHeroState({ sessionId: 'remote-1', team: 'red', hp: 650 }))
-      setRenderer('remote-1', remoteRenderer)
+      call(makeServerHeroState({ attackCooldown: 0 }))
+      mockMeleeSwing.play.mockClear()
 
-      // Second update: HP decreased
-      call(makeServerHeroState({ sessionId: 'remote-1', team: 'red', hp: 600 }))
-      expect(remoteRenderer.flash).toHaveBeenCalledTimes(1)
+      // attackCooldown increased — but meleeSwing should NOT fire (handled by onAttackEvent instead)
+      call(makeServerHeroState({ attackCooldown: 0.8 }))
+      expect(mockMeleeSwing.play).not.toHaveBeenCalled()
     })
   })
 
-  describe('handleServerHeroUpdate — melee swing', () => {
-    it('triggers meleeSwing.play when attackCooldown increases (new attack) for melee hero', () => {
+  describe('event-based combat effects', () => {
+    it('handleDamageEvent triggers flash on the target entity', () => {
+      const { scene, localRenderer } = setupSceneForServerUpdate()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (scene as any).handleDamageEvent.bind(scene)
+
+      call({ targetId: 'local-session', amount: 50, sourceId: 'enemy-1' })
+      expect(localRenderer.flash).toHaveBeenCalledTimes(1)
+    })
+
+    it('handleDamageEvent does nothing for unknown target', () => {
+      const { scene } = setupSceneForServerUpdate()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (scene as any).handleDamageEvent.bind(scene)
+
+      // Should not throw for non-existent entity
+      expect(() => call({ targetId: 'nonexistent', amount: 50, sourceId: 'enemy-1' })).not.toThrow()
+    })
+
+    it('handleAttackEvent triggers meleeSwing.play for melee attacks', () => {
       const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const call = (scene as any).handleAttackEvent.bind(scene)
 
-      // Initial state: attackCooldown = 0
-      call(makeServerHeroState({ attackCooldown: 0 }))
-      mockMeleeSwing.play.mockClear()
-
-      // Attack fired: attackCooldown jumps to positive
-      call(makeServerHeroState({ attackCooldown: 0.8 }))
+      call({
+        attackerId: 'local-session',
+        targetId: 'enemy-1',
+        attackType: 'melee',
+        position: { x: 100, y: 200 },
+        facing: 1.5,
+      })
       expect(mockMeleeSwing.play).toHaveBeenCalledTimes(1)
-      expect(mockMeleeSwing.play).toHaveBeenCalledWith(
-        expect.objectContaining({ position: expect.any(Object), facing: expect.any(Number) })
-      )
+      expect(mockMeleeSwing.play).toHaveBeenCalledWith({ position: { x: 100, y: 200 }, facing: 1.5 })
     })
 
-    it('triggers meleeSwing on consecutive attacks (cooldown jumps without reaching 0)', () => {
+    it('handleAttackEvent does NOT trigger meleeSwing for ranged attacks', () => {
       const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const call = (scene as any).handleAttackEvent.bind(scene)
 
-      // First attack: 0 → 0.8
-      call(makeServerHeroState({ attackCooldown: 0 }))
-      call(makeServerHeroState({ attackCooldown: 0.8 }))
-      mockMeleeSwing.play.mockClear()
-
-      // Cooldown counting down
-      call(makeServerHeroState({ attackCooldown: 0.003 }))
-      expect(mockMeleeSwing.play).not.toHaveBeenCalled()
-
-      // Second attack: cooldown expired + new attack in same tick (0.003 → 0.8)
-      call(makeServerHeroState({ attackCooldown: 0.8 }))
-      expect(mockMeleeSwing.play).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not trigger meleeSwing for ranged hero (BOLT)', () => {
-      const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
-
-      // First call creates the entity as BOLT
-      call(makeServerHeroState({ heroType: 'BOLT', attackCooldown: 0 }))
-      mockMeleeSwing.play.mockClear()
-
-      call(makeServerHeroState({ heroType: 'BOLT', attackCooldown: 1.0 }))
+      call({
+        attackerId: 'local-session',
+        targetId: 'enemy-1',
+        attackType: 'ranged',
+        position: { x: 100, y: 200 },
+        facing: 1.5,
+      })
       expect(mockMeleeSwing.play).not.toHaveBeenCalled()
     })
 
-    it('does not trigger meleeSwing on first sync with active cooldown (no previous entity)', () => {
-      const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
+    it('handleDeathEvent does not throw (placeholder for future visuals)', () => {
+      const { scene } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const call = (scene as any).handleDeathEvent.bind(scene)
 
-      // First sync for a NEW hero (not yet in EntityManager) with attackCooldown already > 0
-      // (e.g., server processed an attack before client subscribed)
-      call(makeServerHeroState({ sessionId: 'new-hero', team: 'red', attackCooldown: 0.8 }))
-      expect(mockMeleeSwing.play).not.toHaveBeenCalled()
-    })
-
-    it('does not trigger meleeSwing when attackCooldown decreases', () => {
-      const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
-
-      call(makeServerHeroState({ attackCooldown: 0.5 }))
-      mockMeleeSwing.play.mockClear()
-
-      call(makeServerHeroState({ attackCooldown: 0.3 }))
-      expect(mockMeleeSwing.play).not.toHaveBeenCalled()
+      expect(() => call({
+        heroId: 'local-session',
+        type: 'death',
+        position: { x: 100, y: 200 },
+      })).not.toThrow()
     })
   })
 
@@ -404,13 +370,12 @@ describe('GameScene', () => {
     })
   })
 
-  describe('handleServerTowerUpdate — damage flash', () => {
-    it('triggers flash when tower HP decreases', () => {
+  describe('handleServerTowerUpdate — state-diff removal verification', () => {
+    it('does NOT trigger flash when tower HP decreases (now event-based)', () => {
       const { scene, em, setRenderer } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerTowerUpdate.bind(scene)
 
-      // Register tower entity
       const tower = createTowerState({
         id: 'tower-blue',
         team: 'blue',
@@ -421,34 +386,11 @@ describe('GameScene', () => {
       const towerRenderer = createMockRenderer()
       setRenderer('tower-blue', towerRenderer)
 
-      // First update: HP unchanged
       call(makeServerTowerState({ hp: 2000 }))
       towerRenderer.flash.mockClear()
 
-      // Second update: HP decreased
+      // HP decreased — flash should NOT fire (handled by onDamageEvent instead)
       call(makeServerTowerState({ hp: 1800 }))
-      expect(towerRenderer.flash).toHaveBeenCalledTimes(1)
-    })
-
-    it('does not trigger flash when tower HP stays the same', () => {
-      const { scene, em, setRenderer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerTowerUpdate.bind(scene)
-
-      const tower = createTowerState({
-        id: 'tower-blue',
-        team: 'blue',
-        position: { x: 200, y: 300 },
-        definition: DEFAULT_TOWER,
-      })
-      em.registerEntity(tower)
-      const towerRenderer = createMockRenderer()
-      setRenderer('tower-blue', towerRenderer)
-
-      call(makeServerTowerState({ hp: 2000 }))
-      towerRenderer.flash.mockClear()
-
-      call(makeServerTowerState({ hp: 2000 }))
       expect(towerRenderer.flash).not.toHaveBeenCalled()
     })
   })

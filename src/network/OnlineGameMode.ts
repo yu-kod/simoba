@@ -1,7 +1,7 @@
 import type { Room } from 'colyseus.js'
 import { getStateCallbacks } from 'colyseus.js'
 import type { HeroState } from '@/domain/entities/Hero'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 import type {
   GameMode,
   DamageEvent,
@@ -33,6 +33,11 @@ export class OnlineGameMode implements GameMode {
   private serverHeroRemoveCallbacks: ((sessionId: string) => void)[] = []
   private serverTowerUpdateCallbacks: ((state: ServerTowerState) => void)[] = []
   private serverProjectileUpdateCallbacks: ((projectiles: readonly ServerProjectileState[]) => void)[] = []
+
+  // Combat event callbacks
+  private attackEventCallbacks: ((event: AttackEvent) => void)[] = []
+  private damageEventCallbacks: ((event: ServerDamageEvent) => void)[] = []
+  private deathEventCallbacks: ((event: DeathEvent) => void)[] = []
 
   // Legacy client-authoritative callbacks (kept for interface compat)
   private remoteUpdateCallbacks: ((state: RemotePlayerState) => void)[] = []
@@ -73,6 +78,17 @@ export class OnlineGameMode implements GameMode {
 
     const $ = this.$
 
+    // --- Combat event messages ---
+    this.room.onMessage('attack', (event: AttackEvent) => {
+      for (const cb of this.attackEventCallbacks) cb(event)
+    })
+    this.room.onMessage('damage', (event: ServerDamageEvent) => {
+      for (const cb of this.damageEventCallbacks) cb(event)
+    })
+    this.room.onMessage('death', (event: DeathEvent) => {
+      for (const cb of this.deathEventCallbacks) cb(event)
+    })
+
     // --- Server-authoritative hero sync ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     $(this.room.state.heroes).onAdd((hero: any, sessionId: string) => {
@@ -91,9 +107,6 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('facing', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('hp', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('dead', () => this.notifyServerHeroUpdate(sessionId, hero))
-      // NOTE: attackCooldown decrements every server tick, so this fires continuously.
-      // Acceptable for 2v2 (≤80 extra calls/s). Replace with event-based approach in #111.
-      $(hero).listen('attackCooldown', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('respawnTimer', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('lastProcessedSeq', () => this.notifyServerHeroUpdate(sessionId, hero))
     })
@@ -250,6 +263,18 @@ export class OnlineGameMode implements GameMode {
     this.serverProjectileUpdateCallbacks = [...this.serverProjectileUpdateCallbacks, callback]
   }
 
+  onAttackEvent(callback: (event: AttackEvent) => void): void {
+    this.attackEventCallbacks = [...this.attackEventCallbacks, callback]
+  }
+
+  onDamageEvent(callback: (event: ServerDamageEvent) => void): void {
+    this.damageEventCallbacks = [...this.damageEventCallbacks, callback]
+  }
+
+  onDeathEvent(callback: (event: DeathEvent) => void): void {
+    this.deathEventCallbacks = [...this.deathEventCallbacks, callback]
+  }
+
   dispose(): void {
     if (this.networkClient) {
       this.networkClient.disconnect()
@@ -264,5 +289,8 @@ export class OnlineGameMode implements GameMode {
     this.serverHeroRemoveCallbacks = []
     this.serverTowerUpdateCallbacks = []
     this.serverProjectileUpdateCallbacks = []
+    this.attackEventCallbacks = []
+    this.damageEventCallbacks = []
+    this.deathEventCallbacks = []
   }
 }
