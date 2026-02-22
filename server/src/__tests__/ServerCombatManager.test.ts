@@ -170,6 +170,77 @@ describe('ServerCombatManager', () => {
       expect(hero.attackTargetId).toBe('')
     })
 
+    it('should continue auto-attack when same target sent on consecutive ticks', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackDamage: 60, attackSpeed: 0.8, attackCooldown: 0,
+        heroType: 'BLADE',
+      })
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      // Tick 1: first attack lands
+      const input1 = createInput({ attackTargetId: 'target' })
+      processHeroCombat(attacker, 'attacker', input1, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      expect(target.hp).toBe(590)
+      expect(attacker.attackCooldown).toBeGreaterThan(0)
+
+      // Ticks 2-N: cooldown ticking, same target sent each tick
+      // cooldown = 1/0.8 = 1.25s, need ceil(1.25/0.016) = 79 ticks to expire
+      for (let i = 0; i < 78; i++) {
+        const input = createInput({ attackTargetId: 'target', seq: i + 2 })
+        processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      }
+
+      // Tick 80: cooldown expired, second attack lands
+      const finalInput = createInput({ attackTargetId: 'target', seq: 80 })
+      processHeroCombat(attacker, 'attacker', finalInput, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      expect(target.hp).toBe(530) // 590 - 60
+    })
+
+    it('should clear target when null is sent after previous target', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackCooldown: 0.5,
+      })
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      // First: set target
+      const input1 = createInput({ attackTargetId: 'target' })
+      processHeroCombat(attacker, 'attacker', input1, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      expect(attacker.attackTargetId).toBe('target')
+
+      // Next: send null to clear
+      const input2 = createInput({ attackTargetId: null, seq: 2 })
+      processHeroCombat(attacker, 'attacker', input2, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      expect(attacker.attackTargetId).toBe('')
+    })
+
+    it('should reject dead target', () => {
+      const attacker = createHero('attacker', { x: 100, y: 100, team: 'blue', radius: 22, attackRange: 60 })
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22, dead: true })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(attacker.attackTargetId).toBe('')
+    })
+
+    it('should reject non-existent target', () => {
+      const attacker = createHero('attacker', { x: 100, y: 100, team: 'blue' })
+      heroes.set('attacker', attacker)
+
+      const input = createInput({ attackTargetId: 'nonexistent' })
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(attacker.attackTargetId).toBe('')
+    })
+
     it('should attack tower targets', () => {
       const attacker = createHero('attacker', {
         x: 100, y: 100, team: 'blue', radius: 22,
