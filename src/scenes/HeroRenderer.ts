@@ -27,7 +27,7 @@ export class HeroRenderer {
   private readonly indicatorGraphics: Phaser.GameObjects.Graphics
   private readonly hpBar: HpBarRenderer
   private readonly radius: number
-  private readonly heroType: HeroType
+  private heroType: HeroType
   private flashTimer = 0
   private isFlashing = false
 
@@ -68,6 +68,17 @@ export class HeroRenderer {
 
     // Hide entire container (body + HP bar) when dead
     this.container.setVisible(!heroState.dead)
+
+    // Redraw body if hero type changed (server-authoritative type sync)
+    if (heroState.type !== this.heroType) {
+      this.heroType = heroState.type
+      this.isFlashing = false
+      const color = HERO_COLORS[heroState.type]
+      this.bodyGraphics.clear()
+      this.drawBody(heroState.type, color)
+      this.indicatorGraphics.clear()
+      this.drawFacingIndicator(color)
+    }
 
     // Rotate facing indicator around the hero
     const offset = this.radius * FACING_INDICATOR_OFFSET

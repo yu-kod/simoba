@@ -64,6 +64,7 @@ import { InputBuffer } from '@/network/InputBuffer'
 import { MovementPredictor } from '@/network/MovementPredictor'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode, ServerHeroState, ServerTowerState } from '@/network/GameMode'
+import type { HeroState } from '@/domain/entities/Hero'
 import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 
@@ -367,6 +368,52 @@ describe('GameScene', () => {
       // Still alive — no reset
       call(makeServerHeroState({ dead: false }))
       expect(clearSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('handleServerHeroUpdate — heroType sync', () => {
+    it('updates local hero type from server state', () => {
+      const { scene, em } = setupSceneForServerUpdate()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+
+      // Initial state: BLADE
+      call(makeServerHeroState({ heroType: 'BLADE' }))
+      const heroBlade = em.getEntity('local-session') as HeroState
+      expect(heroBlade.type).toBe('BLADE')
+
+      // Server sends BOLT
+      call(makeServerHeroState({ heroType: 'BOLT' }))
+      const heroBolt = em.getEntity('local-session') as HeroState
+      expect(heroBolt.type).toBe('BOLT')
+    })
+
+    it('updates remote hero type from server state', () => {
+      const { scene, em } = setupSceneForServerUpdate()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+
+      // Create remote hero as BLADE first
+      call(makeServerHeroState({ sessionId: 'remote-1', heroType: 'BLADE', team: 'red' }))
+
+      const heroBlade = em.getEntity('remote-1') as HeroState
+      expect(heroBlade.type).toBe('BLADE')
+
+      // Server sends AURA for the same remote hero
+      call(makeServerHeroState({ sessionId: 'remote-1', heroType: 'AURA', team: 'red' }))
+      const heroAura = em.getEntity('remote-1') as HeroState
+      expect(heroAura.type).toBe('AURA')
+    })
+
+    it('preserves hero type when server sends the same type', () => {
+      const { scene, em } = setupSceneForServerUpdate()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+
+      call(makeServerHeroState({ heroType: 'AURA' }))
+      call(makeServerHeroState({ heroType: 'AURA' }))
+      const hero = em.getEntity('local-session') as HeroState
+      expect(hero.type).toBe('AURA')
     })
   })
 
