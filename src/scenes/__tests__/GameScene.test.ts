@@ -326,6 +326,17 @@ describe('GameScene', () => {
       expect(mockMeleeSwing.play).not.toHaveBeenCalled()
     })
 
+    it('does not trigger meleeSwing on first sync with active cooldown (no previous entity)', () => {
+      const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+
+      // First sync for a NEW hero (not yet in EntityManager) with attackCooldown already > 0
+      // (e.g., server processed an attack before client subscribed)
+      call(makeServerHeroState({ sessionId: 'new-hero', team: 'red', attackCooldown: 0.8 }))
+      expect(mockMeleeSwing.play).not.toHaveBeenCalled()
+    })
+
     it('does not trigger meleeSwing when attackCooldown decreases', () => {
       const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

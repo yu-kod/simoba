@@ -425,7 +425,7 @@ export class GameScene extends Phaser.Scene {
     // Snapshot previous state for change detection (before updating entity)
     const existingHero = this.entityManager.getEntity(state.sessionId) as HeroState | null
     const prevHp = existingHero?.hp ?? state.hp
-    const prevAttackCooldown = existingHero?.attackCooldown ?? 0
+    const prevAttackCooldown = existingHero?.attackCooldown ?? state.attackCooldown
     const prevDead = existingHero?.dead ?? state.dead
 
     if (isLocal) {
