@@ -14,6 +14,9 @@ export function processMovement(
   if (hero.dead) return
   if (!input) return
 
+  // Always apply facing from input (attack facing must sync even when stationary)
+  hero.facing = input.facing
+
   const { moveDir } = input
 
   if (moveDir.x === 0 && moveDir.y === 0) return
@@ -27,9 +30,6 @@ export function processMovement(
 
   hero.x = clamp(hero.x + nx * hero.speed * deltaTime, 0, WORLD_WIDTH)
   hero.y = clamp(hero.y + ny * hero.speed * deltaTime, 0, WORLD_HEIGHT)
-
-  // Apply facing from input
-  hero.facing = input.facing
 }
 
 function clamp(value: number, min: number, max: number): number {

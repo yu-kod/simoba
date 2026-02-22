@@ -180,12 +180,12 @@ export class LobbyScene extends Phaser.Scene {
       if (!room) return
       const gameMode: GameMode = new OnlineGameMode({ room })
 
-      // Read local player's team and position from server state
+      // Read local player's team and position from server state (heroes map, not players)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const localPlayer = (room.state as any)?.players?.get(room.sessionId)
-      const localTeam: Team | undefined = localPlayer?.team
-      const localPosition: Position | undefined = localPlayer
-        ? { x: localPlayer.x as number, y: localPlayer.y as number }
+      const localHero = (room.state as any)?.heroes?.get(room.sessionId)
+      const localTeam: Team | undefined = localHero?.team
+      const localPosition: Position | undefined = localHero
+        ? { x: localHero.x as number, y: localHero.y as number }
         : undefined
 
       this.scene.start('GameScene', { gameMode, localTeam, localPosition })
