@@ -46,13 +46,6 @@ function assertHeroType(value: string): HeroType {
   return value as HeroType
 }
 
-/** Debug: number keys 1-3 switch hero type (remove before release — see Issue) */
-const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
-  { key: 'ONE', type: 'BLADE' },
-  { key: 'TWO', type: 'BOLT' },
-  { key: 'THREE', type: 'AURA' },
-]
-
 interface EntityRenderer {
   readonly gameObject: Phaser.GameObjects.Container
   update(delta: number): void
@@ -151,11 +144,6 @@ export class GameScene extends Phaser.Scene {
     this.respawnText.setScrollFactor(0)
     this.respawnText.setDepth(1000)
     this.respawnText.setVisible(false)
-
-    // Debug keys
-    for (const { key, type } of DEBUG_HERO_KEYS) {
-      this.input.keyboard!.on(`keydown-${key}`, () => this.debugSwitchHero(type))
-    }
 
     // E2E test API (dev only)
     if (import.meta.env.DEV) {
@@ -703,24 +691,4 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private debugSwitchHero(type: HeroType): void {
-    const localHeroId = this.entityManager.localHeroId
-    const hero = this.entityManager.getEntity(localHeroId) as HeroState
-    if (hero.type === type) return
-
-    this.entityRenderers.get(localHeroId)?.destroy()
-    this.combatManager.resetProjectiles()
-
-    this.entityManager.registerEntity(createHeroState({
-      id: localHeroId,
-      type,
-      team: this.localTeam,
-      position: this.localSpawnPosition,
-    }))
-
-    const newHero = this.entityManager.getEntity(localHeroId) as HeroState
-    const renderer = new HeroRenderer(this, newHero, true)
-    this.entityRenderers.set(localHeroId, renderer)
-    this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
-  }
 }
