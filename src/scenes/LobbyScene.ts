@@ -5,7 +5,7 @@ import { OnlineGameMode } from '@/network/OnlineGameMode'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode } from '@/network/GameMode'
 import type { Room } from 'colyseus.js'
-import type { Team, Position } from '@/domain/types'
+import type { Team, Position, HeroType } from '@/domain/types'
 
 type LobbyState = 'menu' | 'connecting' | 'waiting' | 'starting' | 'error'
 
@@ -19,11 +19,18 @@ const BUTTON_HOVER_COLOR = '#74b9ff'
 const BUTTON_WIDTH = 320
 const BUTTON_HEIGHT = 56
 const BUTTON_RADIUS = 12
+const HERO_BUTTON_WIDTH = 96
+const HERO_BUTTON_HEIGHT = 48
+const HERO_BUTTON_GAP = 12
+const SELECTED_COLOR = '#74b9ff'
+const HERO_TYPES: readonly HeroType[] = ['BLADE', 'BOLT', 'AURA'] as const
 const GAME_START_DELAY_MS = 1000
 
 export class LobbyScene extends Phaser.Scene {
   private lobbyState: LobbyState = 'menu'
   private networkClient: NetworkClient | null = null
+  private selectedHeroType: HeroType = 'BLADE'
+  private heroButtonGraphics: Map<HeroType, Phaser.GameObjects.Graphics> = new Map()
   private statusText!: Phaser.GameObjects.Text
   private errorText!: Phaser.GameObjects.Text
   private menuContainer!: Phaser.GameObjects.Container
@@ -52,14 +59,26 @@ export class LobbyScene extends Phaser.Scene {
 
     // Menu container (buttons)
     this.menuContainer = this.add.container(0, 0)
+
+    // Hero selection label
+    const heroLabel = this.add.text(GAME_WIDTH / 2, 260, 'Select Hero', {
+      fontSize: '20px',
+      color: '#b2bec3',
+    })
+    heroLabel.setOrigin(0.5)
+    this.menuContainer.add(heroLabel)
+
+    // Hero selection buttons (horizontal row)
+    this.createHeroSelectionButtons(300, this.menuContainer)
+
     this.createButton(
-      GAME_WIDTH / 2, 340,
+      GAME_WIDTH / 2, 380,
       'Online Battle',
       () => this.startOnline(),
       this.menuContainer
     )
     this.createButton(
-      GAME_WIDTH / 2, 420,
+      GAME_WIDTH / 2, 460,
       'Offline Play',
       () => this.startOffline(),
       this.menuContainer
@@ -144,7 +163,7 @@ export class LobbyScene extends Phaser.Scene {
     this.networkClient = new NetworkClient()
 
     try {
-      const room = await this.networkClient.connect('game')
+      const room = await this.networkClient.connect('game', { heroType: this.selectedHeroType })
       this.setState('waiting')
       this.watchForGameReady(room)
     } catch {
@@ -198,6 +217,65 @@ export class LobbyScene extends Phaser.Scene {
     this.networkClient?.disconnect()
     this.networkClient = null
     this.setState('menu')
+  }
+
+  private createHeroSelectionButtons(y: number, container: Phaser.GameObjects.Container): void {
+    const totalWidth = HERO_TYPES.length * HERO_BUTTON_WIDTH + (HERO_TYPES.length - 1) * HERO_BUTTON_GAP
+    const startX = GAME_WIDTH / 2 - totalWidth / 2 + HERO_BUTTON_WIDTH / 2
+
+    for (const [i, ht] of HERO_TYPES.entries()) {
+      const x = startX + i * (HERO_BUTTON_WIDTH + HERO_BUTTON_GAP)
+      const isSelected = ht === this.selectedHeroType
+      const color = isSelected ? SELECTED_COLOR : BUTTON_COLOR
+
+      const bg = this.add.graphics()
+      bg.fillStyle(Phaser.Display.Color.HexStringToColor(color).color, 1)
+      bg.fillRoundedRect(
+        x - HERO_BUTTON_WIDTH / 2,
+        y - HERO_BUTTON_HEIGHT / 2,
+        HERO_BUTTON_WIDTH,
+        HERO_BUTTON_HEIGHT,
+        BUTTON_RADIUS
+      )
+      this.heroButtonGraphics.set(ht, bg)
+
+      const text = this.add.text(x, y, ht, {
+        fontSize: '20px',
+        color: TEXT_COLOR,
+      })
+      text.setOrigin(0.5)
+
+      const hitZone = this.add.zone(x, y, HERO_BUTTON_WIDTH, HERO_BUTTON_HEIGHT)
+      hitZone.setInteractive({ useHandCursor: true })
+      hitZone.on('pointerdown', () => this.selectHero(ht))
+
+      container.add([bg, text, hitZone])
+    }
+  }
+
+  private selectHero(heroType: HeroType): void {
+    if (this.selectedHeroType === heroType) return
+    this.selectedHeroType = heroType
+
+    for (const [type, bg] of this.heroButtonGraphics) {
+      const isSelected = type === heroType
+      const color = isSelected ? SELECTED_COLOR : BUTTON_COLOR
+      const totalWidth = HERO_TYPES.length * HERO_BUTTON_WIDTH + (HERO_TYPES.length - 1) * HERO_BUTTON_GAP
+      const startX = GAME_WIDTH / 2 - totalWidth / 2 + HERO_BUTTON_WIDTH / 2
+      const i = HERO_TYPES.indexOf(type)
+      const x = startX + i * (HERO_BUTTON_WIDTH + HERO_BUTTON_GAP)
+      const y = 300
+
+      bg.clear()
+      bg.fillStyle(Phaser.Display.Color.HexStringToColor(color).color, 1)
+      bg.fillRoundedRect(
+        x - HERO_BUTTON_WIDTH / 2,
+        y - HERO_BUTTON_HEIGHT / 2,
+        HERO_BUTTON_WIDTH,
+        HERO_BUTTON_HEIGHT,
+        BUTTON_RADIUS
+      )
+    }
   }
 
   private createButton(
