@@ -107,6 +107,7 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('facing', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('hp', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('dead', () => this.notifyServerHeroUpdate(sessionId, hero))
+      $(hero).listen('radius', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('respawnTimer', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('lastProcessedSeq', () => this.notifyServerHeroUpdate(sessionId, hero))
     })
@@ -152,6 +153,7 @@ export class OnlineGameMode implements GameMode {
       maxHp: hero.maxHp as number,
       heroType: hero.heroType as string,
       team: hero.team as string,
+      radius: hero.radius as number,
       dead: hero.dead as boolean,
       attackTargetId: hero.attackTargetId as string,
       attackCooldown: hero.attackCooldown as number,
@@ -208,6 +210,7 @@ export class OnlineGameMode implements GameMode {
       maxHp: player.maxHp as number,
       heroType: player.heroType as string,
       team: player.team as string,
+      radius: player.radius as number,
     }
   }
 

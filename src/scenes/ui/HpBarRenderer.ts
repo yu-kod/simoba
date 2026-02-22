@@ -26,9 +26,9 @@ const TICK_LINE_WIDTH = 1
 
 export class HpBarRenderer {
   private readonly graphics: Phaser.GameObjects.Graphics
-  private readonly barWidth: number
+  private barWidth: number
   private readonly barColor: number
-  private readonly yOffset: number
+  private yOffset: number
 
   private trailState: TrailState
   private lastHp: number
@@ -53,6 +53,11 @@ export class HpBarRenderer {
 
   get gameObject(): Phaser.GameObjects.Graphics {
     return this.graphics
+  }
+
+  updateRadius(radius: number): void {
+    this.barWidth = radius * 2
+    this.yOffset = -(radius + BAR_Y_OFFSET)
   }
 
   sync(hp: number, maxHp: number): void {

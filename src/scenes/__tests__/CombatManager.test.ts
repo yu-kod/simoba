@@ -130,7 +130,7 @@ describe('CombatManager', () => {
       const { em, cm } = createManagers()
       em.addRemotePlayer({
         sessionId: 'remote-1', x: 0, y: 0, facing: 0,
-        hp: 100, maxHp: 100, heroType: 'BLADE', team: 'red',
+        hp: 100, maxHp: 100, heroType: 'BLADE', team: 'red', radius: 22,
       })
       cm.applyLocalDamage('remote-1', 50)
       const remote = em.getEntity('remote-1')
@@ -159,7 +159,7 @@ describe('CombatManager', () => {
       const { em, cm } = createManagers()
       em.addRemotePlayer({
         sessionId: 'remote-1', x: 0, y: 0, facing: 0,
-        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red',
+        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red', radius: 18,
       })
       cm.addRemoteProjectile({
         ownerId: 'remote-1',
@@ -230,7 +230,7 @@ describe('CombatManager', () => {
       const { em, cm } = createManagers()
       em.addRemotePlayer({
         sessionId: 'remote-1', x: 0, y: 0, facing: 0,
-        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red',
+        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red', radius: 18,
       })
       cm.addRemoteProjectile({
         ownerId: 'remote-1', targetId: 'player-1',

@@ -23,6 +23,7 @@ export interface RemotePlayerState {
   readonly maxHp: number
   readonly heroType: string
   readonly team: string
+  readonly radius: number
 }
 
 /** Server-synced hero state (includes lastProcessedSeq for reconciliation) */

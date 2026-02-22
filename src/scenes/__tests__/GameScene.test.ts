@@ -172,6 +172,7 @@ function makeServerHeroState(overrides?: Partial<ServerHeroState>): ServerHeroSt
     maxHp: 650,
     heroType: 'BLADE',
     team: 'blue',
+    radius: 22,
     dead: false,
     attackTargetId: '',
     attackCooldown: 0,

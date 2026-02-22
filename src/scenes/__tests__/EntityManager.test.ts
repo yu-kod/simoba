@@ -73,7 +73,7 @@ describe('EntityManager', () => {
         sessionId: 'remote-1',
         x: 500, y: 300,
         facing: 0, hp: 100, maxHp: 100,
-        heroType: 'BOLT', team: 'red',
+        heroType: 'BOLT', team: 'red', radius: 18,
       }
       em.addRemotePlayer(remote)
       const entity = em.getEntity('remote-1')
@@ -94,7 +94,7 @@ describe('EntityManager', () => {
       const em = createManager()
       em.addRemotePlayer({
         sessionId: 'remote-1', x: 0, y: 0, facing: 0,
-        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red',
+        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red', radius: 18,
       })
       const heroes = em.getHeroes()
       expect(heroes).toHaveLength(3)
@@ -207,7 +207,7 @@ describe('EntityManager', () => {
       const em = createManager()
       em.addRemotePlayer({
         sessionId: 'r1', x: 0, y: 0, facing: 0,
-        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'blue',
+        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'blue', radius: 18,
       })
       expect(em.getEntityRadius('r1')).toBe(18)
     })
@@ -283,7 +283,7 @@ describe('EntityManager', () => {
       sessionId: 'sess-1',
       x: 400, y: 300,
       facing: 1.0, hp: 80, maxHp: 100,
-      heroType: 'AURA', team: 'red',
+      heroType: 'AURA', team: 'red', radius: 20,
     }
 
     it('addRemotePlayer creates hero state in single Map', () => {
