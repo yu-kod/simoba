@@ -266,8 +266,9 @@ export class GameScene extends Phaser.Scene {
     const localHeroId = this.entityManager.localHeroId
     const localHero = this.entityManager.getEntity(localHeroId) as HeroState
 
-    // Determine attack target from click
-    let attackTargetId: string | null = null
+    // Persist attack target locally (same pattern as offline mode).
+    // Start with current local target — only change on right-click or move cancel.
+    let attackTargetId: string | null = localHero.attackTargetId
     if (input.attack) {
       const enemies = this.entityManager.getEnemiesOf(this.localTeam)
       const target = findClickTarget(
@@ -278,9 +279,23 @@ export class GameScene extends Phaser.Scene {
       attackTargetId = target?.id ?? null
     }
 
-    // Compute facing
-    const attackTarget = localHero.attackTargetId !== null
-      ? this.entityManager.getEntity(localHero.attackTargetId)
+    // Clear target on move if hero can't move while attacking
+    if (isMoving && attackTargetId !== null
+      && !HERO_DEFINITIONS[localHero.type].canMoveWhileAttacking) {
+      attackTargetId = null
+    }
+
+    // Update local hero state with target change
+    if (attackTargetId !== localHero.attackTargetId) {
+      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
+        ...h,
+        attackTargetId,
+      }))
+    }
+
+    // Compute facing (use local attackTargetId, not stale localHero reference)
+    const attackTarget = attackTargetId !== null
+      ? this.entityManager.getEntity(attackTargetId)
       : null
     const newFacing = updateFacing(
       localHero.facing,
