@@ -241,6 +241,32 @@ describe('ServerCombatManager', () => {
       expect(attacker.attackTargetId).toBe('')
     })
 
+    it('should allow both heroes to deal damage when attacking each other', () => {
+      const heroA = createHero('heroA', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackDamage: 60, attackSpeed: 0.8, attackCooldown: 0,
+        heroType: 'BLADE',
+      })
+      const heroB = createHero('heroB', {
+        x: 160, y: 100, team: 'red', radius: 22,
+        attackRange: 60, attackDamage: 60, attackSpeed: 0.8, attackCooldown: 0,
+        heroType: 'BLADE',
+      })
+      heroes.set('heroA', heroA)
+      heroes.set('heroB', heroB)
+
+      const inputA = createInput({ attackTargetId: 'heroB' })
+      const inputB = createInput({ attackTargetId: 'heroA' })
+
+      // Simulate game loop: process both heroes in sequence (same tick)
+      processHeroCombat(heroA, 'heroA', inputA, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      processHeroCombat(heroB, 'heroB', inputB, heroes, towers, projectiles, ProjectileSchema, 0.016)
+
+      // Both heroes should have taken damage
+      expect(heroA.hp).toBe(590) // 650 - 60 from heroB
+      expect(heroB.hp).toBe(590) // 650 - 60 from heroA
+    })
+
     it('should attack tower targets', () => {
       const attacker = createHero('attacker', {
         x: 100, y: 100, team: 'blue', radius: 22,
