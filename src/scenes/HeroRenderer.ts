@@ -72,6 +72,7 @@ export class HeroRenderer {
     // Redraw body if hero type changed (server-authoritative type sync)
     if (heroState.type !== this.heroType) {
       this.heroType = heroState.type
+      this.isFlashing = false
       const color = HERO_COLORS[heroState.type]
       this.bodyGraphics.clear()
       this.drawBody(heroState.type, color)

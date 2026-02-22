@@ -38,6 +38,14 @@ import { registerTestApi } from '@/test/e2eTestApi'
 const FREE_CAMERA_SPEED = 400
 const SERVER_TICK_DELTA = 1 / 60
 
+/** Assert that a server-provided heroType string is a valid HeroType key. */
+function assertHeroType(value: string): HeroType {
+  if (!(value in HERO_DEFINITIONS)) {
+    throw new Error(`Invalid heroType from server: "${value}"`)
+  }
+  return value as HeroType
+}
+
 /** Debug: number keys 1-3 switch hero type (remove before release — see Issue) */
 const DEBUG_HERO_KEYS: readonly { key: string; type: HeroType }[] = [
   { key: 'ONE', type: 'BLADE' },
@@ -445,7 +453,7 @@ export class GameScene extends Phaser.Scene {
       // Reconcile movement prediction
       if (this.inputBuffer && this.movementPredictor) {
         this.inputBuffer.acknowledge(state.lastProcessedSeq)
-        const heroType = (state.heroType as HeroType) ?? 'BLADE'
+        const heroType = assertHeroType(state.heroType)
         const speed = HERO_DEFINITIONS[heroType].base.speed
         const reconciled = this.movementPredictor.reconcile(
           state.x,
@@ -456,7 +464,7 @@ export class GameScene extends Phaser.Scene {
         )
         this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
           ...h,
-          type: (state.heroType as HeroType) ?? h.type,
+          type: assertHeroType(state.heroType),
           position: { x: reconciled.x, y: reconciled.y },
           facing: state.facing,
           hp: state.hp,
@@ -469,7 +477,7 @@ export class GameScene extends Phaser.Scene {
         // Prediction not set up yet — use server position directly
         this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
           ...h,
-          type: (state.heroType as HeroType) ?? h.type,
+          type: assertHeroType(state.heroType),
           position: { x: state.x, y: state.y },
           facing: state.facing,
           hp: state.hp,
@@ -507,7 +515,7 @@ export class GameScene extends Phaser.Scene {
       if (!existing) {
         const heroState = createHeroState({
           id: state.sessionId,
-          type: (state.heroType as HeroType) ?? 'BLADE',
+          type: assertHeroType(state.heroType),
           team: (state.team as Team) ?? 'red',
           position: { x: state.x, y: state.y },
         })

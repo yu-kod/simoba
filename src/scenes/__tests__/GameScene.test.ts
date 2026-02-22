@@ -389,13 +389,12 @@ describe('GameScene', () => {
     })
 
     it('updates remote hero type from server state', () => {
-      const { scene, em, setRenderer } = setupSceneForServerUpdate()
+      const { scene, em } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerHeroUpdate.bind(scene)
 
       // Create remote hero as BLADE first
       call(makeServerHeroState({ sessionId: 'remote-1', heroType: 'BLADE', team: 'red' }))
-      setRenderer('remote-1', createMockRenderer())
 
       const heroBlade = em.getEntity('remote-1') as HeroState
       expect(heroBlade.type).toBe('BLADE')
