@@ -91,6 +91,9 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('facing', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('hp', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('dead', () => this.notifyServerHeroUpdate(sessionId, hero))
+      // NOTE: attackCooldown decrements every server tick, so this fires continuously.
+      // Acceptable for 2v2 (≤80 extra calls/s). Replace with event-based approach in #111.
+      $(hero).listen('attackCooldown', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('respawnTimer', () => this.notifyServerHeroUpdate(sessionId, hero))
       $(hero).listen('lastProcessedSeq', () => this.notifyServerHeroUpdate(sessionId, hero))
     })
@@ -138,6 +141,7 @@ export class OnlineGameMode implements GameMode {
       team: hero.team as string,
       dead: hero.dead as boolean,
       attackTargetId: hero.attackTargetId as string,
+      attackCooldown: hero.attackCooldown as number,
       respawnTimer: hero.respawnTimer as number,
       lastProcessedSeq: hero.lastProcessedSeq as number,
     }

@@ -422,6 +422,12 @@ export class GameScene extends Phaser.Scene {
     const localSessionId = this.networkBridge.localSessionId
     const isLocal = localSessionId !== null && state.sessionId === localSessionId
 
+    // Snapshot previous state for change detection (before updating entity)
+    const existingHero = this.entityManager.getEntity(state.sessionId) as HeroState | null
+    const prevHp = existingHero?.hp ?? state.hp
+    const prevAttackCooldown = existingHero?.attackCooldown ?? state.attackCooldown
+    const prevDead = existingHero?.dead ?? state.dead
+
     if (isLocal) {
       // Remap local hero ID from placeholder to server sessionId (first time only)
       if (state.sessionId !== this.entityManager.localHeroId) {
@@ -447,6 +453,7 @@ export class GameScene extends Phaser.Scene {
           hp: state.hp,
           maxHp: state.maxHp,
           dead: state.dead,
+          attackCooldown: state.attackCooldown,
           attackTargetId: state.attackTargetId || null,
           respawnTimer: state.respawnTimer,
         }))
@@ -459,6 +466,7 @@ export class GameScene extends Phaser.Scene {
           hp: state.hp,
           maxHp: state.maxHp,
           dead: state.dead,
+          attackCooldown: state.attackCooldown,
           attackTargetId: state.attackTargetId || null,
           respawnTimer: state.respawnTimer,
         }))
@@ -474,6 +482,16 @@ export class GameScene extends Phaser.Scene {
           this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
         }
         this.cameraFollowing = true
+      }
+
+      // Reset prediction on death/respawn transitions
+      if (!prevDead && state.dead) {
+        // Death: clear buffered inputs and snap predictor to server position
+        this.inputBuffer?.clear()
+        this.movementPredictor?.setPosition(state.x, state.y)
+      } else if (prevDead && !state.dead) {
+        // Respawn: snap predictor to respawn position
+        this.movementPredictor?.setPosition(state.x, state.y)
       }
     } else {
       // Remote hero: create entity if new
@@ -502,15 +520,35 @@ export class GameScene extends Phaser.Scene {
         hp: state.hp,
         maxHp: state.maxHp,
         dead: state.dead,
+        attackCooldown: state.attackCooldown,
         attackTargetId: state.attackTargetId || null,
         respawnTimer: state.respawnTimer,
       }))
+    }
+
+    // Trigger damage flash when HP decreased
+    if (state.hp < prevHp) {
+      this.entityRenderers.get(state.sessionId)?.flash()
+    }
+
+    // Trigger melee swing when attackCooldown increases (= new attack fired).
+    // Cooldown normally only decreases (counting down), so an increase always means a new attack.
+    const heroType = (state.heroType as HeroType) ?? 'BLADE'
+    if (state.attackCooldown > prevAttackCooldown && HERO_DEFINITIONS[heroType].projectileSpeed === 0) {
+      const heroEntity = this.entityManager.getEntity(state.sessionId) as HeroState | null
+      if (heroEntity) {
+        this.meleeSwing.play({ position: heroEntity.position, facing: heroEntity.facing })
+      }
     }
   }
 
   /** Handle server tower state sync (server-authoritative mode). */
   private handleServerTowerUpdate(state: ServerTowerState): void {
     const existing = this.entityManager.getEntity(state.id)
+
+    // Detect HP decrease for damage flash (before updating entity)
+    const prevHp = (existing as TowerState | null)?.hp ?? state.hp
+
     if (!existing) {
       const towerState = createTowerState({
         id: state.id,
@@ -533,6 +571,11 @@ export class GameScene extends Phaser.Scene {
       maxHp: state.maxHp,
       dead: state.dead,
     }))
+
+    // Trigger damage flash when HP decreased
+    if (state.hp < prevHp) {
+      this.entityRenderers.get(state.id)?.flash()
+    }
   }
 
   /**

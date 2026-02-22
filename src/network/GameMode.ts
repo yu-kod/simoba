@@ -29,6 +29,7 @@ export interface RemotePlayerState {
 export interface ServerHeroState extends RemotePlayerState {
   readonly dead: boolean
   readonly attackTargetId: string
+  readonly attackCooldown: number
   readonly respawnTimer: number
   readonly lastProcessedSeq: number
 }
