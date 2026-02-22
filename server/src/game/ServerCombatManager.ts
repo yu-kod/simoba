@@ -5,7 +5,7 @@ import type { HeroType } from '@shared/types'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
 
 let projectileIdCounter = 0
@@ -39,6 +39,7 @@ function findTarget(
 /**
  * Process hero attack logic for one tick.
  * Handles cooldown, target validation, melee damage, and projectile spawning.
+ * Returns combat events for broadcasting to clients.
  */
 export function processHeroCombat(
   hero: HeroSchema,
@@ -49,11 +50,13 @@ export function processHeroCombat(
   projectiles: MapSchema<ProjectileSchema>,
   ProjectileSchemaClass: new () => ProjectileSchema,
   deltaTime: number
-): void {
+): CombatEventMessage[] {
+  const events: CombatEventMessage[] = []
+
   if (hero.dead) {
     hero.attackTargetId = ''
     hero.attackCooldown = 0
-    return
+    return events
   }
 
   // Reduce cooldown
@@ -90,7 +93,7 @@ export function processHeroCombat(
     const target = findTarget(hero.attackTargetId, heroes, towers)
     if (!target || target.dead) {
       hero.attackTargetId = ''
-      return
+      return events
     }
 
     const inRange = isInAttackRange(
@@ -102,7 +105,7 @@ export function processHeroCombat(
     )
     if (!inRange) {
       hero.attackTargetId = ''
-      return
+      return events
     }
 
     // Reset cooldown
@@ -114,6 +117,25 @@ export function processHeroCombat(
     if (def.projectileSpeed === 0) {
       // Melee: immediate damage
       applyDamageToTarget(hero.attackTargetId, hero.attackDamage, heroes, towers)
+
+      events.push({
+        kind: 'attack',
+        event: {
+          attackerId: heroId,
+          targetId: hero.attackTargetId,
+          attackType: 'melee',
+          position: { x: hero.x, y: hero.y },
+          facing: hero.facing,
+        },
+      })
+      events.push({
+        kind: 'damage',
+        event: {
+          targetId: hero.attackTargetId,
+          amount: hero.attackDamage,
+          sourceId: heroId,
+        },
+      })
     } else {
       // Ranged: spawn projectile
       const proj = new ProjectileSchemaClass()
@@ -127,6 +149,19 @@ export function processHeroCombat(
       proj.ownerId = heroId
       proj.team = hero.team
       projectiles.set(proj.id, proj)
+
+      events.push({
+        kind: 'attack',
+        event: {
+          attackerId: heroId,
+          targetId: hero.attackTargetId,
+          attackType: 'ranged',
+          position: { x: hero.x, y: hero.y },
+          facing: hero.facing,
+        },
+      })
     }
   }
+
+  return events
 }

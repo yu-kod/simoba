@@ -111,6 +111,40 @@ describe('ServerDeathSystem', () => {
       expect(hero.attackCooldown).toBe(0)
     })
 
+    it('should return DeathEvent(death) when hero dies', () => {
+      const hero = createHero('hero-1', { hp: 0, x: 500, y: 300 })
+      heroes.set('hero-1', hero)
+
+      const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(events).toHaveLength(1)
+      expect(events[0]).toEqual({
+        kind: 'death',
+        event: { heroId: 'hero-1', type: 'death', position: { x: 500, y: 300 } },
+      })
+    })
+
+    it('should return DeathEvent(respawn) when hero respawns', () => {
+      const hero = createHero('hero-1', { dead: true, hp: 0, respawnTimer: 0.1, team: 'blue' })
+      heroes.set('hero-1', hero)
+
+      const events = processDeathAndRespawn(heroes, getSpawnPosition, 1.0)
+
+      expect(events).toHaveLength(1)
+      expect(events[0]).toEqual({
+        kind: 'death',
+        event: { heroId: 'hero-1', type: 'respawn', position: { x: BLUE_SPAWN.x, y: BLUE_SPAWN.y } },
+      })
+    })
+
+    it('should return empty events when no death or respawn', () => {
+      const hero = createHero('hero-1', { hp: 500 })
+      heroes.set('hero-1', hero)
+
+      const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+      expect(events).toHaveLength(0)
+    })
+
     it('should handle multiple heroes independently', () => {
       const alive = createHero('alive', { hp: 500 })
       const dying = createHero('dying', { hp: 0 })

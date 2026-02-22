@@ -1,6 +1,6 @@
 import type { HeroState } from '@/domain/entities/Hero'
 import type { Position } from '@/domain/types'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 
 export interface DamageEvent {
   readonly targetId: string
@@ -97,6 +97,15 @@ export interface GameMode {
 
   /** Register callback for server projectile sync */
   onServerProjectileUpdate(callback: (projectiles: readonly ServerProjectileState[]) => void): void
+
+  /** Register callback for server attack event (server-authoritative) */
+  onAttackEvent(callback: (event: AttackEvent) => void): void
+
+  /** Register callback for server damage event (server-authoritative) */
+  onDamageEvent(callback: (event: ServerDamageEvent) => void): void
+
+  /** Register callback for server death/respawn event (server-authoritative) */
+  onDeathEvent(callback: (event: DeathEvent) => void): void
 
   /** Whether this mode is server-authoritative */
   readonly isServerAuthoritative: boolean

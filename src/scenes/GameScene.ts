@@ -28,7 +28,7 @@ import type { HeroType, Team, Position } from '@/domain/types'
 import type { TowerState } from '@/domain/entities/Tower'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode, ServerHeroState, ServerTowerState, ServerProjectileState } from '@/network/GameMode'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 import { MAP_LAYOUT } from '@/domain/mapLayout'
@@ -187,6 +187,16 @@ export class GameScene extends Phaser.Scene {
       },
       onServerProjectilesUpdated: (projectiles) => {
         this.serverProjectiles = projectiles
+      },
+      // Server-authoritative combat events
+      onAttackEvent: (event) => {
+        this.handleAttackEvent(event)
+      },
+      onDamageEvent: (event) => {
+        this.handleDamageEvent(event)
+      },
+      onDeathEvent: (event) => {
+        this.handleDeathEvent(event)
       },
     })
     this.networkBridge.setupCallbacks()
@@ -422,10 +432,8 @@ export class GameScene extends Phaser.Scene {
     const localSessionId = this.networkBridge.localSessionId
     const isLocal = localSessionId !== null && state.sessionId === localSessionId
 
-    // Snapshot previous state for change detection (before updating entity)
+    // Track previous dead state for prediction reset (death/respawn transitions)
     const existingHero = this.entityManager.getEntity(state.sessionId) as HeroState | null
-    const prevHp = existingHero?.hp ?? state.hp
-    const prevAttackCooldown = existingHero?.attackCooldown ?? state.attackCooldown
     const prevDead = existingHero?.dead ?? state.dead
 
     if (isLocal) {
@@ -453,7 +461,6 @@ export class GameScene extends Phaser.Scene {
           hp: state.hp,
           maxHp: state.maxHp,
           dead: state.dead,
-          attackCooldown: state.attackCooldown,
           attackTargetId: state.attackTargetId || null,
           respawnTimer: state.respawnTimer,
         }))
@@ -466,7 +473,6 @@ export class GameScene extends Phaser.Scene {
           hp: state.hp,
           maxHp: state.maxHp,
           dead: state.dead,
-          attackCooldown: state.attackCooldown,
           attackTargetId: state.attackTargetId || null,
           respawnTimer: state.respawnTimer,
         }))
@@ -520,34 +526,18 @@ export class GameScene extends Phaser.Scene {
         hp: state.hp,
         maxHp: state.maxHp,
         dead: state.dead,
-        attackCooldown: state.attackCooldown,
         attackTargetId: state.attackTargetId || null,
         respawnTimer: state.respawnTimer,
       }))
     }
 
-    // Trigger damage flash when HP decreased
-    if (state.hp < prevHp) {
-      this.entityRenderers.get(state.sessionId)?.flash()
-    }
-
-    // Trigger melee swing when attackCooldown increases (= new attack fired).
-    // Cooldown normally only decreases (counting down), so an increase always means a new attack.
-    const heroType = (state.heroType as HeroType) ?? 'BLADE'
-    if (state.attackCooldown > prevAttackCooldown && HERO_DEFINITIONS[heroType].projectileSpeed === 0) {
-      const heroEntity = this.entityManager.getEntity(state.sessionId) as HeroState | null
-      if (heroEntity) {
-        this.meleeSwing.play({ position: heroEntity.position, facing: heroEntity.facing })
-      }
-    }
+    // Damage flash + melee swing effects are now handled by event-based
+    // callbacks (onDamageEvent, onAttackEvent) instead of state-diff detection.
   }
 
   /** Handle server tower state sync (server-authoritative mode). */
   private handleServerTowerUpdate(state: ServerTowerState): void {
     const existing = this.entityManager.getEntity(state.id)
-
-    // Detect HP decrease for damage flash (before updating entity)
-    const prevHp = (existing as TowerState | null)?.hp ?? state.hp
 
     if (!existing) {
       const towerState = createTowerState({
@@ -571,11 +561,23 @@ export class GameScene extends Phaser.Scene {
       maxHp: state.maxHp,
       dead: state.dead,
     }))
+    // Damage flash is now handled by onDamageEvent callback.
+  }
 
-    // Trigger damage flash when HP decreased
-    if (state.hp < prevHp) {
-      this.entityRenderers.get(state.id)?.flash()
-    }
+  /** Handle server attack event: play melee swing for melee attacks. */
+  private handleAttackEvent(event: AttackEvent): void {
+    if (event.attackType !== 'melee') return
+    this.meleeSwing.play({ position: event.position, facing: event.facing })
+  }
+
+  /** Handle server damage event: flash the damaged entity. */
+  private handleDamageEvent(event: ServerDamageEvent): void {
+    this.entityRenderers.get(event.targetId)?.flash()
+  }
+
+  /** Handle server death/respawn event (placeholder for future visuals). */
+  private handleDeathEvent(_event: DeathEvent): void {
+    // Future: death animation, respawn effect, etc.
   }
 
   /**

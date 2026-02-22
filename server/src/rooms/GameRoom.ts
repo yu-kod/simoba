@@ -7,7 +7,7 @@ import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@shared/constants'
 import type { HeroType } from '@shared/types'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
 import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerCombatManager.js'
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
@@ -143,6 +143,7 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.matchTime += deltaTime
 
     const { heroes, towers, projectiles } = this.state
+    const events: CombatEventMessage[] = []
 
     // 1. Apply movement from inputs
     heroes.forEach((hero, sessionId) => {
@@ -158,7 +159,7 @@ export class GameRoom extends Room<GameRoomState> {
     // 2. Process hero combat (attacks)
     heroes.forEach((hero, heroId) => {
       const input = this.playerInputs.get(heroId)
-      processHeroCombat(
+      const heroEvents = processHeroCombat(
         hero,
         heroId,
         input,
@@ -168,11 +169,12 @@ export class GameRoom extends Room<GameRoomState> {
         ProjectileSchema,
         deltaTime
       )
+      events.push(...heroEvents)
     })
 
     // 3. Process tower combat
     towers.forEach((tower, towerId) => {
-      processTowerCombat(
+      const towerEvents = processTowerCombat(
         tower,
         towerId,
         heroes,
@@ -180,13 +182,21 @@ export class GameRoom extends Room<GameRoomState> {
         ProjectileSchema,
         deltaTime
       )
+      events.push(...towerEvents)
     })
 
     // 4. Process projectiles
-    processProjectiles(projectiles, heroes, towers, deltaTime)
+    const projectileEvents = processProjectiles(projectiles, heroes, towers, deltaTime)
+    events.push(...projectileEvents)
 
     // 5. Death detection and respawn
-    processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
+    const deathEvents = processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
+    events.push(...deathEvents)
+
+    // 6. Broadcast combat events to all clients
+    for (const msg of events) {
+      this.broadcast(msg.kind, msg.event)
+    }
 
     // Clear inputs after processing.
     // Design: "latest input wins" — each client sends inputs every frame,

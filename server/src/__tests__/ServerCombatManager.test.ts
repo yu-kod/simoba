@@ -267,6 +267,58 @@ describe('ServerCombatManager', () => {
       expect(heroB.hp).toBe(590) // 650 - 60 from heroA
     })
 
+    it('should return AttackEvent and DamageEvent for melee attack', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackDamage: 60, attackSpeed: 0.8, attackCooldown: 0,
+        heroType: 'BLADE', facing: 1.5,
+      })
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(events).toHaveLength(2)
+      expect(events[0]).toEqual({
+        kind: 'attack',
+        event: { attackerId: 'attacker', targetId: 'target', attackType: 'melee', position: { x: 100, y: 100 }, facing: 1.5 },
+      })
+      expect(events[1]).toEqual({
+        kind: 'damage',
+        event: { targetId: 'target', amount: 60, sourceId: 'attacker' },
+      })
+    })
+
+    it('should return AttackEvent (ranged) for BOLT without DamageEvent', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 18,
+        attackRange: 300, attackDamage: 45, attackSpeed: 1.0, attackCooldown: 0,
+        heroType: 'BOLT', facing: 0.5,
+      })
+      const target = createHero('target', { x: 350, y: 100, team: 'red', radius: 22 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(events).toHaveLength(1)
+      expect(events[0]).toEqual({
+        kind: 'attack',
+        event: { attackerId: 'attacker', targetId: 'target', attackType: 'ranged', position: { x: 100, y: 100 }, facing: 0.5 },
+      })
+    })
+
+    it('should return empty events when no attack fires', () => {
+      const hero = createHero('hero-1', { attackCooldown: 1.0 })
+      heroes.set('hero-1', hero)
+
+      const events = processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.5)
+      expect(events).toHaveLength(0)
+    })
+
     it('should attack tower targets', () => {
       const attacker = createHero('attacker', {
         x: 100, y: 100, team: 'blue', radius: 22,

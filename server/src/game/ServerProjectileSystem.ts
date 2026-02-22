@@ -2,6 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
+import type { CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
 
 interface DamageTarget {
@@ -40,13 +41,15 @@ function getAllDamageTargets(
  * Process all projectiles for one tick.
  * Moves each projectile toward its target position, checks collision against
  * enemy entities, applies damage on hit, and removes arrived/hit projectiles.
+ * Returns DamageEvent for each hit.
  */
 export function processProjectiles(
   projectiles: MapSchema<ProjectileSchema>,
   heroes: MapSchema<HeroSchema>,
   towers: MapSchema<TowerSchema>,
   deltaTime: number
-): void {
+): CombatEventMessage[] {
+  const events: CombatEventMessage[] = []
   const toRemove: string[] = []
   const targets = getAllDamageTargets(heroes, towers)
 
@@ -83,6 +86,14 @@ export function processProjectiles(
       const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
       if (distanceSq(proj.x, proj.y, target.x, target.y) <= collisionDist * collisionDist) {
         applyDamageToTarget(target.id, proj.damage, heroes, towers)
+        events.push({
+          kind: 'damage',
+          event: {
+            targetId: target.id,
+            amount: proj.damage,
+            sourceId: proj.ownerId,
+          },
+        })
         hit = true
         break
       }
@@ -102,4 +113,6 @@ export function processProjectiles(
   for (const id of toRemove) {
     projectiles.delete(id)
   }
+
+  return events
 }

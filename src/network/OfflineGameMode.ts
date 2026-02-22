@@ -1,5 +1,5 @@
 import type { HeroState } from '@/domain/entities/Hero'
-import type { InputMessage } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 import type {
   GameMode,
   DamageEvent,
@@ -71,6 +71,18 @@ export class OfflineGameMode implements GameMode {
   }
 
   onServerProjectileUpdate(_callback: (projectiles: readonly ServerProjectileState[]) => void): void {
+    // No-op
+  }
+
+  onAttackEvent(_callback: (event: AttackEvent) => void): void {
+    // No-op: offline combat effects are triggered directly by CombatManager
+  }
+
+  onDamageEvent(_callback: (event: ServerDamageEvent) => void): void {
+    // No-op
+  }
+
+  onDeathEvent(_callback: (event: DeathEvent) => void): void {
     // No-op
   }
 
