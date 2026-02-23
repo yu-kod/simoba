@@ -63,6 +63,11 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
+      # TODO: Remove after first successful apply
+      - name: Untaint service linked role (one-time fix)
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform untaint 'module.game_server.aws_iam_service_linked_role.ecs' 2>/dev/null || true
+
       - name: Terraform Plan
         id: plan
         working-directory: ${{ env.TF_WORKING_DIR }}
