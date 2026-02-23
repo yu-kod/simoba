@@ -159,6 +159,9 @@ export class GameScene extends Phaser.Scene {
       onRemotePlayerAdded: (sessionId) => {
         if (this.entityRenderers.has(sessionId)) return
         const state = this.entityManager.getEntity(sessionId) as HeroState | null
+        // TODO(#119): isAlly is hardcoded false here. In Colyseus, onAdd fires before
+        // the first state update, so team info may not be available yet. ensureHeroEntityExists
+        // uses correct isAlly logic but only applies if renderer doesn't already exist.
         if (state) this.entityRenderers.set(sessionId, new HeroRenderer(this, state, false))
       },
       onRemotePlayerRemoved: (sessionId) => {
@@ -352,14 +355,17 @@ export class GameScene extends Phaser.Scene {
     // === Gather: snapshot after attack input ===
     const localHero = this.entityManager.getEntity(localHeroId) as HeroState
 
-    // === Compute: clear target + facing + movement from single snapshot ===
+    // === Compute + Combat: derive values from snapshot, then process attack ===
+    // NOTE: attackTargetId update and processAttack call updateEntity internally.
+    // This is intentional — processAttack requires the cleared target to be committed
+    // before it reads combat state. The spec permits this exception (input-system spec:
+    // "攻撃処理の updateEntity 呼び出しは許容される").
     let attackTargetId = localHero.attackTargetId
     if (isMoving && attackTargetId !== null
       && !HERO_DEFINITIONS[localHero.type].canMoveWhileAttacking) {
       attackTargetId = null
     }
 
-    // Combat processing (may call updateEntity internally — design allows this)
     if (attackTargetId !== localHero.attackTargetId) {
       this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, attackTargetId }))
     }
@@ -428,7 +434,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Handle server hero state sync (server-authoritative mode). */
-  /** Handle server hero state sync (server-authoritative mode). */
   private handleServerHeroUpdate(state: ServerHeroState): void {
     const localSessionId = this.networkBridge.localSessionId
     const isLocal = localSessionId !== null && state.sessionId === localSessionId
@@ -483,6 +488,9 @@ export class GameScene extends Phaser.Scene {
     if (isLocal && this.inputBuffer && this.movementPredictor) {
       this.inputBuffer.acknowledge(state.lastProcessedSeq)
       const heroType = assertHeroType(state.heroType)
+      // NOTE: Uses static base speed from HERO_DEFINITIONS. ServerHeroState does not
+      // expose runtime speed, so speed buffs/debuffs would cause reconciliation desync.
+      // When speed modifiers are added, ServerHeroState should include a speed field.
       const speed = HERO_DEFINITIONS[heroType].base.speed
       const reconciled = this.movementPredictor.reconcile(
         state.x,
