@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: ECS on EC2 Terraform モジュール
 `infrastructure/terraform/modules/game-server/` に ECS Fargate デプロイ用の Terraform モジュールを提供しなければならない（SHALL）。ECS クラスター、Fargate タスク定義、ECS Service を定義しなければならない（SHALL）。タスクは `awsvpc` network mode で public IP を付与しなければならない（SHALL）。コンテナイメージが未指定の場合、ECS Service を作成しないこと（SHALL）。
@@ -21,3 +21,13 @@ Fargate タスク用のセキュリティグループを定義しなければな
 #### Scenario: 外部から Colyseus ポートにアクセスできる
 - **WHEN** 外部から Fargate タスクのポート 2567 に接続を試みる
 - **THEN** 接続が許可される
+
+## REMOVED Requirements
+
+### Requirement: ALB + WebSocket 対応
+**Reason**: Fargate + public IP 構成に変更。ALB を削除しコストを削減。
+**Migration**: クライアントは Fargate タスクの public IP に直接 WebSocket 接続する。
+
+### Requirement: docker-compose による Colyseus ローカル起動
+**Reason**: 本変更のスコープ外。ローカル開発環境は別途対応。
+**Migration**: なし（既存の docker-compose は変更しない）

@@ -29,6 +29,12 @@ provider "aws" {
   }
 }
 
+module "vpc" {
+  source = "../../modules/vpc"
+
+  environment = "prod"
+}
+
 module "static_hosting" {
   source = "../../modules/static-hosting"
 
@@ -40,9 +46,7 @@ module "static_hosting" {
 module "game_server" {
   source = "../../modules/game-server"
 
-  environment        = "prod"
-  vpc_id             = var.vpc_id
-  public_subnet_ids  = var.public_subnet_ids
-  private_subnet_ids = var.private_subnet_ids
-  container_image    = "${module.game_server.ecr_repository_url}:latest"
+  environment       = "prod"
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnet_ids
 }
