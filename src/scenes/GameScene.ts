@@ -541,13 +541,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Compute hero position: predicted position for local hero, server position for remote. */
-  private computeHeroPosition(state: ServerHeroState, _isLocal: boolean): Position {
-    // Server-authoritative: always use server position directly.
-    // InterpolationBuffer handles smooth rendering in update().
-    return { x: state.x, y: state.y }
-  }
-
   /** Step 2: Apply server state to entity (single source of truth for all fields). */
   private applyServerHeroState(state: ServerHeroState, position: Position): void {
     this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({

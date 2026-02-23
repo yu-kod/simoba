@@ -60,8 +60,10 @@ export class InterpolationBuffer {
   getInterpolatedPosition(): InterpolatedState | null {
     const len = this.snapshots.length
     if (len === 0) return null
+
+    const first = this.snapshots[0]!
     if (len === 1) {
-      const s = this.snapshots[0].snapshot
+      const s = first.snapshot
       return { x: s.x, y: s.y, facing: s.facing }
     }
 
@@ -69,24 +71,25 @@ export class InterpolationBuffer {
     const renderTime = this.now() - INTERPOLATION_DELAY
 
     // If render time is before the first snapshot, clamp to first
-    if (renderTime <= this.snapshots[0].localTime) {
-      const s = this.snapshots[0].snapshot
+    if (renderTime <= first.localTime) {
+      const s = first.snapshot
       return { x: s.x, y: s.y, facing: s.facing }
     }
 
     // Find the two snapshots bracketing renderTime
-    let a = this.snapshots[0]
-    let b = this.snapshots[1]
+    let a: BufferedSnapshot = first
+    let b: BufferedSnapshot = this.snapshots[1]!
     for (let i = 1; i < len; i++) {
-      if (this.snapshots[i].localTime > renderTime) {
-        a = this.snapshots[i - 1]
-        b = this.snapshots[i]
+      const current = this.snapshots[i]!
+      if (current.localTime > renderTime) {
+        a = this.snapshots[i - 1]!
+        b = current
         break
       }
       // If renderTime is past this snapshot, it becomes the new lower bound
       if (i === len - 1) {
         // Render time is past the last snapshot — clamp to latest (no extrapolation)
-        const s = this.snapshots[len - 1].snapshot
+        const s = current.snapshot
         return { x: s.x, y: s.y, facing: s.facing }
       }
     }

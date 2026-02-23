@@ -14,8 +14,11 @@ import type {
 import { NetworkClient } from '@/network/NetworkClient'
 import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 
+/** Colyseus schema instance — properties accessed dynamically via listen/onChange. */
+type SchemaInstance = Record<string, unknown>
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StateCallbacks = (instance: any) => any
+type StateCallbacks = (instance: SchemaInstance) => any
 
 export class OnlineGameMode implements GameMode {
   readonly isServerAuthoritative = true
@@ -45,7 +48,7 @@ export class OnlineGameMode implements GameMode {
   private remoteLeaveCallbacks: ((sessionId: string) => void)[] = []
 
   // Batch per-property listen callbacks into one notification per entity per patch
-  private pendingHeroUpdates = new Map<string, { hero: any }>()
+  private pendingHeroUpdates = new Map<string, { hero: SchemaInstance }>()
   private pendingProjectileUpdate = false
 
   constructor(options?: { serverUrl?: string; room?: Room }) {
@@ -94,8 +97,7 @@ export class OnlineGameMode implements GameMode {
     })
 
     // --- Server-authoritative hero sync ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(this.room.state.heroes).onAdd((hero: any, sessionId: string) => {
+    $(this.room.state.heroes).onAdd((hero: SchemaInstance, sessionId: string) => {
       // Notify hero state immediately on join (no batching — need entity created right away)
       this.notifyServerHeroUpdate(sessionId, hero)
 
@@ -119,15 +121,13 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('serverTime', schedule)
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(this.room.state.heroes).onRemove((_hero: any, sessionId: string) => {
+    $(this.room.state.heroes).onRemove((_hero: SchemaInstance, sessionId: string) => {
       for (const cb of this.serverHeroRemoveCallbacks) cb(sessionId)
       for (const cb of this.remoteLeaveCallbacks) cb(sessionId)
     })
 
     // --- Server-authoritative tower sync ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(this.room.state.towers).onAdd((tower: any, towerId: string) => {
+    $(this.room.state.towers).onAdd((tower: SchemaInstance, towerId: string) => {
       this.notifyServerTowerUpdate(towerId, tower)
 
       $(tower).listen('hp', () => this.notifyServerTowerUpdate(towerId, tower))
@@ -135,28 +135,24 @@ export class OnlineGameMode implements GameMode {
     })
 
     // --- Server-authoritative projectile sync ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(this.room.state.projectiles).onAdd((proj: any) => {
+    $(this.room.state.projectiles).onAdd((proj: SchemaInstance) => {
       this.scheduleProjectileUpdate()
       // Per-projectile position listeners — batched like heroes
       $(proj).listen('x', () => this.scheduleProjectileUpdate())
       $(proj).listen('y', () => this.scheduleProjectileUpdate())
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(this.room.state.projectiles).onRemove((_proj: any) => {
+    $(this.room.state.projectiles).onRemove((_proj: SchemaInstance) => {
       this.scheduleProjectileUpdate()
     })
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   /**
    * Schedule a batched hero update. Colyseus fires per-property listen callbacks,
    * so a single patch updating x, y, facing, serverTime fires 4 callbacks.
    * This batches them into one notifyServerHeroUpdate via queueMicrotask.
    */
-  private scheduleHeroUpdate(sessionId: string, hero: any): void {
+  private scheduleHeroUpdate(sessionId: string, hero: SchemaInstance): void {
     if (this.pendingHeroUpdates.has(sessionId)) return
     this.pendingHeroUpdates.set(sessionId, { hero })
     queueMicrotask(() => {
@@ -168,7 +164,7 @@ export class OnlineGameMode implements GameMode {
     })
   }
 
-  private notifyServerHeroUpdate(sessionId: string, hero: any): void {
+  private notifyServerHeroUpdate(sessionId: string, hero: SchemaInstance): void {
     const state: ServerHeroState = {
       sessionId,
       x: hero.x as number,
@@ -194,8 +190,7 @@ export class OnlineGameMode implements GameMode {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private notifyServerTowerUpdate(towerId: string, tower: any): void {
+  private notifyServerTowerUpdate(towerId: string, tower: SchemaInstance): void {
     const state: ServerTowerState = {
       id: towerId,
       x: tower.x as number,
@@ -222,8 +217,7 @@ export class OnlineGameMode implements GameMode {
   private notifyProjectilesChanged(): void {
     if (!this.room) return
     const projectiles: ServerProjectileState[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.room.state.projectiles.forEach((proj: any, id: string) => {
+    this.room.state.projectiles.forEach((proj: SchemaInstance, id: string) => {
       projectiles.push({
         id,
         x: proj.x as number,
@@ -235,8 +229,7 @@ export class OnlineGameMode implements GameMode {
     for (const cb of this.serverProjectileUpdateCallbacks) cb(projectiles)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toRemoteState(sessionId: string, player: any): RemotePlayerState {
+  private toRemoteState(sessionId: string, player: SchemaInstance): RemotePlayerState {
     return {
       sessionId,
       x: player.x as number,
