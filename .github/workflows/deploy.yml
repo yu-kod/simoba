@@ -99,7 +99,8 @@ jobs:
     needs: terraform-plan
     if: |
       inputs.action == 'apply' &&
-      needs.terraform-plan.result == 'success'
+      needs.terraform-plan.result == 'success' &&
+      needs.terraform-plan.outputs.plan-exit-code == '2'
     environment: prod-deploy
     steps:
       - name: Checkout
@@ -158,14 +159,20 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan Destroy
+        id: destroy-plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          terraform plan -destroy -no-color 2>&1 | tee destroy-plan.txt
+          terraform plan -destroy -out=destroy.tfplan -no-color 2>&1 | tee destroy-plan.txt
           echo "## Destroy Plan" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat destroy-plan.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true
+
+      - name: Fail on Destroy Plan Error
+        if: steps.destroy-plan.outcome == 'failure'
+        run: exit 1
 
       - name: Terraform Destroy
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform destroy -auto-approve
+        run: terraform apply destroy.tfplan
