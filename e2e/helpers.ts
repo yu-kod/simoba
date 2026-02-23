@@ -33,7 +33,7 @@ const WORLD_WIDTH = 3200
 const WORLD_HEIGHT = 720
 
 // Lobby button positions (must match LobbyScene layout)
-const OFFLINE_PLAY_BUTTON = { x: 640, y: 420 }
+const OFFLINE_PLAY_BUTTON = { x: 640, y: 460 }
 
 type GameWindow = {
   game: { scene: { isActive: (key: string) => boolean } }
