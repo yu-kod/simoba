@@ -13,7 +13,7 @@ RUN npm ci
 
 COPY server/src/ ./src/
 COPY server/tsconfig.json ./
-RUN npx tsc
+RUN npm run build
 
 # --- Production stage ---
 FROM node:22-slim
@@ -23,7 +23,6 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY --from=builder /app/server/package.json /app/server/package-lock.json ./server/
-COPY --from=builder /app/shared/ ./shared/
 
 WORKDIR /app/server
 RUN npm ci --omit=dev
