@@ -49,4 +49,5 @@ module "game_server" {
   environment       = "prod"
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
+  container_image   = "012502956603.dkr.ecr.ap-northeast-1.amazonaws.com/simoba-game-prod:de4e027e57eed347478b5ae755dfc105002a799d"
 }
