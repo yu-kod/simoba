@@ -1,8 +1,8 @@
 # --- ECR Repository ---
 resource "aws_ecr_repository" "game_server" {
   name                 = "simoba-server-${var.environment}"
-  image_tag_mutability = "MUTABLE"
-  force_delete         = true
+  image_tag_mutability = "IMMUTABLE"
+  force_delete         = var.force_delete_ecr
 
   image_scanning_configuration {
     scan_on_push = true
@@ -57,6 +57,14 @@ resource "aws_security_group" "fargate" {
   }
 }
 
+# --- CloudWatch Log Group ---
+resource "aws_cloudwatch_log_group" "game" {
+  count = var.container_image != "" ? 1 : 0
+
+  name              = "/ecs/simoba-game-${var.environment}"
+  retention_in_days = 30
+}
+
 # --- ECS Task Definition (Fargate) ---
 resource "aws_ecs_task_definition" "game" {
   count = var.container_image != "" ? 1 : 0
@@ -86,10 +94,9 @@ resource "aws_ecs_task_definition" "game" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-group"         = "/ecs/simoba-game-${var.environment}"
+        "awslogs-group"         = aws_cloudwatch_log_group.game[0].name
         "awslogs-region"        = data.aws_region.current.name
         "awslogs-stream-prefix" = "colyseus"
-        "awslogs-create-group"  = "true"
       }
     }
   }])

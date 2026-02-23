@@ -13,6 +13,12 @@ variable "public_subnet_ids" {
   type        = list(string)
 }
 
+variable "force_delete_ecr" {
+  description = "Whether to force-delete all images in ECR on destroy"
+  type        = bool
+  default     = false
+}
+
 variable "container_image" {
   description = "Docker image URI for the Colyseus server. Empty string skips ECS Service creation."
   type        = string
