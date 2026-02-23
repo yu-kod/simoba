@@ -67,6 +67,7 @@ export class GameScene extends Phaser.Scene {
   private gameMode: GameMode = new OfflineGameMode()
   private localTeam: Team = 'blue'
   private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+  private localHeroType: HeroType = 'BLADE'
 
   // Online mode: client-side prediction
   private inputBuffer: InputBuffer | null = null
@@ -77,10 +78,11 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' })
   }
 
-  init(data?: { gameMode?: GameMode; localTeam?: Team; localPosition?: Position }): void {
+  init(data?: { gameMode?: GameMode; localTeam?: Team; localPosition?: Position; heroType?: HeroType }): void {
     this.gameMode = data?.gameMode ?? new OfflineGameMode()
     this.localTeam = data?.localTeam ?? 'blue'
     this.localSpawnPosition = data?.localPosition ?? { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+    this.localHeroType = data?.heroType ?? 'BLADE'
   }
 
   create(): void {
@@ -95,7 +97,7 @@ export class GameScene extends Phaser.Scene {
       : { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
 
     this.entityManager = new EntityManager(
-      { id: 'player-1', type: 'BLADE', team: this.localTeam, position: this.localSpawnPosition },
+      { id: 'player-1', type: this.localHeroType, team: this.localTeam, position: this.localSpawnPosition },
       { id: 'enemy-1', type: 'BLADE', team: enemyTeam, position: enemyPosition }
     )
     this.combatManager = new CombatManager(this.entityManager)

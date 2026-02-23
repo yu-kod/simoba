@@ -35,6 +35,15 @@ const WORLD_HEIGHT = 720
 // Lobby button positions (must match LobbyScene layout)
 const OFFLINE_PLAY_BUTTON = { x: 640, y: 460 }
 
+// Hero selection button positions (y=300, horizontal row centered at GAME_WIDTH/2)
+// HERO_BUTTON_WIDTH=96, HERO_BUTTON_GAP=12, 3 buttons
+const HERO_BUTTON_Y = 300
+const HERO_BUTTON_POSITIONS: Record<string, { x: number; y: number }> = {
+  BLADE: { x: 532, y: HERO_BUTTON_Y },
+  BOLT: { x: 640, y: HERO_BUTTON_Y },
+  AURA: { x: 748, y: HERO_BUTTON_Y },
+}
+
 type GameWindow = {
   game: { scene: { isActive: (key: string) => boolean } }
 }
@@ -65,16 +74,40 @@ export async function waitForTestApi(page: Page): Promise<void> {
 }
 
 /**
+ * Click a hero selection button in the lobby.
+ * Must be called after LobbyScene is active but before clicking "Offline Play".
+ */
+export async function selectHeroInLobby(page: Page, heroType: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
+  const canvas = page.locator('#game-container canvas')
+  const bounds = await canvas.boundingBox()
+  if (!bounds) throw new Error('Canvas not found')
+
+  const pos = HERO_BUTTON_POSITIONS[heroType]
+  const scaleX = bounds.width / GAME_WIDTH
+  const scaleY = bounds.height / GAME_HEIGHT
+  await page.mouse.click(
+    bounds.x + pos.x * scaleX,
+    bounds.y + pos.y * scaleY
+  )
+  await page.waitForTimeout(200)
+}
+
+/**
  * Navigate to the page, click "Offline Play" in the lobby, and wait for GameScene.
  * Use this as the standard entry point for E2E tests that need GameScene.
+ * Pass heroType to select a specific hero before starting (default: BLADE).
  */
-export async function startOfflineGame(page: Page): Promise<void> {
+export async function startOfflineGame(page: Page, heroType?: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
   await page.goto('/')
 
   const canvas = page.locator('#game-container canvas')
   await canvas.waitFor({ state: 'visible', timeout: 10000 })
 
   await waitForScene(page, 'LobbyScene')
+
+  if (heroType) {
+    await selectHeroInLobby(page, heroType)
+  }
 
   const bounds = await canvas.boundingBox()
   if (!bounds) throw new Error('Canvas not found')
