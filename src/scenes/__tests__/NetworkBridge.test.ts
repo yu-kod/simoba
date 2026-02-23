@@ -62,7 +62,7 @@ const REMOTE: RemotePlayerState = {
   sessionId: 'sess-1',
   x: 400, y: 300, facing: 1.0,
   hp: 100, maxHp: 100,
-  heroType: 'AURA', team: 'red',
+  heroType: 'AURA', team: 'red', radius: 20,
 }
 
 describe('NetworkBridge', () => {
@@ -99,7 +99,7 @@ describe('NetworkBridge', () => {
       const { em, cm, gm } = createSetup()
       em.addRemotePlayer({
         sessionId: 'remote-shooter', x: 0, y: 0, facing: 0,
-        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red',
+        hp: 100, maxHp: 100, heroType: 'BOLT', team: 'red', radius: 18,
       })
       gm._triggerProjectileSpawn({
         ownerId: 'remote-shooter',

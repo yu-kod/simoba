@@ -19,10 +19,10 @@ export class NetworkClient {
     return this.room
   }
 
-  async connect(roomName: string = 'game'): Promise<Room> {
+  async connect(roomName: string = 'game', options?: Record<string, unknown>): Promise<Room> {
     this._state = 'connecting'
     try {
-      this.room = await this.client.joinOrCreate(roomName)
+      this.room = await this.client.joinOrCreate(roomName, options)
       this._state = 'connected'
       return this.room
     } catch (error) {

@@ -41,6 +41,10 @@ function getSpawnPosition(team: string): { x: number; y: number } {
   return team === 'blue' ? BLUE_SPAWN : RED_SPAWN
 }
 
+function isValidHeroType(value: unknown): value is HeroType {
+  return typeof value === 'string' && value in HERO_DEFINITIONS
+}
+
 export class GameRoom extends Room<GameRoomState> {
   maxClients = MAX_PLAYERS
   private playerInputs = new Map<string, InputMessage>()
@@ -60,12 +64,14 @@ export class GameRoom extends Room<GameRoomState> {
     }, TICK_RATE_MS)
   }
 
-  onJoin(client: Client): void {
+  onJoin(client: Client, options?: Record<string, unknown>): void {
     const hero = new HeroSchema()
     const isBlue = this.state.heroes.size === 0
     const spawn = isBlue ? BLUE_SPAWN : RED_SPAWN
     const team = isBlue ? 'blue' : 'red'
-    const heroType: HeroType = 'BLADE'
+    const heroType: HeroType = isValidHeroType(options?.heroType)
+      ? options.heroType as HeroType
+      : 'BLADE'
     const def = HERO_DEFINITIONS[heroType]
 
     hero.id = client.sessionId

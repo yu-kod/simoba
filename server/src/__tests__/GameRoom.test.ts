@@ -6,6 +6,8 @@ import {
   BLUE_SPAWN,
   RED_SPAWN,
 } from '../rooms/GameRoom.js'
+import { HERO_DEFINITIONS } from '@shared/entities/Hero'
+import type { HeroType } from '@shared/types'
 
 describe('HeroSchema', () => {
   it('should have default values', () => {
@@ -108,14 +110,22 @@ describe('gameStart state flag logic', () => {
       broadcast(type: string) {
         broadcasts.push({ type })
       },
-      onJoin(client: { sessionId: string }) {
+      onJoin(client: { sessionId: string }, options?: Record<string, unknown>) {
         const hero = new HeroSchema()
         const isBlue = state.heroes.size === 0
         const spawn = isBlue ? BLUE_SPAWN : RED_SPAWN
+        const heroType: HeroType = (typeof options?.heroType === 'string' && options.heroType in HERO_DEFINITIONS)
+          ? options.heroType as HeroType
+          : 'BLADE'
+        const def = HERO_DEFINITIONS[heroType]
         hero.x = spawn.x
         hero.y = spawn.y
         hero.team = isBlue ? 'blue' : 'red'
-        hero.heroType = 'BLADE'
+        hero.heroType = heroType
+        hero.hp = def.base.maxHp
+        hero.maxHp = def.base.maxHp
+        hero.speed = def.base.speed
+        hero.attackDamage = def.base.attackDamage
         state.heroes.set(client.sessionId, hero)
         if (state.heroes.size === room.maxClients) {
           state.gameStarted = true
@@ -151,6 +161,37 @@ describe('gameStart state flag logic', () => {
   it('should have gameStarted default to false on new GameRoomState', () => {
     const state = new GameRoomState()
     expect(state.gameStarted).toBe(false)
+  })
+
+  it('should apply valid heroType from join options', () => {
+    const { room } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' }, { heroType: 'BOLT' })
+    const hero = room.state.heroes.get('session-1')!
+    expect(hero.heroType).toBe('BOLT')
+    expect(hero.maxHp).toBe(HERO_DEFINITIONS.BOLT.base.maxHp)
+    expect(hero.speed).toBe(HERO_DEFINITIONS.BOLT.base.speed)
+  })
+
+  it('should fall back to BLADE for invalid heroType', () => {
+    const { room } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' }, { heroType: 'INVALID' })
+    const hero = room.state.heroes.get('session-1')!
+    expect(hero.heroType).toBe('BLADE')
+    expect(hero.maxHp).toBe(HERO_DEFINITIONS.BLADE.base.maxHp)
+  })
+
+  it('should fall back to BLADE when heroType is missing', () => {
+    const { room } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' })
+    const hero = room.state.heroes.get('session-1')!
+    expect(hero.heroType).toBe('BLADE')
+  })
+
+  it('should fall back to BLADE when options is empty object', () => {
+    const { room } = createMockRoom()
+    room.onJoin({ sessionId: 'session-1' }, {})
+    const hero = room.state.heroes.get('session-1')!
+    expect(hero.heroType).toBe('BLADE')
   })
 })
 

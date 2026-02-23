@@ -453,6 +453,7 @@ export class GameScene extends Phaser.Scene {
         this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
           ...h,
           type: assertHeroType(state.heroType),
+          radius: state.radius,
           position: { x: reconciled.x, y: reconciled.y },
           facing: state.facing,
           hp: state.hp,
@@ -466,6 +467,7 @@ export class GameScene extends Phaser.Scene {
         this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
           ...h,
           type: assertHeroType(state.heroType),
+          radius: state.radius,
           position: { x: state.x, y: state.y },
           facing: state.facing,
           hp: state.hp,
@@ -519,7 +521,8 @@ export class GameScene extends Phaser.Scene {
       // Update entity state from server
       this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
         ...h,
-        type: (state.heroType as HeroType) ?? h.type,
+        type: assertHeroType(state.heroType),
+        radius: state.radius,
         position: { x: state.x, y: state.y },
         facing: state.facing,
         hp: state.hp,
