@@ -7,7 +7,7 @@ export class NetworkClient {
   private room: Room | null = null
   private _state: ConnectionState = 'disconnected'
 
-  constructor(serverUrl: string = 'ws://localhost:2567') {
+  constructor(serverUrl: string = import.meta.env.VITE_SERVER_URL ?? 'ws://localhost:2567') {
     this.client = new Client(serverUrl)
   }
 
