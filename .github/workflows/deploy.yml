@@ -66,11 +66,18 @@ jobs:
         id: plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          terraform plan -input=false -out=tfplan -detailed-exitcode -no-color 2>&1 | tee plan-output.txt
-          echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
-        continue-on-error: true
+          set +e
+          terraform plan -input=false -out=tfplan -detailed-exitcode -no-color > plan-output.txt 2>&1
+          EXIT_CODE=$?
+          set -e
+          cat plan-output.txt
+          echo "exitcode=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            exit 1
+          fi
 
       - name: Plan Summary
+        if: always()
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           echo "## Terraform Plan Result" >> "$GITHUB_STEP_SUMMARY"
@@ -80,7 +87,7 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Plan Artifact
-        if: steps.plan.outputs.exitcode == '0' || steps.plan.outputs.exitcode == '2'
+        if: steps.plan.outputs.exitcode == '2'
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
@@ -88,10 +95,6 @@ jobs:
             ${{ env.TF_WORKING_DIR }}/tfplan
             ${{ env.TF_WORKING_DIR }}/plan-output.txt
           retention-days: 1
-
-      - name: Fail on Plan Error
-        if: steps.plan.outputs.exitcode == '1'
-        run: exit 1
 
   terraform-apply:
     name: Terraform Apply
