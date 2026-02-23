@@ -3,7 +3,6 @@ export interface Snapshot {
   readonly x: number
   readonly y: number
   readonly facing: number
-  readonly serverTime: number
 }
 
 /** Interpolated result returned each frame. */

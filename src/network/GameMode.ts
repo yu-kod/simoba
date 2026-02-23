@@ -33,7 +33,6 @@ export interface ServerHeroState extends RemotePlayerState {
   readonly attackCooldown: number
   readonly respawnTimer: number
   readonly lastProcessedSeq: number
-  readonly serverTime: number
 }
 
 /** Server-synced projectile for rendering */

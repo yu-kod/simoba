@@ -173,7 +173,6 @@ function makeServerHeroState(overrides?: Partial<ServerHeroState>): ServerHeroSt
     attackCooldown: 0,
     respawnTimer: 0,
     lastProcessedSeq: 0,
-    serverTime: 0,
     ...overrides,
   }
 }

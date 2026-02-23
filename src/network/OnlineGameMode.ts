@@ -118,7 +118,6 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('radius', schedule)
       $(hero).listen('respawnTimer', schedule)
       $(hero).listen('lastProcessedSeq', schedule)
-      $(hero).listen('serverTime', schedule)
     })
 
     $(this.room.state.heroes).onRemove((_hero: SchemaInstance, sessionId: string) => {
@@ -149,7 +148,7 @@ export class OnlineGameMode implements GameMode {
 
   /**
    * Schedule a batched hero update. Colyseus fires per-property listen callbacks,
-   * so a single patch updating x, y, facing, serverTime fires 4 callbacks.
+   * so a single patch updating x, y, facing fires multiple callbacks.
    * This batches them into one notifyServerHeroUpdate via queueMicrotask.
    */
   private scheduleHeroUpdate(sessionId: string, hero: SchemaInstance): void {
@@ -180,7 +179,6 @@ export class OnlineGameMode implements GameMode {
       attackCooldown: hero.attackCooldown as number,
       respawnTimer: hero.respawnTimer as number,
       lastProcessedSeq: hero.lastProcessedSeq as number,
-      serverTime: hero.serverTime as number,
     }
     for (const cb of this.serverHeroUpdateCallbacks) cb(state)
 

@@ -199,7 +199,7 @@ export class GameScene extends Phaser.Scene {
               this.projectileInterpolationBuffers.set(p.id, new InterpolationBuffer())
             }
             this.projectileInterpolationBuffers.get(p.id)!.pushSnapshot({
-              x: p.x, y: p.y, facing: 0, serverTime: 0,
+              x: p.x, y: p.y, facing: 0,
             })
           }
           // Remove buffers for destroyed projectiles
@@ -267,17 +267,27 @@ export class GameScene extends Phaser.Scene {
     // --- Respawn timer UI ---
     this.updateRespawnUI()
 
-    // --- Remote entity interpolation (online only) ---
+    // --- Entity interpolation (online only) ---
     if (isOnline) {
+      const localId = this.entityManager.localHeroId
       for (const [entityId, buffer] of this.interpolationBuffers) {
         const interpolated = buffer.getInterpolatedPosition()
         if (!interpolated) continue
         if (!this.entityManager.getEntity(entityId)) continue
-        this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
-          ...hero,
-          position: { x: interpolated.x, y: interpolated.y },
-          facing: interpolated.facing,
-        }))
+        if (entityId === localId) {
+          // Local hero: only interpolate position, keep locally-computed facing
+          this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
+            ...hero,
+            position: { x: interpolated.x, y: interpolated.y },
+          }))
+        } else {
+          // Remote heroes: interpolate both position and facing
+          this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
+            ...hero,
+            position: { x: interpolated.x, y: interpolated.y },
+            facing: interpolated.facing,
+          }))
+        }
       }
     }
 
@@ -498,7 +508,6 @@ export class GameScene extends Phaser.Scene {
         x: state.x,
         y: state.y,
         facing: state.facing,
-        serverTime: state.serverTime,
       })
     } else {
       // Offline: apply full state including position
