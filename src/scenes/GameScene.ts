@@ -159,6 +159,9 @@ export class GameScene extends Phaser.Scene {
       onRemotePlayerAdded: (sessionId) => {
         if (this.entityRenderers.has(sessionId)) return
         const state = this.entityManager.getEntity(sessionId) as HeroState | null
+        // TODO(#119): isAlly is hardcoded false here. In Colyseus, onAdd fires before
+        // the first state update, so team info may not be available yet. ensureHeroEntityExists
+        // uses correct isAlly logic but only applies if renderer doesn't already exist.
         if (state) this.entityRenderers.set(sessionId, new HeroRenderer(this, state, false))
       },
       onRemotePlayerRemoved: (sessionId) => {
@@ -269,11 +272,13 @@ export class GameScene extends Phaser.Scene {
   ): void {
     if (!this.inputBuffer || !this.movementPredictor) return
 
+    // === Gather: read snapshot once ===
     const localHeroId = this.entityManager.localHeroId
     const localHero = this.entityManager.getEntity(localHeroId) as HeroState
 
-    // Persist attack target locally (same pattern as offline mode).
-    // Start with current local target — only change on right-click or move cancel.
+    // === Compute: derive all values from snapshot + input ===
+
+    // Attack target selection
     let attackTargetId: string | null = localHero.attackTargetId
     if (input.attack) {
       const enemies = this.entityManager.getEnemiesOf(this.localTeam)
@@ -291,15 +296,7 @@ export class GameScene extends Phaser.Scene {
       attackTargetId = null
     }
 
-    // Update local hero state with target change
-    if (attackTargetId !== localHero.attackTargetId) {
-      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
-        ...h,
-        attackTargetId,
-      }))
-    }
-
-    // Compute facing (use local attackTargetId, not stale localHero reference)
+    // Facing (based on computed attackTargetId, not stale reference)
     const attackTarget = attackTargetId !== null
       ? this.entityManager.getEntity(attackTargetId)
       : null
@@ -310,7 +307,7 @@ export class GameScene extends Phaser.Scene {
       localHero.position
     )
 
-    // Build and send InputMessage
+    // Input message
     const seq = this.inputBuffer.getNextSeq()
     const inputMsg: InputMessage = {
       seq,
@@ -318,21 +315,26 @@ export class GameScene extends Phaser.Scene {
       attackTargetId,
       facing: newFacing,
     }
+
+    // Prediction position
+    const predicted = isMoving
+      ? this.movementPredictor.applyInput(inputMsg, localHero.stats.speed, deltaSeconds)
+      : null
+
+    // === Apply: single updateEntity + network send ===
     this.inputBuffer.add(inputMsg)
     this.networkBridge.sendInput(inputMsg)
 
-    // Local movement prediction
-    if (isMoving) {
-      const predicted = this.movementPredictor.applyInput(inputMsg, localHero.stats.speed, deltaSeconds)
+    const needsUpdate = predicted !== null
+      || newFacing !== localHero.facing
+      || attackTargetId !== localHero.attackTargetId
+
+    if (needsUpdate) {
       this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
         ...h,
-        position: { x: predicted.x, y: predicted.y },
+        attackTargetId,
         facing: newFacing,
-      }))
-    } else if (newFacing !== localHero.facing) {
-      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
-        ...h,
-        facing: newFacing,
+        ...(predicted !== null ? { position: { x: predicted.x, y: predicted.y } } : {}),
       }))
     }
   }
@@ -345,20 +347,31 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const localHeroId = this.entityManager.localHeroId
 
-    // Input -> attack
+    // === Attack input (may update entity state internally) ===
     if (input.attack) {
       this.combatManager.handleAttackInput(input.aimWorldPosition)
     }
-    const heroNow = this.entityManager.getEntity(localHeroId) as HeroState
-    if (isMoving && heroNow.attackTargetId !== null
-      && !HERO_DEFINITIONS[heroNow.type].canMoveWhileAttacking) {
-      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, attackTargetId: null }))
+
+    // === Gather: snapshot after attack input ===
+    const localHero = this.entityManager.getEntity(localHeroId) as HeroState
+
+    // === Compute + Combat: derive values from snapshot, then process attack ===
+    // NOTE: attackTargetId update and processAttack call updateEntity internally.
+    // This is intentional — processAttack requires the cleared target to be committed
+    // before it reads combat state. The spec permits this exception (input-system spec:
+    // "攻撃処理の updateEntity 呼び出しは許容される").
+    let attackTargetId = localHero.attackTargetId
+    if (isMoving && attackTargetId !== null
+      && !HERO_DEFINITIONS[localHero.type].canMoveWhileAttacking) {
+      attackTargetId = null
     }
 
-    // Hero combat
+    if (attackTargetId !== localHero.attackTargetId) {
+      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, attackTargetId }))
+    }
     const attackEvents = this.combatManager.processAttack(deltaSeconds)
 
-    // Hero attack events + effects
+    // Attack effects (event dispatch only, no entity state mutation)
     for (const e of attackEvents.damageEvents) {
       this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
       this.entityRenderers.get(e.targetId)?.flash()
@@ -375,28 +388,25 @@ export class GameScene extends Phaser.Scene {
       })
     }
 
-    // Facing
-    const heroForFacing = this.entityManager.getEntity(localHeroId) as HeroState
-    const target = heroForFacing.attackTargetId !== null
-      ? this.entityManager.getEntity(heroForFacing.attackTargetId)
+    // Facing (from gathered snapshot, not re-fetched)
+    const target = attackTargetId !== null
+      ? this.entityManager.getEntity(attackTargetId)
       : null
-    const newFacing = updateFacing(heroForFacing.facing, input.movement, target?.position ?? null, heroForFacing.position)
-    if (newFacing !== heroForFacing.facing) {
-      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, facing: newFacing }))
-    }
+    const newFacing = updateFacing(localHero.facing, input.movement, target?.position ?? null, localHero.position)
 
-    // Movement
-    if (isMoving) {
-      const heroForMove = this.entityManager.getEntity(localHeroId) as HeroState
-      const radius = HERO_DEFINITIONS[heroForMove.type].radius
-      const newPosition = move(
-        heroForMove.position,
-        input.movement,
-        heroForMove.stats.speed,
-        deltaSeconds,
-        radius
-      )
-      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({ ...h, position: newPosition }))
+    // Movement (from gathered snapshot, using server-authoritative radius)
+    const newPosition = isMoving
+      ? move(localHero.position, input.movement, localHero.stats.speed, deltaSeconds, localHero.radius)
+      : null
+
+    // === Apply: single updateEntity for facing + movement ===
+    const needsUpdate = newFacing !== localHero.facing || newPosition !== null
+    if (needsUpdate) {
+      this.entityManager.updateEntity<HeroState>(localHeroId, (h) => ({
+        ...h,
+        facing: newFacing,
+        ...(newPosition !== null ? { position: newPosition } : {}),
+      }))
     }
   }
 
@@ -429,112 +439,108 @@ export class GameScene extends Phaser.Scene {
     const isLocal = localSessionId !== null && state.sessionId === localSessionId
 
     // Track previous dead state for prediction reset (death/respawn transitions)
-    const existingHero = this.entityManager.getEntity(state.sessionId) as HeroState | null
-    const prevDead = existingHero?.dead ?? state.dead
+    const prevDead = (this.entityManager.getEntity(state.sessionId) as HeroState | null)?.dead ?? state.dead
 
+    // Step 1: Ensure entity & renderer exist (local/remote共通)
+    this.ensureHeroEntityExists(state, isLocal)
+
+    // Step 2: Apply server state to all heroes equally (1箇所のみ)
+    const position = this.computeHeroPosition(state, isLocal)
+    this.applyServerHeroState(state, position)
+
+    // Step 3: Local-only overrides (prediction, camera, death/respawn)
     if (isLocal) {
-      // Remap local hero ID from placeholder to server sessionId (first time only)
-      if (state.sessionId !== this.entityManager.localHeroId) {
-        this.remapLocalHeroToSession(state.sessionId)
-      }
-
-      // Reconcile movement prediction
-      if (this.inputBuffer && this.movementPredictor) {
-        this.inputBuffer.acknowledge(state.lastProcessedSeq)
-        const heroType = assertHeroType(state.heroType)
-        const speed = HERO_DEFINITIONS[heroType].base.speed
-        const reconciled = this.movementPredictor.reconcile(
-          state.x,
-          state.y,
-          this.inputBuffer.getUnacknowledged(),
-          speed,
-          SERVER_TICK_DELTA
-        )
-        this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
-          ...h,
-          type: assertHeroType(state.heroType),
-          radius: state.radius,
-          position: { x: reconciled.x, y: reconciled.y },
-          facing: state.facing,
-          hp: state.hp,
-          maxHp: state.maxHp,
-          dead: state.dead,
-          attackTargetId: state.attackTargetId || null,
-          respawnTimer: state.respawnTimer,
-        }))
-      } else {
-        // Prediction not set up yet — use server position directly
-        this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
-          ...h,
-          type: assertHeroType(state.heroType),
-          radius: state.radius,
-          position: { x: state.x, y: state.y },
-          facing: state.facing,
-          hp: state.hp,
-          maxHp: state.maxHp,
-          dead: state.dead,
-          attackTargetId: state.attackTargetId || null,
-          respawnTimer: state.respawnTimer,
-        }))
-      }
-
-      // Handle camera for death/respawn
-      if (state.dead && this.cameraFollowing) {
-        this.cameras.main.stopFollow()
-        this.cameraFollowing = false
-      } else if (!state.dead && !this.cameraFollowing) {
-        const renderer = this.entityRenderers.get(state.sessionId)
-        if (renderer) {
-          this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
-        }
-        this.cameraFollowing = true
-      }
-
-      // Reset prediction on death/respawn transitions
-      if (!prevDead && state.dead) {
-        // Death: clear buffered inputs and snap predictor to server position
-        this.inputBuffer?.clear()
-        this.movementPredictor?.setPosition(state.x, state.y)
-      } else if (prevDead && !state.dead) {
-        // Respawn: snap predictor to respawn position
-        this.movementPredictor?.setPosition(state.x, state.y)
-      }
-    } else {
-      // Remote hero: create entity if new
-      const existing = this.entityManager.getEntity(state.sessionId)
-      if (!existing) {
-        const heroState = createHeroState({
-          id: state.sessionId,
-          type: assertHeroType(state.heroType),
-          team: (state.team as Team) ?? 'red',
-          position: { x: state.x, y: state.y },
-        })
-        this.entityManager.registerEntity(heroState)
-      }
-
-      // Create renderer if missing
-      if (!this.entityRenderers.has(state.sessionId)) {
-        const heroState = this.entityManager.getEntity(state.sessionId) as HeroState
-        this.entityRenderers.set(state.sessionId, new HeroRenderer(this, heroState, false))
-      }
-
-      // Update entity state from server
-      this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
-        ...h,
-        type: assertHeroType(state.heroType),
-        radius: state.radius,
-        position: { x: state.x, y: state.y },
-        facing: state.facing,
-        hp: state.hp,
-        maxHp: state.maxHp,
-        dead: state.dead,
-        attackTargetId: state.attackTargetId || null,
-        respawnTimer: state.respawnTimer,
-      }))
+      this.applyLocalHeroOverrides(state, prevDead)
     }
 
     // Damage flash + melee swing effects are now handled by event-based
     // callbacks (onDamageEvent, onAttackEvent) instead of state-diff detection.
+  }
+
+  /** Step 1: Ensure hero entity and renderer exist for the given session. */
+  private ensureHeroEntityExists(state: ServerHeroState, isLocal: boolean): void {
+    // Local hero: remap placeholder ID to server sessionId (first time only)
+    if (isLocal && state.sessionId !== this.entityManager.localHeroId) {
+      this.remapLocalHeroToSession(state.sessionId)
+    }
+
+    // Remote hero: create entity if new
+    if (!isLocal && !this.entityManager.getEntity(state.sessionId)) {
+      const heroState = createHeroState({
+        id: state.sessionId,
+        type: assertHeroType(state.heroType),
+        team: (state.team as Team) ?? 'red',
+        position: { x: state.x, y: state.y },
+      })
+      this.entityManager.registerEntity(heroState)
+    }
+
+    // Create renderer if missing (local/remote共通)
+    if (!this.entityRenderers.has(state.sessionId)) {
+      const heroState = this.entityManager.getEntity(state.sessionId) as HeroState
+      const isAlly = (state.team as Team) === this.localTeam
+      this.entityRenderers.set(state.sessionId, new HeroRenderer(this, heroState, isAlly))
+    }
+  }
+
+  /** Compute hero position: predicted position for local hero, server position for remote. */
+  private computeHeroPosition(state: ServerHeroState, isLocal: boolean): Position {
+    if (isLocal && this.inputBuffer && this.movementPredictor) {
+      this.inputBuffer.acknowledge(state.lastProcessedSeq)
+      const heroType = assertHeroType(state.heroType)
+      // NOTE: Uses static base speed from HERO_DEFINITIONS. ServerHeroState does not
+      // expose runtime speed, so speed buffs/debuffs would cause reconciliation desync.
+      // When speed modifiers are added, ServerHeroState should include a speed field.
+      const speed = HERO_DEFINITIONS[heroType].base.speed
+      const reconciled = this.movementPredictor.reconcile(
+        state.x,
+        state.y,
+        this.inputBuffer.getUnacknowledged(),
+        speed,
+        SERVER_TICK_DELTA
+      )
+      return { x: reconciled.x, y: reconciled.y }
+    }
+    return { x: state.x, y: state.y }
+  }
+
+  /** Step 2: Apply server state to entity (single source of truth for all fields). */
+  private applyServerHeroState(state: ServerHeroState, position: Position): void {
+    this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
+      ...h,
+      type: assertHeroType(state.heroType),
+      radius: state.radius,
+      position,
+      facing: state.facing,
+      hp: state.hp,
+      maxHp: state.maxHp,
+      dead: state.dead,
+      attackTargetId: state.attackTargetId || null,
+      respawnTimer: state.respawnTimer,
+    }))
+  }
+
+  /** Step 3: Local hero overrides — camera control and prediction reset. */
+  private applyLocalHeroOverrides(state: ServerHeroState, prevDead: boolean): void {
+    // Camera control for death/respawn
+    if (state.dead && this.cameraFollowing) {
+      this.cameras.main.stopFollow()
+      this.cameraFollowing = false
+    } else if (!state.dead && !this.cameraFollowing) {
+      const renderer = this.entityRenderers.get(state.sessionId)
+      if (renderer) {
+        this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
+      }
+      this.cameraFollowing = true
+    }
+
+    // Reset prediction on death/respawn transitions
+    if (!prevDead && state.dead) {
+      this.inputBuffer?.clear()
+      this.movementPredictor?.setPosition(state.x, state.y)
+    } else if (prevDead && !state.dead) {
+      this.movementPredictor?.setPosition(state.x, state.y)
+    }
   }
 
   /** Handle server tower state sync (server-authoritative mode). */
