@@ -21,9 +21,14 @@ openspec/
 .claude/
 
 # Frontend (not needed for server build)
+src/
 public/
 index.html
 vite.config.ts
+tsconfig.json
+tsconfig.node.json
+package.json
+package-lock.json
 
 # Environment
 .env

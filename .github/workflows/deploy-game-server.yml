@@ -70,6 +70,8 @@ jobs:
             --query 'taskDefinition' \
             --output json 2>/dev/null || echo "")
 
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
           if [ -n "$EXISTING" ]; then
             # Update image in existing task definition
             NEW_DEF=$(echo "$EXISTING" | jq \
@@ -85,7 +87,7 @@ jobs:
             "networkMode": "awsvpc",
             "cpu": "256",
             "memory": "512",
-            "executionRoleArn": "simoba-ecs-exec-prod",
+            "executionRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/simoba-ecs-exec-prod",
             "containerDefinitions": [{
               "name": "${CONTAINER_NAME}",
               "image": "${IMAGE_URI}",
@@ -138,6 +140,7 @@ jobs:
           fi
 
       - name: Deploy Summary
+        if: always()
         env:
           IMAGE_URI: ${{ steps.build.outputs.image_uri }}
           TASK_DEF_ARN: ${{ steps.task-def.outputs.task_def_arn }}
