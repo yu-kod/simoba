@@ -66,7 +66,7 @@ jobs:
         id: plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          terraform plan -out=tfplan -detailed-exitcode -no-color 2>&1 | tee plan-output.txt
+          terraform plan -input=false -out=tfplan -detailed-exitcode -no-color 2>&1 | tee plan-output.txt
           echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
         continue-on-error: true
 
@@ -162,7 +162,7 @@ jobs:
         id: destroy-plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          terraform plan -destroy -out=destroy.tfplan -no-color 2>&1 | tee destroy-plan.txt
+          terraform plan -input=false -destroy -out=destroy.tfplan -no-color 2>&1 | tee destroy-plan.txt
           echo "## Destroy Plan" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat destroy-plan.txt >> "$GITHUB_STEP_SUMMARY"
