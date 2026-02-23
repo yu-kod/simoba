@@ -40,6 +40,24 @@ jobs:
 
       - run: npm run test:unit
 
+  openspec-check:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check OpenSpec changes are archived
+        run: |
+          changes=$(find openspec/changes -maxdepth 1 -mindepth 1 -not -name archive -type d 2>/dev/null || true)
+          if [ -n "$changes" ]; then
+            echo "::error::未アーカイブの OpenSpec 変更があります:"
+            echo "$changes"
+            echo ""
+            echo "マージ前に /opsx:archive を実行してください"
+            exit 1
+          fi
+          echo "✓ OpenSpec changes are all archived"
+
   e2e-test:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest

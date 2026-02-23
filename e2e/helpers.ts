@@ -1,0 +1,157 @@
+import type { Page, Locator } from '@playwright/test'
+
+export type TowerTestData = {
+  id: string
+  team: string
+  position: { x: number; y: number }
+  hp: number
+  maxHp: number
+  dead: boolean
+}
+
+export type TestApi = {
+  getHeroType: () => string
+  getHeroPosition: () => { x: number; y: number }
+  getHeroHp: () => { current: number; max: number }
+  getHeroDead: () => boolean
+  getEnemyHp: () => { current: number; max: number }
+  getEnemyPosition: () => { x: number; y: number }
+  getEnemyDead: () => boolean
+  getProjectileCount: () => number
+  getHeroAttackTarget: () => string | null
+  getTowers: () => TowerTestData[]
+}
+
+export type TestWindow = { __test__: TestApi }
+
+// Game constants — duplicated from src/config/gameConfig.ts and src/domain/constants.ts.
+// E2E tests run in Playwright (Node.js) and cannot import Vite-bundled game modules.
+// If these values change in the source, update here too.
+const GAME_WIDTH = 1280
+const GAME_HEIGHT = 720
+const WORLD_WIDTH = 3200
+const WORLD_HEIGHT = 720
+
+// Lobby button positions (must match LobbyScene layout)
+const OFFLINE_PLAY_BUTTON = { x: 640, y: 460 }
+
+// Hero selection button positions (y=300, horizontal row centered at GAME_WIDTH/2)
+// HERO_BUTTON_WIDTH=96, HERO_BUTTON_GAP=12, 3 buttons
+const HERO_BUTTON_Y = 300
+const HERO_BUTTON_POSITIONS: Record<string, { x: number; y: number }> = {
+  BLADE: { x: 532, y: HERO_BUTTON_Y },
+  BOLT: { x: 640, y: HERO_BUTTON_Y },
+  AURA: { x: 748, y: HERO_BUTTON_Y },
+}
+
+type GameWindow = {
+  game: { scene: { isActive: (key: string) => boolean } }
+}
+
+/**
+ * Wait for a specific Phaser scene to be active.
+ */
+export async function waitForScene(page: Page, sceneKey: string): Promise<void> {
+  await page.waitForFunction(
+    (key: string) => {
+      const game = (window as unknown as GameWindow).game
+      return game?.scene?.isActive(key)
+    },
+    sceneKey,
+    { timeout: 10000 }
+  )
+}
+
+/**
+ * Wait for the E2E test API to become available.
+ */
+export async function waitForTestApi(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => (window as unknown as TestWindow).__test__ !== undefined,
+    { timeout: 10000 }
+  )
+  await page.waitForTimeout(500)
+}
+
+/**
+ * Click a hero selection button in the lobby.
+ * Must be called after LobbyScene is active but before clicking "Offline Play".
+ */
+export async function selectHeroInLobby(page: Page, heroType: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
+  const canvas = page.locator('#game-container canvas')
+  const bounds = await canvas.boundingBox()
+  if (!bounds) throw new Error('Canvas not found')
+
+  const pos = HERO_BUTTON_POSITIONS[heroType]
+  const scaleX = bounds.width / GAME_WIDTH
+  const scaleY = bounds.height / GAME_HEIGHT
+  await page.mouse.click(
+    bounds.x + pos.x * scaleX,
+    bounds.y + pos.y * scaleY
+  )
+  await page.waitForTimeout(200)
+}
+
+/**
+ * Navigate to the page, click "Offline Play" in the lobby, and wait for GameScene.
+ * Use this as the standard entry point for E2E tests that need GameScene.
+ * Pass heroType to select a specific hero before starting (default: BLADE).
+ */
+export async function startOfflineGame(page: Page, heroType?: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
+  await page.goto('/')
+
+  const canvas = page.locator('#game-container canvas')
+  await canvas.waitFor({ state: 'visible', timeout: 10000 })
+
+  await waitForScene(page, 'LobbyScene')
+
+  if (heroType) {
+    await selectHeroInLobby(page, heroType)
+  }
+
+  const bounds = await canvas.boundingBox()
+  if (!bounds) throw new Error('Canvas not found')
+
+  const scaleX = bounds.width / GAME_WIDTH
+  const scaleY = bounds.height / GAME_HEIGHT
+  await page.mouse.click(
+    bounds.x + OFFLINE_PLAY_BUTTON.x * scaleX,
+    bounds.y + OFFLINE_PLAY_BUTTON.y * scaleY
+  )
+
+  await waitForTestApi(page)
+}
+
+/**
+ * Right-click on the enemy's screen position.
+ *
+ * Computes the enemy's screen coordinates by:
+ * 1. Getting world positions from the test API
+ * 2. Approximating camera scroll (camera follows hero, clamped to world bounds)
+ * 3. Accounting for Phaser Scale.FIT ratio
+ */
+export async function rightClickOnEnemy(page: Page, canvas: Locator): Promise<void> {
+  const positions = await page.evaluate(() => {
+    const t = (window as unknown as TestWindow).__test__
+    return {
+      enemy: t.getEnemyPosition(),
+      hero: t.getHeroPosition(),
+    }
+  })
+
+  const bounds = await canvas.boundingBox()
+  if (!bounds) throw new Error('Canvas not found')
+
+  // Approximate camera scroll (camera follows hero, clamped to world bounds)
+  const cameraScrollX = Math.max(0, Math.min(positions.hero.x - GAME_WIDTH / 2, WORLD_WIDTH - GAME_WIDTH))
+  const cameraScrollY = Math.max(0, Math.min(positions.hero.y - GAME_HEIGHT / 2, WORLD_HEIGHT - GAME_HEIGHT))
+
+  // Scale factor: Phaser Scale.FIT maps logical pixels to actual canvas size
+  const scaleX = bounds.width / GAME_WIDTH
+  const scaleY = bounds.height / GAME_HEIGHT
+
+  const screenX = bounds.x + (positions.enemy.x - cameraScrollX) * scaleX
+  const screenY = bounds.y + (positions.enemy.y - cameraScrollY) * scaleY
+
+  await page.mouse.click(screenX, screenY, { button: 'right' })
+}

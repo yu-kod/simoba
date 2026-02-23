@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "outDir": "./dist",
+    "rootDir": "..",
+    "declaration": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": false,
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "../shared/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

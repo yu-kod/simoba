@@ -19,6 +19,14 @@ dist/
 coverage/
 test-results/
 playwright-report/
+.playwright-mcp/
+
+# Build cache
+.vite/
+
+# Tool configs (local)
+.claude/
+.serena/
 
 # OS
 .DS_Store

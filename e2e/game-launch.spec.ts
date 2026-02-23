@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { startOfflineGame } from './helpers'
 
 test.describe('Game Launch', () => {
   test('should render a canvas element inside game-container', async ({ page }) => {
@@ -20,15 +21,8 @@ test.describe('Game Launch', () => {
     expect(hasGame).toBe(true)
   })
 
-  test('should load GameScene as active scene', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForFunction(
-      () => {
-        const game = (window as unknown as { game: { scene: { isActive: (key: string) => boolean } } }).game
-        return game?.scene?.isActive('GameScene')
-      },
-      { timeout: 10000 }
-    )
+  test('should load GameScene after selecting Offline Play', async ({ page }) => {
+    await startOfflineGame(page)
 
     const isActive = await page.evaluate(() => {
       const game = (window as unknown as { game: { scene: { isActive: (key: string) => boolean } } }).game

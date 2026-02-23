@@ -45,11 +45,17 @@
 |-------|--------|
 | WASD | Movement |
 | Mouse | Aim direction |
-| Left click | Basic attack |
+| Right click | Basic attack |
 | Q | Skill 1 |
 | E | Skill 2 |
 | R | Ultimate (unlocked at Lv3) |
 | Space | Dodge dash (long cooldown) |
+| Left click | Confirm skill target (Normal Cast mode) |
+
+### Skill Targeting Modes
+
+- **Normal Cast**: Press skill key to enter targeting mode, left click to confirm and fire, right click to cancel.
+- **Quick Cast**: Skill fires at mouse position when key is released. Right click during key hold cancels.
 
 ## Universal Mechanics
 

@@ -19,5 +19,20 @@ services:
       timeout: 5s
       retries: 3
 
+  colyseus:
+    build:
+      context: ../../
+      dockerfile: server/Dockerfile
+    container_name: simoba-colyseus
+    ports:
+      - "2567:2567"
+    environment:
+      - PORT=2567
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2567/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   localstack-data:

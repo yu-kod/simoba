@@ -4,7 +4,8 @@
   "description": "Browser-based casual 2v2 MOBA game",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"npm run dev:server --prefix server\"",
+    "dev:client": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run && playwright test",
@@ -15,12 +16,14 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "colyseus.js": "^0.16.22",
     "phaser": "^3.87.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@playwright/test": "^1.50.0",
     "@vitest/coverage-v8": "^3.0.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "happy-dom": "^20.6.1",
