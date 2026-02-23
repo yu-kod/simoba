@@ -61,7 +61,6 @@ import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
 import { InputBuffer } from '@/network/InputBuffer'
-import { MovementPredictor } from '@/network/MovementPredictor'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode, ServerHeroState, ServerTowerState } from '@/network/GameMode'
 import type { HeroState } from '@/domain/entities/Hero'
@@ -123,8 +122,6 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
 
   const mockMeleeSwing = { play: vi.fn(), update: vi.fn() }
   const inputBuffer = new InputBuffer()
-  const movementPredictor = new MovementPredictor()
-  movementPredictor.setPosition(100, 200)
 
   // Assign private fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,7 +132,6 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
   s.entityRenderers = new Map()
   s.meleeSwing = mockMeleeSwing
   s.inputBuffer = inputBuffer
-  s.movementPredictor = movementPredictor
   s.cameraFollowing = true
   s.cameras = { main: { stopFollow: vi.fn(), startFollow: vi.fn() } }
   s.localTeam = 'blue'
@@ -153,7 +149,6 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
     bridge,
     mockMeleeSwing,
     inputBuffer,
-    movementPredictor,
     localRenderer,
     enemyRenderer,
     getRenderer: (id: string) => (s.entityRenderers as Map<string, ReturnType<typeof createMockRenderer>>).get(id),
@@ -178,6 +173,7 @@ function makeServerHeroState(overrides?: Partial<ServerHeroState>): ServerHeroSt
     attackCooldown: 0,
     respawnTimer: 0,
     lastProcessedSeq: 0,
+    serverTime: 0,
     ...overrides,
   }
 }
@@ -318,53 +314,45 @@ describe('GameScene', () => {
     })
   })
 
-  describe('handleServerHeroUpdate — death/respawn prediction reset', () => {
-    it('clears input buffer and resets predictor on death (false→true)', () => {
-      const { scene, inputBuffer, movementPredictor } = setupSceneForServerUpdate()
+  describe('handleServerHeroUpdate — death/respawn input buffer reset', () => {
+    it('clears input buffer on death (false→true)', () => {
+      const { scene, inputBuffer } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerHeroUpdate.bind(scene)
       const clearSpy = vi.spyOn(inputBuffer, 'clear')
-      const setPosSpy = vi.spyOn(movementPredictor, 'setPosition')
 
       // Alive state
       call(makeServerHeroState({ dead: false }))
       clearSpy.mockClear()
-      setPosSpy.mockClear()
 
       // Death
       call(makeServerHeroState({ dead: true, x: 150, y: 250 }))
       expect(clearSpy).toHaveBeenCalledTimes(1)
-      expect(setPosSpy).toHaveBeenCalledWith(150, 250)
     })
 
-    it('resets predictor position on respawn (true→false)', () => {
-      const { scene, inputBuffer, movementPredictor } = setupSceneForServerUpdate()
+    it('does not clear input buffer on respawn (true→false)', () => {
+      const { scene, inputBuffer } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerHeroUpdate.bind(scene)
       const clearSpy = vi.spyOn(inputBuffer, 'clear')
-      const setPosSpy = vi.spyOn(movementPredictor, 'setPosition')
 
       // Set dead state
       call(makeServerHeroState({ dead: true, x: 150, y: 250 }))
       clearSpy.mockClear()
-      setPosSpy.mockClear()
 
       // Respawn
       call(makeServerHeroState({ dead: false, x: 100, y: 200 }))
       expect(clearSpy).not.toHaveBeenCalled()
-      expect(setPosSpy).toHaveBeenCalledWith(100, 200)
     })
 
-    it('does not reset prediction when dead state unchanged', () => {
-      const { scene, inputBuffer, movementPredictor } = setupSceneForServerUpdate()
+    it('does not clear input buffer when dead state unchanged', () => {
+      const { scene, inputBuffer } = setupSceneForServerUpdate()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = (scene as any).handleServerHeroUpdate.bind(scene)
       const clearSpy = vi.spyOn(inputBuffer, 'clear')
-      const setPosSpy = vi.spyOn(movementPredictor, 'setPosition')
 
       call(makeServerHeroState({ dead: false }))
       clearSpy.mockClear()
-      setPosSpy.mockClear()
 
       // Still alive — no reset
       call(makeServerHeroState({ dead: false }))

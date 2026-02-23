@@ -44,6 +44,10 @@ export class OnlineGameMode implements GameMode {
   private remoteJoinCallbacks: ((state: RemotePlayerState) => void)[] = []
   private remoteLeaveCallbacks: ((sessionId: string) => void)[] = []
 
+  // Batch per-property listen callbacks into one notification per entity per patch
+  private pendingHeroUpdates = new Map<string, { hero: any }>()
+  private pendingProjectileUpdate = false
+
   constructor(options?: { serverUrl?: string; room?: Room }) {
     if (options?.room) {
       this.room = options.room
@@ -92,7 +96,7 @@ export class OnlineGameMode implements GameMode {
     // --- Server-authoritative hero sync ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     $(this.room.state.heroes).onAdd((hero: any, sessionId: string) => {
-      // Notify hero state for all heroes (including local — needed for reconciliation)
+      // Notify hero state immediately on join (no batching — need entity created right away)
       this.notifyServerHeroUpdate(sessionId, hero)
 
       // Also fire legacy join callback for remote players
@@ -101,15 +105,18 @@ export class OnlineGameMode implements GameMode {
         for (const cb of this.remoteJoinCallbacks) cb(state)
       }
 
-      // Listen for state changes on this hero
-      $(hero).listen('x', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('y', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('facing', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('hp', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('dead', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('radius', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('respawnTimer', () => this.notifyServerHeroUpdate(sessionId, hero))
-      $(hero).listen('lastProcessedSeq', () => this.notifyServerHeroUpdate(sessionId, hero))
+      // Listen for state changes — batched via queueMicrotask so that
+      // multiple property changes in one patch fire a single notification.
+      const schedule = () => this.scheduleHeroUpdate(sessionId, hero)
+      $(hero).listen('x', schedule)
+      $(hero).listen('y', schedule)
+      $(hero).listen('facing', schedule)
+      $(hero).listen('hp', schedule)
+      $(hero).listen('dead', schedule)
+      $(hero).listen('radius', schedule)
+      $(hero).listen('respawnTimer', schedule)
+      $(hero).listen('lastProcessedSeq', schedule)
+      $(hero).listen('serverTime', schedule)
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,19 +137,37 @@ export class OnlineGameMode implements GameMode {
     // --- Server-authoritative projectile sync ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     $(this.room.state.projectiles).onAdd((proj: any) => {
-      this.notifyProjectilesChanged()
-      // Per-projectile position listeners (avoids onStateChange firing for all state changes)
-      $(proj).listen('x', () => this.notifyProjectilesChanged())
-      $(proj).listen('y', () => this.notifyProjectilesChanged())
+      this.scheduleProjectileUpdate()
+      // Per-projectile position listeners — batched like heroes
+      $(proj).listen('x', () => this.scheduleProjectileUpdate())
+      $(proj).listen('y', () => this.scheduleProjectileUpdate())
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     $(this.room.state.projectiles).onRemove((_proj: any) => {
-      this.notifyProjectilesChanged()
+      this.scheduleProjectileUpdate()
     })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+  /**
+   * Schedule a batched hero update. Colyseus fires per-property listen callbacks,
+   * so a single patch updating x, y, facing, serverTime fires 4 callbacks.
+   * This batches them into one notifyServerHeroUpdate via queueMicrotask.
+   */
+  private scheduleHeroUpdate(sessionId: string, hero: any): void {
+    if (this.pendingHeroUpdates.has(sessionId)) return
+    this.pendingHeroUpdates.set(sessionId, { hero })
+    queueMicrotask(() => {
+      const pending = this.pendingHeroUpdates.get(sessionId)
+      this.pendingHeroUpdates.delete(sessionId)
+      if (pending) {
+        this.notifyServerHeroUpdate(sessionId, pending.hero)
+      }
+    })
+  }
+
   private notifyServerHeroUpdate(sessionId: string, hero: any): void {
     const state: ServerHeroState = {
       sessionId,
@@ -159,6 +184,7 @@ export class OnlineGameMode implements GameMode {
       attackCooldown: hero.attackCooldown as number,
       respawnTimer: hero.respawnTimer as number,
       lastProcessedSeq: hero.lastProcessedSeq as number,
+      serverTime: hero.serverTime as number,
     }
     for (const cb of this.serverHeroUpdateCallbacks) cb(state)
 
@@ -181,6 +207,16 @@ export class OnlineGameMode implements GameMode {
       radius: tower.radius as number,
     }
     for (const cb of this.serverTowerUpdateCallbacks) cb(state)
+  }
+
+  /** Batch projectile property changes into one notification per patch. */
+  private scheduleProjectileUpdate(): void {
+    if (this.pendingProjectileUpdate) return
+    this.pendingProjectileUpdate = true
+    queueMicrotask(() => {
+      this.pendingProjectileUpdate = false
+      this.notifyProjectilesChanged()
+    })
   }
 
   private notifyProjectilesChanged(): void {

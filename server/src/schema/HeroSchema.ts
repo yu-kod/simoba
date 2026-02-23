@@ -24,4 +24,5 @@ export class HeroSchema extends Schema {
   @type('float32') radius: number = 0
   @type('float32') respawnTimer: number = 0
   @type('uint32') lastProcessedSeq: number = 0
+  @type('float64') serverTime: number = 0
 }

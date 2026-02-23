@@ -151,6 +151,12 @@ export class GameRoom extends Room<GameRoomState> {
     const { heroes, towers, projectiles } = this.state
     const events: CombatEventMessage[] = []
 
+    // Update serverTime on all heroes for client interpolation
+    const now = Date.now()
+    heroes.forEach((hero) => {
+      hero.serverTime = now
+    })
+
     // 1. Apply movement from inputs
     heroes.forEach((hero, sessionId) => {
       const input = this.playerInputs.get(sessionId)

@@ -149,4 +149,71 @@ describe('MovementPredictor', () => {
       expect(pos1).not.toBe(pos2)
     })
   })
+
+  describe('smoothPosition', () => {
+    it('should pass through when smoothing is disabled', () => {
+      predictor.setPosition(0, 0)
+      // smoothing is disabled by default
+      const result = predictor.smoothPosition(100, 200)
+      expect(result.x).toBe(100)
+      expect(result.y).toBe(200)
+    })
+
+    it('should blend small corrections when smoothing is enabled', () => {
+      predictor.setPosition(0, 0)
+      predictor.setSmoothingEnabled(true)
+
+      // Reconciled position is 50px away (below SNAP_THRESHOLD of 200)
+      const result = predictor.smoothPosition(50, 0)
+      // smoothingFactor = 0.15: smoothedX = 0 + 50 * 0.15 = 7.5
+      expect(result.x).toBeCloseTo(7.5)
+      expect(result.y).toBe(0)
+    })
+
+    it('should snap on large corrections (>= SNAP_THRESHOLD)', () => {
+      predictor.setPosition(0, 0)
+      predictor.setSmoothingEnabled(true)
+
+      // Reconciled position is 300px away (above SNAP_THRESHOLD of 200)
+      const result = predictor.smoothPosition(300, 0)
+      expect(result.x).toBe(300)
+      expect(result.y).toBe(0)
+    })
+
+    it('should converge over multiple frames', () => {
+      predictor.setPosition(0, 0)
+      predictor.setSmoothingEnabled(true)
+
+      // Repeatedly smooth toward (100, 0)
+      let result = predictor.smoothPosition(100, 0)
+      const firstX = result.x
+      result = predictor.smoothPosition(100, 0)
+      const secondX = result.x
+      result = predictor.smoothPosition(100, 0)
+      const thirdX = result.x
+
+      // Each iteration should get closer to 100
+      expect(secondX).toBeGreaterThan(firstX)
+      expect(thirdX).toBeGreaterThan(secondX)
+      expect(thirdX).toBeLessThan(100)
+    })
+
+    it('should snap on teleport/respawn (exact threshold boundary)', () => {
+      predictor.setPosition(0, 0)
+      predictor.setSmoothingEnabled(true)
+
+      // Exactly at threshold — should snap
+      const result = predictor.smoothPosition(200, 0)
+      expect(result.x).toBe(200)
+    })
+
+    it('smoothedPosition getter returns current smoothed position', () => {
+      predictor.setPosition(50, 50)
+      predictor.setSmoothingEnabled(true)
+      predictor.smoothPosition(60, 50)
+      const smoothed = predictor.smoothedPosition
+      expect(smoothed.x).toBeCloseTo(51.5) // 50 + 10 * 0.15
+      expect(smoothed.y).toBe(50)
+    })
+  })
 })
