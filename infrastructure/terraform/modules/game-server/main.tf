@@ -104,6 +104,11 @@ resource "aws_ecs_task_definition" "game" {
 
 data "aws_region" "current" {}
 
+# --- ECS Service Linked Role ---
+resource "aws_iam_service_linked_role" "ecs" {
+  aws_service_name = "ecs.amazonaws.com"
+}
+
 # --- ECS Service (Fargate + Public IP) ---
 resource "aws_ecs_service" "game" {
   count = var.container_image != "" ? 1 : 0
@@ -119,4 +124,6 @@ resource "aws_ecs_service" "game" {
     security_groups  = [aws_security_group.fargate.id]
     assign_public_ip = true
   }
+
+  depends_on = [aws_iam_service_linked_role.ecs]
 }
