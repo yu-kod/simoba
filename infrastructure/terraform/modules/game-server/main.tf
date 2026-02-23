@@ -107,6 +107,11 @@ data "aws_region" "current" {}
 # --- ECS Service Linked Role ---
 resource "aws_iam_service_linked_role" "ecs" {
   aws_service_name = "ecs.amazonaws.com"
+
+  # Service-linked roles restrict tagging; ignore provider default_tags
+  lifecycle {
+    ignore_changes = [tags, tags_all]
+  }
 }
 
 # --- ECS Service (Fargate + Public IP) ---
