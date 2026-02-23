@@ -3,14 +3,10 @@ import { type TestWindow, startOfflineGame, rightClickOnEnemy } from './helpers'
 
 test.describe('Projectile Attack', () => {
   test.beforeEach(async ({ page }) => {
-    await startOfflineGame(page)
+    await startOfflineGame(page, 'BOLT')
   })
 
   test('should reduce enemy HP when BOLT attacks with projectile', async ({ page }) => {
-    // Switch to BOLT (ranged hero)
-    await page.keyboard.press('2')
-    await page.waitForTimeout(200)
-
     expect(
       await page.evaluate(() => (window as unknown as TestWindow).__test__.getHeroType())
     ).toBe('BOLT')
@@ -39,10 +35,6 @@ test.describe('Projectile Attack', () => {
   })
 
   test('should spawn projectiles when BOLT attacks (not instant damage)', async ({ page }) => {
-    // Switch to BOLT
-    await page.keyboard.press('2')
-    await page.waitForTimeout(200)
-
     // Right-click on enemy using computed screen position
     const canvas = page.locator('#game-container canvas')
     await rightClickOnEnemy(page, canvas)

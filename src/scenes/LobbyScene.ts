@@ -153,7 +153,7 @@ export class LobbyScene extends Phaser.Scene {
 
   private startOffline(): void {
     const gameMode: GameMode = new OfflineGameMode()
-    this.scene.start('GameScene', { gameMode })
+    this.scene.start('GameScene', { gameMode, heroType: this.selectedHeroType })
   }
 
   private async startOnline(): Promise<void> {
