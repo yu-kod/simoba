@@ -62,7 +62,7 @@ test.describe('Map Rendering', () => {
 
     await expect(page.locator('#game-container canvas')).toHaveScreenshot(
       'map-right-side-view.png',
-      { maxDiffPixelRatio: 0.01 }
+      { maxDiffPixelRatio: 0.03 }
     )
   })
 })

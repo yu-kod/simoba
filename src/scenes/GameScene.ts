@@ -23,7 +23,7 @@ import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
 import { InputBuffer } from '@/network/InputBuffer'
-import { MovementPredictor } from '@/network/MovementPredictor'
+import { InterpolationBuffer } from '@/network/InterpolationBuffer'
 import type { HeroType, Team, Position } from '@/domain/types'
 import type { TowerState } from '@/domain/entities/Tower'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
@@ -36,7 +36,6 @@ import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
 import { registerTestApi } from '@/test/e2eTestApi'
 
 const FREE_CAMERA_SPEED = 400
-const SERVER_TICK_DELTA = 1 / 60
 
 /** Assert that a server-provided heroType string is a valid HeroType key. */
 function assertHeroType(value: string): HeroType {
@@ -69,10 +68,12 @@ export class GameScene extends Phaser.Scene {
   private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
   private localHeroType: HeroType = 'BLADE'
 
-  // Online mode: client-side prediction
+  // Online mode: input sending (no client-side prediction)
   private inputBuffer: InputBuffer | null = null
-  private movementPredictor: MovementPredictor | null = null
   private serverProjectiles: readonly ServerProjectileState[] = []
+  // Online mode: entity interpolation
+  private interpolationBuffers = new Map<string, InterpolationBuffer>()
+  private projectileInterpolationBuffers = new Map<string, InterpolationBuffer>()
 
   constructor() {
     super({ key: 'GameScene' })
@@ -169,6 +170,7 @@ export class GameScene extends Phaser.Scene {
       onRemotePlayerRemoved: (sessionId) => {
         this.entityRenderers.get(sessionId)?.destroy()
         this.entityRenderers.delete(sessionId)
+        this.interpolationBuffers.delete(sessionId)
       },
       onRemotePlayerUpdated: (sessionId) => {
         const state = this.entityManager.getEntity(sessionId)
@@ -188,6 +190,25 @@ export class GameScene extends Phaser.Scene {
       },
       onServerProjectilesUpdated: (projectiles) => {
         this.serverProjectiles = projectiles
+        if (this.networkBridge.isServerAuthoritative) {
+          // Track active projectile IDs to clean up removed ones
+          const activeIds = new Set<string>()
+          for (const p of projectiles) {
+            activeIds.add(p.id)
+            if (!this.projectileInterpolationBuffers.has(p.id)) {
+              this.projectileInterpolationBuffers.set(p.id, new InterpolationBuffer())
+            }
+            this.projectileInterpolationBuffers.get(p.id)!.pushSnapshot({
+              x: p.x, y: p.y, facing: 0,
+            })
+          }
+          // Remove buffers for destroyed projectiles
+          for (const id of this.projectileInterpolationBuffers.keys()) {
+            if (!activeIds.has(id)) {
+              this.projectileInterpolationBuffers.delete(id)
+            }
+          }
+        }
       },
       // Server-authoritative combat events
       onAttackEvent: (event) => {
@@ -246,6 +267,30 @@ export class GameScene extends Phaser.Scene {
     // --- Respawn timer UI ---
     this.updateRespawnUI()
 
+    // --- Entity interpolation (online only) ---
+    if (isOnline) {
+      const localId = this.entityManager.localHeroId
+      for (const [entityId, buffer] of this.interpolationBuffers) {
+        const interpolated = buffer.getInterpolatedPosition()
+        if (!interpolated) continue
+        if (!this.entityManager.getEntity(entityId)) continue
+        if (entityId === localId) {
+          // Local hero: only interpolate position, keep locally-computed facing
+          this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
+            ...hero,
+            position: { x: interpolated.x, y: interpolated.y },
+          }))
+        } else {
+          // Remote heroes: interpolate both position and facing
+          this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
+            ...hero,
+            position: { x: interpolated.x, y: interpolated.y },
+            facing: interpolated.facing,
+          }))
+        }
+      }
+    }
+
     // --- Effects + renderers ---
     this.meleeSwing.update(delta)
     for (const renderer of this.entityRenderers.values()) {
@@ -255,7 +300,15 @@ export class GameScene extends Phaser.Scene {
 
     // --- Projectile rendering ---
     if (isOnline) {
-      this.projectileRenderer.drawServer(this.serverProjectiles)
+      // Interpolate projectile positions for smooth rendering
+      const interpolatedProjectiles = this.serverProjectiles.map((p) => {
+        const buffer = this.projectileInterpolationBuffers.get(p.id)
+        if (!buffer) return p
+        const interp = buffer.getInterpolatedPosition()
+        if (!interp) return p
+        return { ...p, x: interp.x, y: interp.y }
+      })
+      this.projectileRenderer.drawServer(interpolatedProjectiles)
     } else {
       this.projectileRenderer.draw(this.combatManager.projectiles)
     }
@@ -268,11 +321,11 @@ export class GameScene extends Phaser.Scene {
 
   /** Online mode: send input to server + apply local movement prediction. */
   private updateOnlineInput(
-    deltaSeconds: number,
+    _deltaSeconds: number,
     input: { movement: { x: number; y: number }; attack: boolean; aimWorldPosition: Position },
     isMoving: boolean
   ): void {
-    if (!this.inputBuffer || !this.movementPredictor) return
+    if (!this.inputBuffer) return
 
     // === Gather: read snapshot once ===
     const localHeroId = this.entityManager.localHeroId
@@ -318,17 +371,12 @@ export class GameScene extends Phaser.Scene {
       facing: newFacing,
     }
 
-    // Prediction position
-    const predicted = isMoving
-      ? this.movementPredictor.applyInput(inputMsg, localHero.stats.speed, deltaSeconds)
-      : null
-
-    // === Apply: single updateEntity + network send ===
+    // === Apply: send input to server (no local prediction) ===
     this.inputBuffer.add(inputMsg)
     this.networkBridge.sendInput(inputMsg)
 
-    const needsUpdate = predicted !== null
-      || newFacing !== localHero.facing
+    // Update local state for facing/target (position comes from server via interpolation)
+    const needsUpdate = newFacing !== localHero.facing
       || attackTargetId !== localHero.attackTargetId
 
     if (needsUpdate) {
@@ -336,7 +384,6 @@ export class GameScene extends Phaser.Scene {
         ...h,
         attackTargetId,
         facing: newFacing,
-        ...(predicted !== null ? { position: { x: predicted.x, y: predicted.y } } : {}),
       }))
     }
   }
@@ -439,18 +486,36 @@ export class GameScene extends Phaser.Scene {
   private handleServerHeroUpdate(state: ServerHeroState): void {
     const localSessionId = this.networkBridge.localSessionId
     const isLocal = localSessionId !== null && state.sessionId === localSessionId
+    const isOnline = this.networkBridge.isServerAuthoritative
 
-    // Track previous dead state for prediction reset (death/respawn transitions)
+    // Track previous dead state for camera transitions
     const prevDead = (this.entityManager.getEntity(state.sessionId) as HeroState | null)?.dead ?? state.dead
 
     // Step 1: Ensure entity & renderer exist (local/remote共通)
     this.ensureHeroEntityExists(state, isLocal)
 
-    // Step 2: Apply server state to all heroes equally (1箇所のみ)
-    const position = this.computeHeroPosition(state, isLocal)
-    this.applyServerHeroState(state, position)
+    // Step 2: Apply server state
+    if (isOnline) {
+      // Online: position/facing come from InterpolationBuffer in update(),
+      // so only apply non-position fields here to avoid frame-jitter.
+      this.applyServerHeroNonPositionState(state)
 
-    // Step 3: Local-only overrides (prediction, camera, death/respawn)
+      // Push snapshot to interpolation buffer for ALL online heroes
+      if (!this.interpolationBuffers.has(state.sessionId)) {
+        this.interpolationBuffers.set(state.sessionId, new InterpolationBuffer())
+      }
+      this.interpolationBuffers.get(state.sessionId)!.pushSnapshot({
+        x: state.x,
+        y: state.y,
+        facing: state.facing,
+      })
+    } else {
+      // Offline: apply full state including position
+      const position: Position = { x: state.x, y: state.y }
+      this.applyServerHeroState(state, position)
+    }
+
+    // Step 3: Local-only overrides (camera, death/respawn)
     if (isLocal) {
       this.applyLocalHeroOverrides(state, prevDead)
     }
@@ -485,27 +550,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Compute hero position: predicted position for local hero, server position for remote. */
-  private computeHeroPosition(state: ServerHeroState, isLocal: boolean): Position {
-    if (isLocal && this.inputBuffer && this.movementPredictor) {
-      this.inputBuffer.acknowledge(state.lastProcessedSeq)
-      const heroType = assertHeroType(state.heroType)
-      // NOTE: Uses static base speed from HERO_DEFINITIONS. ServerHeroState does not
-      // expose runtime speed, so speed buffs/debuffs would cause reconciliation desync.
-      // When speed modifiers are added, ServerHeroState should include a speed field.
-      const speed = HERO_DEFINITIONS[heroType].base.speed
-      const reconciled = this.movementPredictor.reconcile(
-        state.x,
-        state.y,
-        this.inputBuffer.getUnacknowledged(),
-        speed,
-        SERVER_TICK_DELTA
-      )
-      return { x: reconciled.x, y: reconciled.y }
-    }
-    return { x: state.x, y: state.y }
-  }
-
   /** Step 2: Apply server state to entity (single source of truth for all fields). */
   private applyServerHeroState(state: ServerHeroState, position: Position): void {
     this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
@@ -514,6 +558,20 @@ export class GameScene extends Phaser.Scene {
       radius: state.radius,
       position,
       facing: state.facing,
+      hp: state.hp,
+      maxHp: state.maxHp,
+      dead: state.dead,
+      attackTargetId: state.attackTargetId || null,
+      respawnTimer: state.respawnTimer,
+    }))
+  }
+
+  /** Apply non-position fields only (online mode: position/facing from InterpolationBuffer). */
+  private applyServerHeroNonPositionState(state: ServerHeroState): void {
+    this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
+      ...h,
+      type: assertHeroType(state.heroType),
+      radius: state.radius,
       hp: state.hp,
       maxHp: state.maxHp,
       dead: state.dead,
@@ -536,12 +594,9 @@ export class GameScene extends Phaser.Scene {
       this.cameraFollowing = true
     }
 
-    // Reset prediction on death/respawn transitions
+    // Clear input buffer on death/respawn transitions
     if (!prevDead && state.dead) {
       this.inputBuffer?.clear()
-      this.movementPredictor?.setPosition(state.x, state.y)
-    } else if (prevDead && !state.dead) {
-      this.movementPredictor?.setPosition(state.x, state.y)
     }
   }
 
@@ -619,13 +674,8 @@ export class GameScene extends Phaser.Scene {
     // Remap entity in EntityManager
     this.entityManager.remapLocalHero(sessionId)
 
-    // Initialize prediction tools
+    // Initialize input buffer (prediction removed — server-authoritative with interpolation)
     this.inputBuffer = new InputBuffer()
-    this.movementPredictor = new MovementPredictor()
-    const hero = this.entityManager.getEntity(sessionId) as HeroState | null
-    if (hero) {
-      this.movementPredictor.setPosition(hero.position.x, hero.position.y)
-    }
   }
 
   private updateDeathRespawn(deltaSeconds: number): void {
