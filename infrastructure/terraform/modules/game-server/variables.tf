@@ -9,30 +9,20 @@ variable "vpc_id" {
 }
 
 variable "public_subnet_ids" {
-  description = "List of public subnet IDs for ALB"
-  type        = list(string)
-}
-
-variable "private_subnet_ids" {
-  description = "List of private subnet IDs for ECS instances"
+  description = "List of public subnet IDs for Fargate tasks"
   type        = list(string)
 }
 
 variable "container_image" {
-  description = "Docker image URI for the Colyseus server"
+  description = "Docker image URI for the Colyseus server. Empty string skips ECS Service creation."
   type        = string
+  default     = ""
 }
 
 variable "container_port" {
   description = "Port the Colyseus container listens on"
   type        = number
   default     = 2567
-}
-
-variable "instance_type" {
-  description = "EC2 instance type for ECS cluster"
-  type        = string
-  default     = "t3.small"
 }
 
 variable "desired_count" {
@@ -42,13 +32,13 @@ variable "desired_count" {
 }
 
 variable "cpu" {
-  description = "CPU units for the task (1024 = 1 vCPU)"
+  description = "CPU units for the Fargate task (256, 512, 1024, 2048, 4096)"
   type        = number
-  default     = 512
+  default     = 256
 }
 
 variable "memory" {
-  description = "Memory in MiB for the task"
+  description = "Memory in MiB for the Fargate task"
   type        = number
   default     = 512
 }
