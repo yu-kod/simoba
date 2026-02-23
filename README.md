@@ -46,6 +46,15 @@ Terraform の Plan / Apply / Destroy を手動で実行する。
 
 フロー: Checkout → `npm ci` → `npm run build` → S3 sync → CloudFront invalidation
 
+### Game Server Deploy
+
+ゲームサーバーの Docker イメージをビルドし、ECR にプッシュ、ECS サービスを再デプロイする。
+
+1. **Actions** タブ → **Deploy Game Server** → **Run workflow**
+2. デプロイしたいブランチを選択して実行
+
+フロー: Checkout → OIDC 認証 → ECR ログイン → Docker ビルド & プッシュ (SHA タグ) → タスク定義更新 → ECS force-new-deployment
+
 ### 初回セットアップ
 
 **AWS 側:**
@@ -60,13 +69,14 @@ Terraform の Plan / Apply / Destroy を手動で実行する。
 | `AWS_ROLE_ARN` | OIDC で引き受ける IAM ロールの ARN |
 | `S3_BUCKET_NAME` | フロントエンドデプロイ先の S3 バケット名 |
 | `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront ディストリビューション ID |
+| `ECR_REPOSITORY_URL` | ECR リポジトリ URL (ゲームサーバーデプロイ用) |
 
 Environment `prod-deploy` を作成し、Required Reviewers を設定。
 
 ### 制限
 
 - リポジトリオーナーのみ実行可能
-- 同時実行は concurrency グループで防止（Terraform / Frontend それぞれ独立）
+- 同時実行は concurrency グループで防止（Terraform / Frontend / Game Server それぞれ独立）
 
 ## Project Structure
 
