@@ -52,6 +52,7 @@ export class OnlineGameMode implements GameMode {
 
   // Batch per-property listen callbacks into one notification per entity per patch
   private pendingHeroUpdates = new Map<string, { hero: SchemaInstance }>()
+  private pendingMinionUpdates = new Map<string, { minion: SchemaInstance }>()
   private pendingProjectileUpdate = false
 
   constructor(options?: { serverUrl?: string; room?: Room }) {
@@ -140,7 +141,7 @@ export class OnlineGameMode implements GameMode {
     $(this.room.state.minions).onAdd((minion: SchemaInstance, minionId: string) => {
       this.notifyServerMinionUpdate(minionId, minion)
 
-      const schedule = () => this.notifyServerMinionUpdate(minionId, minion)
+      const schedule = () => this.scheduleMinionUpdate(minionId, minion)
       $(minion).listen('x', schedule)
       $(minion).listen('y', schedule)
       $(minion).listen('facing', schedule)
@@ -178,6 +179,21 @@ export class OnlineGameMode implements GameMode {
       this.pendingHeroUpdates.delete(sessionId)
       if (pending) {
         this.notifyServerHeroUpdate(sessionId, pending.hero)
+      }
+    })
+  }
+
+  /**
+   * Schedule a batched minion update — same pattern as scheduleHeroUpdate.
+   */
+  private scheduleMinionUpdate(minionId: string, minion: SchemaInstance): void {
+    if (this.pendingMinionUpdates.has(minionId)) return
+    this.pendingMinionUpdates.set(minionId, { minion })
+    queueMicrotask(() => {
+      const pending = this.pendingMinionUpdates.get(minionId)
+      this.pendingMinionUpdates.delete(minionId)
+      if (pending) {
+        this.notifyServerMinionUpdate(minionId, pending.minion)
       }
     })
   }

@@ -10,9 +10,16 @@ import {
 } from '@shared/constants'
 import type { Team } from '@/domain/types'
 
-let _waveCounter = 0
+export interface MinionSpawnContext {
+  waveCounter: number
+}
+
+export function createMinionSpawnContext(): MinionSpawnContext {
+  return { waveCounter: 0 }
+}
 
 export function spawnWave(
+  ctx: MinionSpawnContext,
   team: Team,
   _matchTime: number,
   waveConfig: MinionWaveConfig,
@@ -20,7 +27,7 @@ export function spawnWave(
   const minions: MinionState[] = []
   const meleeX = team === 'blue' ? BLUE_MELEE_X : RED_MELEE_X
   const rangedX = team === 'blue' ? BLUE_RANGED_X : RED_RANGED_X
-  const waveId = _waveCounter++
+  const waveId = ctx.waveCounter++
 
   for (let i = 0; i < waveConfig.meleeCount; i++) {
     const y = MELEE_Y_OFFSETS[i] ?? 360

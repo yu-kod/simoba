@@ -35,7 +35,7 @@ import { MAP_LAYOUT } from '@/domain/mapLayout'
 import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
 import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
 import { updateMinionMovement } from '@/domain/systems/minionMovement'
-import { spawnWave } from '@/domain/systems/minionSpawn'
+import { spawnWave, createMinionSpawnContext } from '@/domain/systems/minionSpawn'
 import { processMinionDeaths } from '@/domain/systems/minionDeath'
 import { applyXpUpdates } from '@/domain/systems/minionXpDistribution'
 import { getWaveConfig, MINION_WAVE_INTERVAL, MINION_DEATH_CLEANUP_DELAY } from '@shared/constants'
@@ -80,6 +80,7 @@ export class GameScene extends Phaser.Scene {
   private matchTime = 0
   private nextWaveTime = 0
   private minionDeathTimers = new Map<string, number>()
+  private minionSpawnCtx = createMinionSpawnContext()
 
   // Online mode: input sending (no client-side prediction)
   private inputBuffer: InputBuffer | null = null
@@ -521,7 +522,7 @@ export class GameScene extends Phaser.Scene {
 
     const config = getWaveConfig(this.matchTime)
     for (const team of ['blue', 'red'] as const) {
-      const wave = spawnWave(team, this.matchTime, config)
+      const wave = spawnWave(this.minionSpawnCtx, team, this.matchTime, config)
       for (const minion of wave) {
         this.entityManager.registerEntity(minion)
         const isAlly = minion.team === this.localTeam

@@ -10,8 +10,9 @@ export class MinionSchema extends Schema {
   @type('string') team: string = 'blue'
   @type('string') minionType: string = 'melee'
   @type('float32') radius: number = 0
-  @type('float32') attackCooldown: number = 0
-  @type('string') attackTargetId: string = ''
+  // Server-only fields (not synced to clients)
+  attackCooldown: number = 0
+  attackTargetId: string = ''
   @type('int16') attackDamage: number = 0
   @type('float32') attackRange: number = 0
   @type('float32') attackSpeed: number = 0
