@@ -67,7 +67,7 @@ resource "aws_security_group" "alb" {
 
 # --- Security Group: Fargate Tasks ---
 resource "aws_security_group" "fargate" {
-  name_prefix = "simoba-fargate-${var.environment}-"
+  name = "simoba-fargate-${var.environment}"
   description = "Allow Colyseus port inbound from ALB only"
   vpc_id      = var.vpc_id
 
@@ -201,13 +201,12 @@ resource "aws_ecs_task_definition" "game" {
 data "aws_region" "current" {}
 
 # --- ECS Service Linked Role ---
-resource "aws_iam_service_linked_role" "ecs" {
-  count            = var.create_ecs_service_linked_role ? 1 : 0
-  aws_service_name = "ecs.amazonaws.com"
+# SLR is managed by AWS automatically; removed from Terraform state.
+removed {
+  from = aws_iam_service_linked_role.ecs
 
-  # Service-linked roles restrict tagging; ignore provider default_tags
   lifecycle {
-    ignore_changes = [tags, tags_all]
+    destroy = false
   }
 }
 
@@ -234,7 +233,6 @@ resource "aws_ecs_service" "game" {
     container_port   = var.container_port
   }
 
-  depends_on = [aws_iam_service_linked_role.ecs]
 }
 
 # --- ECR Lifecycle Policy ---
