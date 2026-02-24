@@ -17,3 +17,8 @@ output "cloudfront_domain" {
   description = "CloudFront distribution domain name"
   value       = var.enable_cloudfront ? aws_cloudfront_distribution.game_cdn[0].domain_name : null
 }
+
+output "cloudfront_hosted_zone_id" {
+  description = "CloudFront distribution hosted zone ID for Route 53 alias"
+  value       = var.enable_cloudfront ? aws_cloudfront_distribution.game_cdn[0].hosted_zone_id : null
+}

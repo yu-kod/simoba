@@ -48,3 +48,8 @@ variable "memory" {
   type        = number
   default     = 512
 }
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN for ALB HTTPS listener"
+  type        = string
+}

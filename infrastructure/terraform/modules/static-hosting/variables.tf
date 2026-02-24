@@ -19,3 +19,15 @@ variable "enable_public_access" {
   type        = bool
   default     = true
 }
+
+variable "domain_name" {
+  description = "Custom domain name for CloudFront (e.g. simoba.yu-web.site). Empty string to use default CloudFront domain."
+  type        = string
+  default     = ""
+}
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN (us-east-1) for CloudFront custom domain"
+  type        = string
+  default     = ""
+}
