@@ -1,19 +1,4 @@
-## Requirements
-
-### Requirement: ECS on EC2 Terraform モジュール
-`infrastructure/terraform/modules/game-server/` に ECS Fargate デプロイ用の Terraform モジュールを提供しなければならない（SHALL）。ECS クラスター、Fargate タスク定義、ECS Service を定義しなければならない（SHALL）。タスクは `awsvpc` network mode で public IP を付与しなければならない（SHALL）。コンテナイメージが未指定の場合、ECS Service を作成しないこと（SHALL）。
-
-#### Scenario: Terraform モジュールが有効な構成を生成する
-- **WHEN** `terraform plan` を game-server モジュールに対して実行する
-- **THEN** エラーなく実行計画が生成される
-
-#### Scenario: ECS タスク定義が Fargate 互換である
-- **WHEN** タスク定義を確認する
-- **THEN** `requires_compatibilities` が `FARGATE`、`network_mode` が `awsvpc`、ポート 2567 を公開する設定になっている
-
-#### Scenario: コンテナイメージ未指定時に Service が作成されない
-- **WHEN** `container_image` が空文字列で `terraform plan` を実行する
-- **THEN** ECS Service と Task Definition は作成されない
+## MODIFIED Requirements
 
 ### Requirement: ALB + HTTPS リスナー
 `modules/game-server/` モジュールは ALB を public サブネットに作成しなければならない（SHALL）。HTTPS リスナー（ポート 443）を ACM 証明書で設定しなければならない（SHALL）。ターゲットグループはポート 2567 でヘルスチェック（`/health`）を行わなければならない（SHALL）。
@@ -26,7 +11,7 @@
 - **WHEN** ALB ターゲットグループがヘルスチェックを実行する
 - **THEN** `/health` エンドポイントに HTTP GET でアクセスし、200 レスポンスでヘルシー判定する
 
-### Requirement: セキュリティグループ
+### Requirement: セキュリティグループの変更
 ECS タスクのセキュリティグループは、ALB のセキュリティグループからのポート 2567 のみを許可しなければならない（SHALL）。直接のパブリックアクセスを禁止しなければならない（SHALL）。ALB 用のセキュリティグループはポート 443 を全世界から許可しなければならない（SHALL）。
 
 #### Scenario: ALB 経由でのみ ECS にアクセス可能
