@@ -8,6 +8,12 @@ variable "domain_name" {
   type        = string
 }
 
+variable "create_frontend_record" {
+  description = "Whether to create the frontend A-alias record (simoba.yu-web.site → CloudFront)"
+  type        = bool
+  default     = false
+}
+
 variable "cloudfront_distribution_domain" {
   description = "CloudFront distribution domain name for frontend alias"
   type        = string
@@ -18,6 +24,12 @@ variable "cloudfront_distribution_zone_id" {
   description = "CloudFront distribution hosted zone ID"
   type        = string
   default     = ""
+}
+
+variable "create_api_record" {
+  description = "Whether to create the API A-alias record (api.simoba.yu-web.site → ALB)"
+  type        = bool
+  default     = false
 }
 
 variable "alb_dns_name" {
