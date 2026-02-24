@@ -82,10 +82,12 @@ module "game_server" {
 module "dns" {
   source = "../../modules/dns"
 
-  hosted_zone_id                 = var.hosted_zone_id
-  domain_name                    = var.domain_name
+  hosted_zone_id                  = var.hosted_zone_id
+  domain_name                     = var.domain_name
+  create_frontend_record          = true
   cloudfront_distribution_domain  = module.static_hosting.cloudfront_domain
   cloudfront_distribution_zone_id = module.static_hosting.cloudfront_hosted_zone_id
-  alb_dns_name                   = module.game_server.alb_dns_name
-  alb_zone_id                    = module.game_server.alb_zone_id
+  create_api_record               = true
+  alb_dns_name                    = module.game_server.alb_dns_name
+  alb_zone_id                     = module.game_server.alb_zone_id
 }

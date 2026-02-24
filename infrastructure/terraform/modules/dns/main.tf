@@ -1,6 +1,6 @@
 # --- Route 53: Frontend → CloudFront ---
 resource "aws_route53_record" "frontend" {
-  count = var.cloudfront_distribution_domain != "" ? 1 : 0
+  count = var.create_frontend_record ? 1 : 0
 
   zone_id = var.hosted_zone_id
   name    = var.domain_name
@@ -15,7 +15,7 @@ resource "aws_route53_record" "frontend" {
 
 # --- Route 53: API → ALB ---
 resource "aws_route53_record" "api" {
-  count = var.alb_dns_name != "" ? 1 : 0
+  count = var.create_api_record ? 1 : 0
 
   zone_id = var.hosted_zone_id
   name    = "api.${var.domain_name}"
