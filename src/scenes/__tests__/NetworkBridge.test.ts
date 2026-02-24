@@ -33,6 +33,8 @@ function createMockGameMode(): GameMode & {
     onServerHeroUpdate: vi.fn(),
     onServerHeroRemove: vi.fn(),
     onServerTowerUpdate: vi.fn(),
+    onServerMinionUpdate: vi.fn(),
+    onServerMinionRemove: vi.fn(),
     onServerProjectileUpdate: vi.fn(),
     onAttackEvent: vi.fn(),
     onDamageEvent: vi.fn(),

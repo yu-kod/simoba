@@ -2,6 +2,7 @@ import { Schema, type, MapSchema } from '@colyseus/schema'
 import { HeroSchema } from './HeroSchema.js'
 import { TowerSchema } from './TowerSchema.js'
 import { ProjectileSchema } from './ProjectileSchema.js'
+import { MinionSchema } from './MinionSchema.js'
 
 /**
  * Root state schema for a game room.
@@ -13,6 +14,9 @@ export class GameRoomState extends Schema {
 
   @type({ map: TowerSchema })
   towers = new MapSchema<TowerSchema>()
+
+  @type({ map: MinionSchema })
+  minions = new MapSchema<MinionSchema>()
 
   @type({ map: ProjectileSchema })
   projectiles = new MapSchema<ProjectileSchema>()

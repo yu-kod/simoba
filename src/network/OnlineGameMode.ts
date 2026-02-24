@@ -9,6 +9,7 @@ import type {
   RemotePlayerState,
   ServerHeroState,
   ServerTowerState,
+  ServerMinionState,
   ServerProjectileState,
 } from '@/network/GameMode'
 import { NetworkClient } from '@/network/NetworkClient'
@@ -35,6 +36,8 @@ export class OnlineGameMode implements GameMode {
   private serverHeroUpdateCallbacks: ((state: ServerHeroState) => void)[] = []
   private serverHeroRemoveCallbacks: ((sessionId: string) => void)[] = []
   private serverTowerUpdateCallbacks: ((state: ServerTowerState) => void)[] = []
+  private serverMinionUpdateCallbacks: ((state: ServerMinionState) => void)[] = []
+  private serverMinionRemoveCallbacks: ((minionId: string) => void)[] = []
   private serverProjectileUpdateCallbacks: ((projectiles: readonly ServerProjectileState[]) => void)[] = []
 
   // Combat event callbacks
@@ -49,6 +52,7 @@ export class OnlineGameMode implements GameMode {
 
   // Batch per-property listen callbacks into one notification per entity per patch
   private pendingHeroUpdates = new Map<string, { hero: SchemaInstance }>()
+  private pendingMinionUpdates = new Map<string, { minion: SchemaInstance }>()
   private pendingProjectileUpdate = false
 
   constructor(options?: { serverUrl?: string; room?: Room }) {
@@ -133,6 +137,22 @@ export class OnlineGameMode implements GameMode {
       $(tower).listen('dead', () => this.notifyServerTowerUpdate(towerId, tower))
     })
 
+    // --- Server-authoritative minion sync ---
+    $(this.room.state.minions).onAdd((minion: SchemaInstance, minionId: string) => {
+      this.notifyServerMinionUpdate(minionId, minion)
+
+      const schedule = () => this.scheduleMinionUpdate(minionId, minion)
+      $(minion).listen('x', schedule)
+      $(minion).listen('y', schedule)
+      $(minion).listen('facing', schedule)
+      $(minion).listen('hp', schedule)
+      $(minion).listen('dead', schedule)
+    })
+
+    $(this.room.state.minions).onRemove((_minion: SchemaInstance, minionId: string) => {
+      for (const cb of this.serverMinionRemoveCallbacks) cb(minionId)
+    })
+
     // --- Server-authoritative projectile sync ---
     $(this.room.state.projectiles).onAdd((proj: SchemaInstance) => {
       this.scheduleProjectileUpdate()
@@ -159,6 +179,21 @@ export class OnlineGameMode implements GameMode {
       this.pendingHeroUpdates.delete(sessionId)
       if (pending) {
         this.notifyServerHeroUpdate(sessionId, pending.hero)
+      }
+    })
+  }
+
+  /**
+   * Schedule a batched minion update — same pattern as scheduleHeroUpdate.
+   */
+  private scheduleMinionUpdate(minionId: string, minion: SchemaInstance): void {
+    if (this.pendingMinionUpdates.has(minionId)) return
+    this.pendingMinionUpdates.set(minionId, { minion })
+    queueMicrotask(() => {
+      const pending = this.pendingMinionUpdates.get(minionId)
+      this.pendingMinionUpdates.delete(minionId)
+      if (pending) {
+        this.notifyServerMinionUpdate(minionId, pending.minion)
       }
     })
   }
@@ -200,6 +235,28 @@ export class OnlineGameMode implements GameMode {
       radius: tower.radius as number,
     }
     for (const cb of this.serverTowerUpdateCallbacks) cb(state)
+  }
+
+  private notifyServerMinionUpdate(minionId: string, minion: SchemaInstance): void {
+    const state: ServerMinionState = {
+      id: minionId,
+      x: minion.x as number,
+      y: minion.y as number,
+      facing: minion.facing as number,
+      hp: minion.hp as number,
+      maxHp: minion.maxHp as number,
+      dead: minion.dead as boolean,
+      team: minion.team as string,
+      radius: minion.radius as number,
+      minionType: minion.minionType as 'melee' | 'ranged',
+      speed: minion.speed as number,
+      attackDamage: minion.attackDamage as number,
+      attackRange: minion.attackRange as number,
+      attackSpeed: minion.attackSpeed as number,
+      projectileSpeed: minion.projectileSpeed as number,
+      projectileRadius: minion.projectileRadius as number,
+    }
+    for (const cb of this.serverMinionUpdateCallbacks) cb(state)
   }
 
   /** Batch projectile property changes into one notification per patch. */
@@ -289,6 +346,14 @@ export class OnlineGameMode implements GameMode {
     this.serverTowerUpdateCallbacks = [...this.serverTowerUpdateCallbacks, callback]
   }
 
+  onServerMinionUpdate(callback: (state: ServerMinionState) => void): void {
+    this.serverMinionUpdateCallbacks = [...this.serverMinionUpdateCallbacks, callback]
+  }
+
+  onServerMinionRemove(callback: (minionId: string) => void): void {
+    this.serverMinionRemoveCallbacks = [...this.serverMinionRemoveCallbacks, callback]
+  }
+
   onServerProjectileUpdate(callback: (projectiles: readonly ServerProjectileState[]) => void): void {
     this.serverProjectileUpdateCallbacks = [...this.serverProjectileUpdateCallbacks, callback]
   }
@@ -318,6 +383,8 @@ export class OnlineGameMode implements GameMode {
     this.serverHeroUpdateCallbacks = []
     this.serverHeroRemoveCallbacks = []
     this.serverTowerUpdateCallbacks = []
+    this.serverMinionUpdateCallbacks = []
+    this.serverMinionRemoveCallbacks = []
     this.serverProjectileUpdateCallbacks = []
     this.attackEventCallbacks = []
     this.damageEventCallbacks = []

@@ -3,6 +3,7 @@ import { EntityManager } from '@/scenes/EntityManager'
 import type { HeroState } from '@/domain/entities/Hero'
 import type { RemotePlayerState } from '@/network/GameMode'
 import { createMockCombatEntity } from '@/test/helpers/entityHelpers'
+import { createMinionState } from '@shared/entities/Minion'
 
 const LOCAL_HERO_PARAMS = {
   id: 'player-1',
@@ -112,6 +113,52 @@ describe('EntityManager', () => {
       em.updateEntity<HeroState>('enemy-1', (e) => ({ ...e, dead: true, respawnTimer: 5 }))
       const heroes = em.getHeroes()
       expect(heroes).toHaveLength(2)
+    })
+  })
+
+  describe('getMinions', () => {
+    it('returns only minion entities', () => {
+      const em = createManager()
+      const minion = createMinionState({
+        id: 'minion-1',
+        minionType: 'melee',
+        team: 'blue',
+        position: { x: 150, y: 360 },
+      })
+      em.registerEntity(minion)
+      const minions = em.getMinions()
+      expect(minions).toHaveLength(1)
+      expect(minions[0]!.id).toBe('minion-1')
+    })
+
+    it('does not include heroes or towers', () => {
+      const em = createManager()
+      em.registerEntity(createMockCombatEntity({ id: 'tower-1', entityType: 'tower' }))
+      const minions = em.getMinions()
+      expect(minions).toHaveLength(0)
+    })
+
+    it('returns multiple minions', () => {
+      const em = createManager()
+      em.registerEntity(createMinionState({
+        id: 'minion-1', minionType: 'melee', team: 'blue', position: { x: 150, y: 360 },
+      }))
+      em.registerEntity(createMinionState({
+        id: 'minion-2', minionType: 'ranged', team: 'red', position: { x: 3080, y: 360 },
+      }))
+      const minions = em.getMinions()
+      expect(minions).toHaveLength(2)
+    })
+
+    it('includes dead minions', () => {
+      const em = createManager()
+      const minion = createMinionState({
+        id: 'minion-1', minionType: 'melee', team: 'blue', position: { x: 150, y: 360 },
+      })
+      em.registerEntity(minion)
+      em.updateEntity('minion-1', (e) => ({ ...e, dead: true }))
+      const minions = em.getMinions()
+      expect(minions).toHaveLength(1)
     })
   })
 

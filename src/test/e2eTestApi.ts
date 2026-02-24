@@ -22,6 +22,8 @@ export interface E2ETestApi {
   getProjectileCount: () => number
   getHeroAttackTarget: () => string | null
   getTowers: () => TowerTestData[]
+  getMinions: () => { id: string; team: string; position: { x: number; y: number }; hp: number; dead: boolean; minionType: string }[]
+  getAllEntityCount: () => number
 }
 
 declare global {
@@ -76,6 +78,16 @@ export function registerTestApi(
           maxHp: t.maxHp,
           dead: t.dead,
         })),
+    getMinions: () =>
+      entityManager.getMinions().map((m) => ({
+        id: m.id,
+        team: m.team,
+        position: { x: m.position.x, y: m.position.y },
+        hp: m.hp,
+        dead: m.dead,
+        minionType: m.minionType,
+      })),
+    getAllEntityCount: () => entityManager.allEntities.length,
   }
 }
 

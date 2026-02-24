@@ -5,7 +5,7 @@ import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
-import { WORLD_WIDTH, WORLD_HEIGHT } from '@shared/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL } from '@shared/constants'
 import type { HeroType } from '@shared/types'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
@@ -13,6 +13,14 @@ import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerComba
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
+import { MinionSchema } from '../schema/MinionSchema.js'
+import {
+  spawnMinionWave,
+  processMinionBehavior,
+  applyMinionSeparation,
+  processMinionDeaths,
+  createMinionSystemContext,
+} from '../game/ServerMinionSystem.js'
 
 export const MAX_PLAYERS = 2
 
@@ -48,6 +56,8 @@ function isValidHeroType(value: unknown): value is HeroType {
 export class GameRoom extends Room<GameRoomState> {
   maxClients = MAX_PLAYERS
   private playerInputs = new Map<string, InputMessage>()
+  private nextWaveTime = MINION_WAVE_INTERVAL
+  private minionCtx = createMinionSystemContext()
 
   onCreate(): void {
     this.setState(new GameRoomState())
@@ -109,6 +119,7 @@ export class GameRoom extends Room<GameRoomState> {
   onDispose(): void {
     resetProjectileIdCounter()
     resetTowerProjectileIdCounter()
+    this.minionCtx = createMinionSystemContext()
   }
 
   private setupTowers(): void {
@@ -148,8 +159,17 @@ export class GameRoom extends Room<GameRoomState> {
     // Update match time
     this.state.matchTime += deltaTime
 
-    const { heroes, towers, projectiles } = this.state
+    const { heroes, towers, projectiles, minions } = this.state
     const events: CombatEventMessage[] = []
+
+    // 0. Minion wave spawn
+    this.nextWaveTime = spawnMinionWave(
+      this.minionCtx,
+      this.state.matchTime,
+      this.nextWaveTime,
+      minions,
+      MinionSchema,
+    )
 
     // 1. Apply movement from inputs
     heroes.forEach((hero, sessionId) => {
@@ -173,10 +193,26 @@ export class GameRoom extends Room<GameRoomState> {
         towers,
         projectiles,
         ProjectileSchema,
-        deltaTime
+        deltaTime,
+        minions,
       )
       events.push(...heroEvents)
     })
+
+    // 2.5. Process minion behavior (march / chase / attack)
+    const minionEvents = processMinionBehavior(
+      this.minionCtx,
+      minions,
+      heroes,
+      towers,
+      projectiles,
+      ProjectileSchema,
+      deltaTime,
+    )
+    events.push(...minionEvents)
+
+    // 2.6. Prevent same-team minion overlap
+    applyMinionSeparation(minions)
 
     // 3. Process tower combat
     towers.forEach((tower, towerId) => {
@@ -186,20 +222,25 @@ export class GameRoom extends Room<GameRoomState> {
         heroes,
         projectiles,
         ProjectileSchema,
-        deltaTime
+        deltaTime,
+        minions,
       )
       events.push(...towerEvents)
     })
 
     // 4. Process projectiles
-    const projectileEvents = processProjectiles(projectiles, heroes, towers, deltaTime)
+    const projectileEvents = processProjectiles(projectiles, heroes, towers, deltaTime, minions)
     events.push(...projectileEvents)
 
-    // 5. Death detection and respawn
+    // 5. Minion death + XP distribution
+    const minionDeathEvents = processMinionDeaths(this.minionCtx, minions, heroes, deltaTime)
+    events.push(...minionDeathEvents)
+
+    // 6. Hero death detection and respawn
     const deathEvents = processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
     events.push(...deathEvents)
 
-    // 6. Broadcast combat events to all clients
+    // 7. Broadcast combat events to all clients
     for (const msg of events) {
       this.broadcast(msg.kind, msg.event)
     }

@@ -44,6 +44,26 @@ export interface ServerProjectileState {
   readonly radius: number
 }
 
+/** Server-synced minion state */
+export interface ServerMinionState {
+  readonly id: string
+  readonly x: number
+  readonly y: number
+  readonly facing: number
+  readonly hp: number
+  readonly maxHp: number
+  readonly dead: boolean
+  readonly team: string
+  readonly radius: number
+  readonly minionType: 'melee' | 'ranged'
+  readonly speed: number
+  readonly attackDamage: number
+  readonly attackRange: number
+  readonly attackSpeed: number
+  readonly projectileSpeed: number
+  readonly projectileRadius: number
+}
+
 /** Server-synced tower state */
 export interface ServerTowerState {
   readonly id: string
@@ -95,6 +115,12 @@ export interface GameMode {
 
   /** Register callback for server tower state sync */
   onServerTowerUpdate(callback: (state: ServerTowerState) => void): void
+
+  /** Register callback for server minion state sync */
+  onServerMinionUpdate(callback: (state: ServerMinionState) => void): void
+
+  /** Register callback for server minion removed */
+  onServerMinionRemove(callback: (minionId: string) => void): void
 
   /** Register callback for server projectile sync */
   onServerProjectileUpdate(callback: (projectiles: readonly ServerProjectileState[]) => void): void

@@ -2,6 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
+import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
 
@@ -25,7 +26,8 @@ function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
 
 function getAllDamageTargets(
   heroes: MapSchema<HeroSchema>,
-  towers: MapSchema<TowerSchema>
+  towers: MapSchema<TowerSchema>,
+  minions?: MapSchema<MinionSchema>,
 ): DamageTarget[] {
   const targets: DamageTarget[] = []
   heroes.forEach((h, id) => {
@@ -34,6 +36,11 @@ function getAllDamageTargets(
   towers.forEach((t, id) => {
     targets.push({ id, x: t.x, y: t.y, hp: t.hp, dead: t.dead, radius: t.radius, team: t.team })
   })
+  if (minions) {
+    minions.forEach((m, id) => {
+      targets.push({ id, x: m.x, y: m.y, hp: m.hp, dead: m.dead, radius: m.radius, team: m.team })
+    })
+  }
   return targets
 }
 
@@ -47,11 +54,12 @@ export function processProjectiles(
   projectiles: MapSchema<ProjectileSchema>,
   heroes: MapSchema<HeroSchema>,
   towers: MapSchema<TowerSchema>,
-  deltaTime: number
+  deltaTime: number,
+  minions?: MapSchema<MinionSchema>,
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
   const toRemove: string[] = []
-  const targets = getAllDamageTargets(heroes, towers)
+  const targets = getAllDamageTargets(heroes, towers, minions)
 
   projectiles.forEach((proj, projId) => {
     // Move toward target position
@@ -85,7 +93,7 @@ export function processProjectiles(
 
       const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
       if (distanceSq(proj.x, proj.y, target.x, target.y) <= collisionDist * collisionDist) {
-        applyDamageToTarget(target.id, proj.damage, heroes, towers)
+        applyDamageToTarget(target.id, proj.damage, heroes, towers, minions)
         events.push({
           kind: 'damage',
           event: {
