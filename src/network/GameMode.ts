@@ -56,6 +56,12 @@ export interface ServerMinionState {
   readonly team: string
   readonly radius: number
   readonly minionType: 'melee' | 'ranged'
+  readonly speed: number
+  readonly attackDamage: number
+  readonly attackRange: number
+  readonly attackSpeed: number
+  readonly projectileSpeed: number
+  readonly projectileRadius: number
 }
 
 /** Server-synced tower state */

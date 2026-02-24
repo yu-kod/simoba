@@ -1,13 +1,14 @@
 import { createMinionState, type MinionState } from '@shared/entities/Minion'
-import type { MinionWaveConfig } from '@shared/constants'
+import {
+  BLUE_MELEE_X,
+  BLUE_RANGED_X,
+  RED_MELEE_X,
+  RED_RANGED_X,
+  MELEE_Y_OFFSETS,
+  RANGED_Y,
+  type MinionWaveConfig,
+} from '@shared/constants'
 import type { Team } from '@/domain/types'
-
-const BLUE_MELEE_X = 150
-const BLUE_RANGED_X = 120
-const RED_MELEE_X = 3050
-const RED_RANGED_X = 3080
-const MELEE_Y_OFFSETS = [340, 360, 380] as const
-const RANGED_Y = 360
 
 let _waveCounter = 0
 

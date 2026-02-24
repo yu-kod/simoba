@@ -233,6 +233,12 @@ export class OnlineGameMode implements GameMode {
       team: minion.team as string,
       radius: minion.radius as number,
       minionType: minion.minionType as 'melee' | 'ranged',
+      speed: minion.speed as number,
+      attackDamage: minion.attackDamage as number,
+      attackRange: minion.attackRange as number,
+      attackSpeed: minion.attackSpeed as number,
+      projectileSpeed: minion.projectileSpeed as number,
+      projectileRadius: minion.projectileRadius as number,
     }
     for (const cb of this.serverMinionUpdateCallbacks) cb(state)
   }

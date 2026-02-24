@@ -752,9 +752,15 @@ export class GameScene extends Phaser.Scene {
         facing: state.facing,
         attackTargetId: null,
         attackCooldown: 0,
-        stats: { maxHp: state.maxHp, speed: 0, attackDamage: 0, attackRange: 0, attackSpeed: 0 },
-        projectileSpeed: 0,
-        projectileRadius: 0,
+        stats: {
+          maxHp: state.maxHp,
+          speed: state.speed,
+          attackDamage: state.attackDamage,
+          attackRange: state.attackRange,
+          attackSpeed: state.attackSpeed,
+        },
+        projectileSpeed: state.projectileSpeed,
+        projectileRadius: state.projectileRadius,
       }
       this.entityManager.registerEntity(minionState)
     }

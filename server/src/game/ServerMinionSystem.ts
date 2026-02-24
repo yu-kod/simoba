@@ -7,6 +7,12 @@ import {
   XP_GRANT_RANGE,
   MINION_DEATH_CLEANUP_DELAY,
   MINION_DETECTION_RANGE,
+  BLUE_MELEE_X,
+  BLUE_RANGED_X,
+  RED_MELEE_X,
+  RED_RANGED_X,
+  MELEE_Y_OFFSETS,
+  RANGED_Y,
   getWaveConfig,
 } from '@shared/constants'
 import type { MinionSchema } from '../schema/MinionSchema.js'
@@ -15,31 +21,26 @@ import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 
-const BLUE_MELEE_X = 150
-const BLUE_RANGED_X = 120
-const RED_MELEE_X = 3050
-const RED_RANGED_X = 3080
-const MELEE_Y_OFFSETS = [340, 360, 380] as const
-const RANGED_Y = 360
 
-let waveCounter = 0
-let minionProjectileIdCounter = 0
-
-export function resetMinionCounters(): void {
-  waveCounter = 0
-  minionProjectileIdCounter = 0
+/** Per-room mutable context for the minion system (avoids module-level globals). */
+export interface MinionSystemContext {
+  waveCounter: number
+  minionProjectileIdCounter: number
+  deathTimers: Map<string, number>
 }
 
-// Death cleanup timers (minionId -> remaining ms)
-const deathTimers = new Map<string, number>()
-
-export function resetDeathTimers(): void {
-  deathTimers.clear()
+export function createMinionSystemContext(): MinionSystemContext {
+  return {
+    waveCounter: 0,
+    minionProjectileIdCounter: 0,
+    deathTimers: new Map(),
+  }
 }
 
 // --- Spawn ---
 
 export function spawnMinionWave(
+  ctx: MinionSystemContext,
   matchTime: number,
   nextWaveTime: number,
   minions: MapSchema<MinionSchema>,
@@ -48,7 +49,7 @@ export function spawnMinionWave(
   if (matchTime < nextWaveTime) return nextWaveTime
 
   const config = getWaveConfig(matchTime)
-  const waveId = waveCounter++
+  const waveId = ctx.waveCounter++
 
   for (const team of ['blue', 'red'] as const) {
     const meleeX = team === 'blue' ? BLUE_MELEE_X : RED_MELEE_X
@@ -127,21 +128,18 @@ function collectEnemyTargets(
   const targets: TargetCandidate[] = []
 
   minions.forEach((m, id) => {
-    if (!m.dead && m.team !== minion.team) {
-      targets.push({ id, x: m.x, y: m.y, radius: m.radius, entityType: 'minion' })
-    }
+    if ((m.dead || m.hp <= 0) || m.team === minion.team) return
+    targets.push({ id, x: m.x, y: m.y, radius: m.radius, entityType: 'minion' })
   })
 
   towers.forEach((t, id) => {
-    if (!t.dead && t.team !== minion.team) {
-      targets.push({ id, x: t.x, y: t.y, radius: t.radius, entityType: 'tower' })
-    }
+    if ((t.dead || t.hp <= 0) || t.team === minion.team) return
+    targets.push({ id, x: t.x, y: t.y, radius: t.radius, entityType: 'tower' })
   })
 
   heroes.forEach((h, id) => {
-    if (!h.dead && h.team !== minion.team) {
-      targets.push({ id, x: h.x, y: h.y, radius: h.radius, entityType: 'hero' })
-    }
+    if ((h.dead || h.hp <= 0) || h.team === minion.team) return
+    targets.push({ id, x: h.x, y: h.y, radius: h.radius, entityType: 'hero' })
   })
 
   return targets
@@ -205,8 +203,13 @@ function selectTargetInRange(
 //   Chase → March  : target leaves detection range or dies
 //   Attack → Chase : target exits attack range but still within detection range
 //   Attack → March : target exits detection range or dies
+//
+// Note: Ranged minions (attackRange=200) have the same range as MINION_DETECTION_RANGE (200),
+// so their Chase state is effectively unreachable — they transition March → Attack directly.
+// This is intentional: ranged minions should not chase; they stand and shoot.
 
 export function processMinionBehavior(
+  ctx: MinionSystemContext,
   minions: MapSchema<MinionSchema>,
   heroes: MapSchema<HeroSchema>,
   towers: MapSchema<TowerSchema>,
@@ -241,7 +244,7 @@ export function processMinionBehavior(
 
       if (minion.attackCooldown <= 0) {
         minion.attackCooldown = 1 / minion.attackSpeed
-        const attackEvents = fireAttack(minion, minionId, attackTarget, heroes, towers, minions, projectiles, ProjectileSchemaClass)
+        const attackEvents = fireAttack(ctx, minion, minionId, attackTarget, heroes, towers, minions, projectiles, ProjectileSchemaClass)
         events.push(...attackEvents)
       }
       return
@@ -278,6 +281,7 @@ export function processMinionBehavior(
 // --- Fire Attack (extract attack logic for reuse) ---
 
 function fireAttack(
+  ctx: MinionSystemContext,
   minion: MinionSchema,
   minionId: string,
   target: TargetCandidate,
@@ -315,7 +319,7 @@ function fireAttack(
   } else {
     // Ranged: spawn projectile
     const proj = new ProjectileSchemaClass()
-    proj.id = `minion-proj-${++minionProjectileIdCounter}`
+    proj.id = `minion-proj-${++ctx.minionProjectileIdCounter}`
     proj.x = minion.x
     proj.y = minion.y
     proj.targetX = target.x
@@ -377,18 +381,24 @@ const SEPARATION_MIN_DIST = 2 // px — minimum distance between edges
 export function applyMinionSeparation(
   minions: MapSchema<MinionSchema>,
 ): void {
-  const alive: MinionSchema[] = []
+  // Split by team to avoid cross-team comparisons entirely
+  const blue: MinionSchema[] = []
+  const red: MinionSchema[] = []
   minions.forEach((m) => {
-    if (!m.dead) alive.push(m)
+    if (m.dead) return
+    if (m.team === 'blue') blue.push(m)
+    else red.push(m)
   })
 
-  for (let i = 0; i < alive.length; i++) {
-    const a = alive[i]!
-    for (let j = i + 1; j < alive.length; j++) {
-      const b = alive[j]!
+  separateTeam(blue)
+  separateTeam(red)
+}
 
-      // Only separate same-team minions
-      if (a.team !== b.team) continue
+function separateTeam(team: MinionSchema[]): void {
+  for (let i = 0; i < team.length; i++) {
+    const a = team[i]!
+    for (let j = i + 1; j < team.length; j++) {
+      const b = team[j]!
 
       const dx = b.x - a.x
       const dy = b.y - a.y
@@ -423,6 +433,7 @@ export function applyMinionSeparation(
 // --- Death + XP Distribution ---
 
 export function processMinionDeaths(
+  ctx: MinionSystemContext,
   minions: MapSchema<MinionSchema>,
   heroes: MapSchema<HeroSchema>,
   deltaTime: number,
@@ -454,19 +465,28 @@ export function processMinionDeaths(
         }
       }
 
+      events.push({
+        kind: 'death',
+        event: {
+          heroId: minion.id,
+          type: 'death',
+          position: { x: minion.x, y: minion.y },
+        },
+      })
+
       // Start cleanup timer
-      deathTimers.set(minion.id, MINION_DEATH_CLEANUP_DELAY)
+      ctx.deathTimers.set(minion.id, MINION_DEATH_CLEANUP_DELAY)
     }
   })
 
   // Tick death timers and cleanup
-  for (const [id, remaining] of deathTimers) {
+  for (const [id, remaining] of ctx.deathTimers) {
     const newRemaining = remaining - deltaTime * 1000
     if (newRemaining <= 0) {
       minions.delete(id)
-      deathTimers.delete(id)
+      ctx.deathTimers.delete(id)
     } else {
-      deathTimers.set(id, newRemaining)
+      ctx.deathTimers.set(id, newRemaining)
     }
   }
 
