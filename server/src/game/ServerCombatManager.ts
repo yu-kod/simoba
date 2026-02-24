@@ -4,6 +4,7 @@ import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import type { HeroType } from '@shared/types'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
+import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
@@ -27,12 +28,17 @@ interface CombatTarget {
 function findTarget(
   targetId: string,
   heroes: MapSchema<HeroSchema>,
-  towers: MapSchema<TowerSchema>
+  towers: MapSchema<TowerSchema>,
+  minions?: MapSchema<MinionSchema>,
 ): CombatTarget | null {
   const hero = heroes.get(targetId)
   if (hero) return { id: targetId, x: hero.x, y: hero.y, hp: hero.hp, dead: hero.dead, radius: hero.radius, team: hero.team }
   const tower = towers.get(targetId)
   if (tower) return { id: targetId, x: tower.x, y: tower.y, hp: tower.hp, dead: tower.dead, radius: tower.radius, team: tower.team }
+  if (minions) {
+    const minion = minions.get(targetId)
+    if (minion) return { id: targetId, x: minion.x, y: minion.y, hp: minion.hp, dead: minion.dead, radius: minion.radius, team: minion.team }
+  }
   return null
 }
 
@@ -49,7 +55,8 @@ export function processHeroCombat(
   towers: MapSchema<TowerSchema>,
   projectiles: MapSchema<ProjectileSchema>,
   ProjectileSchemaClass: new () => ProjectileSchema,
-  deltaTime: number
+  deltaTime: number,
+  minions?: MapSchema<MinionSchema>,
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
 
@@ -67,7 +74,7 @@ export function processHeroCombat(
   // Update attack target from input
   const requestedTarget = input?.attackTargetId ?? null
   if (requestedTarget) {
-    const target = findTarget(requestedTarget, heroes, towers)
+    const target = findTarget(requestedTarget, heroes, towers, minions)
     if (target && !target.dead && target.team !== hero.team) {
       const inRange = isInAttackRange(
         { x: hero.x, y: hero.y },
@@ -90,7 +97,7 @@ export function processHeroCombat(
 
   // Fire attack if cooldown ready and target valid
   if (hero.attackCooldown <= 0 && hero.attackTargetId !== '') {
-    const target = findTarget(hero.attackTargetId, heroes, towers)
+    const target = findTarget(hero.attackTargetId, heroes, towers, minions)
     if (!target || target.dead) {
       hero.attackTargetId = ''
       return events
@@ -116,7 +123,7 @@ export function processHeroCombat(
 
     if (def.projectileSpeed === 0) {
       // Melee: immediate damage
-      applyDamageToTarget(hero.attackTargetId, hero.attackDamage, heroes, towers)
+      applyDamageToTarget(hero.attackTargetId, hero.attackDamage, heroes, towers, minions)
 
       events.push({
         kind: 'attack',

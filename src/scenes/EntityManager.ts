@@ -1,5 +1,6 @@
 import { createHeroState, type HeroState, type CreateHeroParams } from '@/domain/entities/Hero'
-import { isHero } from '@/domain/entities/typeGuards'
+import { isHero, isMinion } from '@/domain/entities/typeGuards'
+import type { MinionState } from '@shared/entities/Minion'
 import type { CombatEntityState, HeroType, Team } from '@/domain/types'
 import { DEFAULT_ENTITY_RADIUS } from '@/domain/constants'
 import type { RemotePlayerState } from '@/network/GameMode'
@@ -58,6 +59,16 @@ export class EntityManager {
       }
     }
     return heroes
+  }
+
+  getMinions(): MinionState[] {
+    const minions: MinionState[] = []
+    for (const entity of this._entities.values()) {
+      if (isMinion(entity)) {
+        minions.push(entity)
+      }
+    }
+    return minions
   }
 
   get allEntities(): CombatEntityState[] {

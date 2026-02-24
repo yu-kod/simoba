@@ -2,6 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import { isInAttackRange } from '@shared/combat'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
+import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 
@@ -12,12 +13,13 @@ export function resetTowerProjectileIdCounter(): void {
 }
 
 /**
- * Select the nearest alive enemy hero within the tower's attack range.
- * Towers only target heroes, not other towers.
+ * Select the nearest alive enemy (minion or hero) within the tower's attack range.
+ * Priority: minion > hero (towers don't target other towers).
  */
 function selectNearestEnemy(
   tower: TowerSchema,
-  heroes: MapSchema<HeroSchema>
+  heroes: MapSchema<HeroSchema>,
+  minions?: MapSchema<MinionSchema>,
 ): { id: string; x: number; y: number; radius: number } | null {
   let bestId: string | null = null
   let bestX = 0
@@ -25,6 +27,41 @@ function selectNearestEnemy(
   let bestRadius = 0
   let bestDistSq = Infinity
 
+  // Check minions first (higher priority)
+  if (minions) {
+    minions.forEach((m, minionId) => {
+      if (m.dead || m.hp <= 0) return
+      if (m.team === tower.team) return
+
+      const dx = m.x - tower.x
+      const dy = m.y - tower.y
+      const distSq = dx * dx + dy * dy
+
+      if (distSq < bestDistSq) {
+        const inRange = isInAttackRange(
+          { x: tower.x, y: tower.y },
+          { x: m.x, y: m.y },
+          tower.radius,
+          m.radius,
+          tower.attackRange,
+        )
+        if (inRange) {
+          bestDistSq = distSq
+          bestId = minionId
+          bestX = m.x
+          bestY = m.y
+          bestRadius = m.radius
+        }
+      }
+    })
+
+    // If minion found, return it (priority over heroes)
+    if (bestId !== null) {
+      return { id: bestId, x: bestX, y: bestY, radius: bestRadius }
+    }
+  }
+
+  // Then check heroes
   heroes.forEach((hero, heroId) => {
     if (hero.dead || hero.hp <= 0) return
     if (hero.team === tower.team) return
@@ -34,13 +71,12 @@ function selectNearestEnemy(
     const distSq = dx * dx + dy * dy
 
     if (distSq < bestDistSq) {
-      // Check range using isInAttackRange for consistency
       const inRange = isInAttackRange(
         { x: tower.x, y: tower.y },
         { x: hero.x, y: hero.y },
         tower.radius,
         hero.radius,
-        tower.attackRange
+        tower.attackRange,
       )
       if (inRange) {
         bestDistSq = distSq
@@ -67,7 +103,8 @@ export function processTowerCombat(
   heroes: MapSchema<HeroSchema>,
   projectiles: MapSchema<ProjectileSchema>,
   ProjectileSchemaClass: new () => ProjectileSchema,
-  deltaTime: number
+  deltaTime: number,
+  minions?: MapSchema<MinionSchema>,
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
 
@@ -82,8 +119,8 @@ export function processTowerCombat(
     tower.attackCooldown = Math.max(0, tower.attackCooldown - deltaTime)
   }
 
-  // Auto-select nearest enemy target
-  const target = selectNearestEnemy(tower, heroes)
+  // Auto-select nearest enemy target (minions > heroes)
+  const target = selectNearestEnemy(tower, heroes, minions)
   if (!target) {
     tower.attackTargetId = ''
     return events
@@ -115,7 +152,7 @@ export function processTowerCombat(
         targetId: target.id,
         attackType: 'ranged',
         position: { x: tower.x, y: tower.y },
-        facing: 0,
+        facing: Math.atan2(target.y - tower.y, target.x - tower.x),
       },
     })
   }

@@ -1,7 +1,9 @@
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import type { HeroState } from '@/domain/entities/Hero'
 import type { TowerState } from '@/domain/entities/Tower'
-import { isTower } from '@/domain/entities/typeGuards'
+import { isMinion, isTower } from '@/domain/entities/typeGuards'
+import type { MinionState } from '@shared/entities/Minion'
+import { selectMinionTarget } from '@/domain/systems/minionTargeting'
 import { updateAttackState } from '@/domain/systems/updateAttackState'
 import { selectTowerTarget } from '@/domain/systems/towerTargeting'
 import { findClickTarget } from '@/domain/systems/findClickTarget'
@@ -143,6 +145,81 @@ export class CombatManager {
     }
 
     return { damageEvents, projectileSpawnEvents: [], meleeSwings: [] }
+  }
+
+
+  processMinionAttacks(deltaSeconds: number): CombatEvents {
+    const minions = this.entityManager.allEntities.filter(
+      (e): e is MinionState => isMinion(e) && !e.dead,
+    )
+
+    if (minions.length === 0) return EMPTY_EVENTS
+
+    const projectileSpawnEvents: ProjectileSpawnEvent[] = []
+    const damageEvents: Array<{ targetId: string; damage: number }> = []
+
+    for (const minion of minions) {
+      const enemies = this.entityManager.getEnemiesOf(minion.team)
+      const target = selectMinionTarget(minion, enemies)
+
+      const minionWithTarget: MinionState = target
+        ? { ...minion, attackTargetId: target.id }
+        : { ...minion, attackTargetId: null }
+
+      const targetRadius = target
+        ? this.entityManager.getEntityRadius(target.id)
+        : 0
+
+      const attackResult = updateAttackState(
+        minionWithTarget,
+        target,
+        deltaSeconds,
+        minion.radius,
+        targetRadius,
+        minion.projectileSpeed,
+        minion.projectileRadius,
+      )
+
+      this.entityManager.updateEntity<MinionState>(
+        minion.id,
+        () => attackResult.entity,
+      )
+
+      for (const spawn of attackResult.projectileSpawnEvents) {
+        this._projectiles.push(
+          createProjectile({
+            id: `minion-projectile-${this._nextProjectileId++}`,
+            ownerId: spawn.ownerId,
+            ownerTeam: spawn.ownerTeam,
+            targetId: spawn.targetId,
+            startPosition: spawn.startPosition,
+            damage: spawn.damage,
+            speed: spawn.speed,
+            radius: spawn.radius,
+          }),
+        )
+        projectileSpawnEvents.push({
+          ownerId: spawn.ownerId,
+          ownerTeam: spawn.ownerTeam,
+          targetId: spawn.targetId,
+          startPosition: spawn.startPosition,
+          damage: spawn.damage,
+          speed: spawn.speed,
+          radius: spawn.radius,
+        })
+      }
+
+      for (const event of attackResult.damageEvents) {
+        this.applyLocalDamage(event.targetId, event.damage)
+        damageEvents.push({ targetId: event.targetId, damage: event.damage })
+      }
+    }
+
+    if (damageEvents.length === 0 && projectileSpawnEvents.length === 0) {
+      return EMPTY_EVENTS
+    }
+
+    return { damageEvents, projectileSpawnEvents, meleeSwings: [] }
   }
 
   processTowerAttacks(deltaSeconds: number): CombatEvents {

@@ -11,10 +11,10 @@ const SWING_COLOR = 0xffffff
 const SWING_LINE_WIDTH = 3
 
 /**
- * Melee swing effect — draws a forward arc that fades out over SWING_DURATION_MS.
+ * Single melee swing effect instance — draws a forward arc that fades out.
  * Purely visual; damage logic is independent.
  */
-export class MeleeSwingRenderer implements AttackEffectRenderer {
+class MeleeSwingInstance {
   private readonly graphics: Phaser.GameObjects.Graphics
   private active = false
   private elapsed = 0
@@ -24,6 +24,7 @@ export class MeleeSwingRenderer implements AttackEffectRenderer {
   constructor(scene: Phaser.Scene) {
     this.graphics = scene.add.graphics()
     this.graphics.setDepth(10)
+    this.graphics.setVisible(false)
   }
 
   play(params: AttackEffectParams): void {
@@ -31,6 +32,7 @@ export class MeleeSwingRenderer implements AttackEffectRenderer {
     this.elapsed = 0
     this.facing = params.facing
     this.position = { x: params.position.x, y: params.position.y }
+    this.graphics.setVisible(true)
     this.draw(1)
   }
 
@@ -41,6 +43,7 @@ export class MeleeSwingRenderer implements AttackEffectRenderer {
     if (this.elapsed >= SWING_DURATION_MS) {
       this.active = false
       this.graphics.clear()
+      this.graphics.setVisible(false)
       return
     }
 
@@ -73,5 +76,49 @@ export class MeleeSwingRenderer implements AttackEffectRenderer {
       false
     )
     this.graphics.strokePath()
+  }
+}
+
+/**
+ * Pool-based melee swing renderer — supports multiple simultaneous effects.
+ * Reuses inactive instances to avoid repeated allocation.
+ */
+export class MeleeSwingRenderer implements AttackEffectRenderer {
+  private readonly scene: Phaser.Scene
+  private readonly instances: MeleeSwingInstance[] = []
+
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene
+  }
+
+  play(params: AttackEffectParams): void {
+    const instance = this.getOrCreateInstance()
+    instance.play(params)
+  }
+
+  update(delta: number): void {
+    for (const instance of this.instances) {
+      instance.update(delta)
+    }
+  }
+
+  isActive(): boolean {
+    return this.instances.some((i) => i.isActive())
+  }
+
+  destroy(): void {
+    for (const instance of this.instances) {
+      instance.destroy()
+    }
+    this.instances.length = 0
+  }
+
+  private getOrCreateInstance(): MeleeSwingInstance {
+    const idle = this.instances.find((i) => !i.isActive())
+    if (idle) return idle
+
+    const instance = new MeleeSwingInstance(this.scene)
+    this.instances.push(instance)
+    return instance
   }
 }

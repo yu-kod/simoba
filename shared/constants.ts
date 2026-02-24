@@ -27,3 +27,29 @@ export const DEFAULT_ENTITY_RADIUS = 20
 
 // Projectile
 export const DEFAULT_PROJECTILE_RADIUS = 5
+
+// Minion
+export const MINION_WAVE_INTERVAL = 30 // seconds between waves
+export const MINION_XP_REWARD = 20 // total XP per minion kill
+export const XP_GRANT_RANGE = 500 // px radius for proximity XP
+export const MINION_DEATH_CLEANUP_DELAY = 200 // ms before removing dead minion
+export const MINION_DETECTION_RANGE = 200 // px — range to detect enemies and start chasing
+
+export interface MinionWaveConfig {
+  readonly interval: number
+  readonly meleeCount: number
+  readonly rangedCount: number
+  readonly statMultiplier: number
+}
+
+const DEFAULT_WAVE_CONFIG: MinionWaveConfig = {
+  interval: MINION_WAVE_INTERVAL,
+  meleeCount: 3,
+  rangedCount: 1,
+  statMultiplier: 1.0,
+}
+
+/** Returns wave config for the given match time. Currently always returns the default. */
+export function getWaveConfig(_matchTime: number): MinionWaveConfig {
+  return DEFAULT_WAVE_CONFIG
+}

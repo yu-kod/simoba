@@ -7,6 +7,7 @@ import type {
   RemotePlayerState,
   ServerHeroState,
   ServerTowerState,
+  ServerMinionState,
   ServerProjectileState,
 } from '@/network/GameMode'
 
@@ -67,6 +68,14 @@ export class OfflineGameMode implements GameMode {
   }
 
   onServerTowerUpdate(_callback: (state: ServerTowerState) => void): void {
+    // No-op
+  }
+
+  onServerMinionUpdate(_callback: (state: ServerMinionState) => void): void {
+    // No-op
+  }
+
+  onServerMinionRemove(_callback: (minionId: string) => void): void {
     // No-op
   }
 

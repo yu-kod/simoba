@@ -3,6 +3,7 @@ import { EntityManager } from '@/scenes/EntityManager'
 import { CombatManager } from '@/scenes/CombatManager'
 import type { HeroState } from '@/domain/entities/Hero'
 import { createMockCombatEntity, createMockTowerEntity } from '@/test/helpers/entityHelpers'
+import { createMinionState, MELEE_MINION, RANGED_MINION } from '@shared/entities/Minion'
 
 const LOCAL_HERO_PARAMS = {
   id: 'player-1',
@@ -238,6 +239,109 @@ describe('CombatManager', () => {
       })
       cm.resetProjectiles()
       expect(cm.projectiles).toHaveLength(0)
+    })
+  })
+
+  describe('processMinionAttacks', () => {
+    it('returns empty events when no minions exist', () => {
+      const { cm } = createManagers()
+      const events = cm.processMinionAttacks(0.016)
+      expect(events.damageEvents).toHaveLength(0)
+      expect(events.projectileSpawnEvents).toHaveLength(0)
+    })
+
+    it('melee minion produces DamageEvent when target in range', () => {
+      const { em, cm } = createManagers()
+      const blueMinion = createMinionState({
+        id: 'blue-minion',
+        minionType: 'melee',
+        team: 'blue',
+        position: { x: 500, y: 360 },
+      })
+      const redMinion = createMinionState({
+        id: 'red-minion',
+        minionType: 'melee',
+        team: 'red',
+        position: { x: 500 + MELEE_MINION.stats.attackRange * 0.5, y: 360 },
+      })
+      em.registerEntity(blueMinion)
+      em.registerEntity(redMinion)
+
+      // Process enough frames for cooldown to allow an attack
+      const events = cm.processMinionAttacks(10)
+      expect(events.damageEvents.length).toBeGreaterThanOrEqual(1)
+      expect(events.damageEvents[0]!.targetId).toBe('red-minion')
+    })
+
+    it('ranged minion produces ProjectileSpawnEvent when target in range', () => {
+      const { em, cm } = createManagers()
+      const blueRanged = createMinionState({
+        id: 'blue-ranged',
+        minionType: 'ranged',
+        team: 'blue',
+        position: { x: 500, y: 360 },
+      })
+      const redMinion = createMinionState({
+        id: 'red-minion',
+        minionType: 'melee',
+        team: 'red',
+        position: { x: 500 + RANGED_MINION.stats.attackRange * 0.5, y: 360 },
+      })
+      em.registerEntity(blueRanged)
+      em.registerEntity(redMinion)
+
+      const events = cm.processMinionAttacks(10)
+      expect(events.projectileSpawnEvents.length).toBeGreaterThanOrEqual(1)
+      expect(events.projectileSpawnEvents[0]!.targetId).toBe('red-minion')
+    })
+
+    it('dead minions are skipped', () => {
+      const { em, cm } = createManagers()
+      const deadMinion = createMinionState({
+        id: 'dead-minion',
+        minionType: 'melee',
+        team: 'blue',
+        position: { x: 500, y: 360 },
+      })
+      em.registerEntity({ ...deadMinion, dead: true })
+
+      const events = cm.processMinionAttacks(10)
+      expect(events.damageEvents).toHaveLength(0)
+    })
+
+    it('tower targets minion as enemy', () => {
+      const { em, cm } = createManagers()
+      const redMinion = createMinionState({
+        id: 'red-minion',
+        minionType: 'melee',
+        team: 'red',
+        position: { x: 100, y: 200 },
+      })
+      em.registerEntity(redMinion)
+
+      // Move heroes far away so tower picks minion
+      em.updateEntity<HeroState>('player-1', (h) => ({
+        ...h,
+        position: { x: 3000, y: 3000 },
+      }))
+      em.updateEntity<HeroState>('enemy-1', (h) => ({
+        ...h,
+        position: { x: 3000, y: 3000 },
+      }))
+
+      const blueTower = createMockTowerEntity({
+        id: 'blue-tower',
+        team: 'blue',
+        position: { x: 100, y: 200 },
+      })
+      em.registerEntity(blueTower)
+
+      const events = cm.processTowerAttacks(10)
+      // Tower should target the red minion
+      const hasMinionTarget = events.projectileSpawnEvents.some(
+        (e) => e.targetId === 'red-minion',
+      )
+      expect(hasMinionTarget).toBe(true)
     })
   })
 })

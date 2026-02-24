@@ -8,7 +8,7 @@ import {
 } from '@/domain/constants'
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
-import { isHero, isTower } from '@/domain/entities/typeGuards'
+import { isHero, isMinion, isTower } from '@/domain/entities/typeGuards'
 import { move } from '@/domain/systems/MovementSystem'
 import { updateFacing } from '@/domain/systems/updateFacing'
 import { checkHeroDeath, updateRespawnTimer, respawn } from '@/domain/systems/deathRespawn'
@@ -27,12 +27,20 @@ import { InterpolationBuffer } from '@/network/InterpolationBuffer'
 import type { HeroType, Team, Position } from '@/domain/types'
 import type { TowerState } from '@/domain/entities/Tower'
 import { OfflineGameMode } from '@/network/OfflineGameMode'
-import type { GameMode, ServerHeroState, ServerTowerState, ServerProjectileState } from '@/network/GameMode'
+import type { GameMode, ServerHeroState, ServerTowerState, ServerMinionState, ServerProjectileState } from '@/network/GameMode'
 import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 import { MAP_LAYOUT } from '@/domain/mapLayout'
 import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
+import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
+import { updateMinionMovement } from '@/domain/systems/minionMovement'
+import { spawnWave } from '@/domain/systems/minionSpawn'
+import { processMinionDeaths } from '@/domain/systems/minionDeath'
+import { applyXpUpdates } from '@/domain/systems/minionXpDistribution'
+import { getWaveConfig, MINION_WAVE_INTERVAL, MINION_DEATH_CLEANUP_DELAY } from '@shared/constants'
+import type { MinionState } from '@shared/entities/Minion'
+import { checkDeath } from '@shared/combat'
 import { registerTestApi } from '@/test/e2eTestApi'
 
 const FREE_CAMERA_SPEED = 400
@@ -67,6 +75,11 @@ export class GameScene extends Phaser.Scene {
   private localTeam: Team = 'blue'
   private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
   private localHeroType: HeroType = 'BLADE'
+
+  // Minion wave spawning (offline mode)
+  private matchTime = 0
+  private nextWaveTime = 0
+  private minionDeathTimers = new Map<string, number>()
 
   // Online mode: input sending (no client-side prediction)
   private inputBuffer: InputBuffer | null = null
@@ -188,6 +201,12 @@ export class GameScene extends Phaser.Scene {
       onServerTowerUpdated: (state) => {
         this.handleServerTowerUpdate(state)
       },
+      onServerMinionUpdated: (state) => {
+        this.handleServerMinionUpdate(state)
+      },
+      onServerMinionRemoved: (minionId) => {
+        this.handleServerMinionRemove(minionId)
+      },
       onServerProjectilesUpdated: (projectiles) => {
         this.serverProjectiles = projectiles
         if (this.networkBridge.isServerAuthoritative) {
@@ -259,8 +278,10 @@ export class GameScene extends Phaser.Scene {
       this.updateFreeCamera(input.movement, deltaSeconds)
     }
 
-    // --- Tower + Projectile combat (offline only — server handles in online) ---
+    // --- Minion wave spawn + combat (offline only — server handles in online) ---
     if (!isOnline) {
+      this.matchTime += deltaSeconds
+      this.updateMinionWaveSpawn()
       this.updateOfflineCombat(deltaSeconds)
     }
 
@@ -461,6 +482,16 @@ export class GameScene extends Phaser.Scene {
 
   /** Offline mode: tower attacks + projectile resolution. */
   private updateOfflineCombat(deltaSeconds: number): void {
+    // Minion movement (before combat)
+    this.updateMinionMovements(deltaSeconds)
+
+    // Minion combat (Hero → Minion → Tower → Projectile order)
+    const minionEvents = this.combatManager.processMinionAttacks(deltaSeconds)
+    for (const e of minionEvents.damageEvents) {
+      this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
+      this.entityRenderers.get(e.targetId)?.flash()
+    }
+
     const towerEvents = this.combatManager.processTowerAttacks(deltaSeconds)
     for (const spawn of towerEvents.projectileSpawnEvents) {
       this.networkBridge.sendProjectileSpawn({
@@ -479,6 +510,79 @@ export class GameScene extends Phaser.Scene {
     for (const e of projectileEvents.damageEvents) {
       this.networkBridge.sendDamageEvent({ targetId: e.targetId, amount: e.damage })
       this.entityRenderers.get(e.targetId)?.flash()
+    }
+
+    // Minion death processing + XP distribution
+    this.updateMinionDeaths(deltaSeconds)
+  }
+
+  private updateMinionWaveSpawn(): void {
+    if (this.matchTime < this.nextWaveTime) return
+
+    const config = getWaveConfig(this.matchTime)
+    for (const team of ['blue', 'red'] as const) {
+      const wave = spawnWave(team, this.matchTime, config)
+      for (const minion of wave) {
+        this.entityManager.registerEntity(minion)
+        const isAlly = minion.team === this.localTeam
+        this.entityRenderers.set(
+          minion.id,
+          new MinionRenderer(this, minion, isAlly),
+        )
+      }
+    }
+    this.nextWaveTime = this.matchTime + MINION_WAVE_INTERVAL
+  }
+
+  private updateMinionMovements(deltaSeconds: number): void {
+    for (const minion of this.entityManager.getMinions()) {
+      if (minion.dead) continue
+      const updated = updateMinionMovement(minion, deltaSeconds)
+      if (updated !== minion) {
+        this.entityManager.updateEntity<MinionState>(minion.id, () => updated)
+      }
+    }
+  }
+
+  private updateMinionDeaths(deltaSeconds: number): void {
+    // Check death for all minions
+    for (const minion of this.entityManager.getMinions()) {
+      this.entityManager.updateEntity<MinionState>(minion.id, (m) => checkDeath(m))
+    }
+
+    // Process newly dead minions for XP distribution
+    const deadMinions = this.entityManager.getMinions().filter((m) => m.dead && !this.minionDeathTimers.has(m.id))
+    if (deadMinions.length > 0) {
+      const heroes = this.entityManager.getHeroes()
+      const { xpUpdates } = processMinionDeaths(deadMinions, heroes)
+
+      if (xpUpdates.length > 0) {
+        const updatedHeroes = applyXpUpdates(heroes, xpUpdates)
+        for (const hero of updatedHeroes) {
+          this.entityManager.updateEntity<HeroState>(hero.id, () => hero)
+        }
+      }
+
+      // Start cleanup timers for newly dead minions
+      for (const minion of deadMinions) {
+        this.minionDeathTimers.set(minion.id, MINION_DEATH_CLEANUP_DELAY)
+      }
+    }
+
+    // Tick death timers and remove expired
+    for (const [id, remaining] of this.minionDeathTimers) {
+      const newRemaining = remaining - deltaSeconds * 1000
+      if (newRemaining <= 0) {
+        this.entityManager.removeEntity(id)
+        const renderer = this.entityRenderers.get(id)
+        if (renderer) {
+          renderer.destroy()
+          this.entityRenderers.delete(id)
+        }
+        this.minionDeathTimers.delete(id)
+      } else {
+        this.minionDeathTimers.set(id, newRemaining)
+      }
     }
   }
 
@@ -630,6 +734,56 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Handle server attack event: play melee swing for melee attacks. */
+
+  private handleServerMinionUpdate(state: ServerMinionState): void {
+    const existing = this.entityManager.getEntity(state.id)
+
+    if (!existing) {
+      const minionState: MinionState = {
+        id: state.id,
+        entityType: 'minion',
+        team: state.team as Team,
+        position: { x: state.x, y: state.y },
+        hp: state.hp,
+        maxHp: state.maxHp,
+        dead: state.dead,
+        radius: state.radius,
+        minionType: state.minionType,
+        facing: state.facing,
+        attackTargetId: null,
+        attackCooldown: 0,
+        stats: { maxHp: state.maxHp, speed: 0, attackDamage: 0, attackRange: 0, attackSpeed: 0 },
+        projectileSpeed: 0,
+        projectileRadius: 0,
+      }
+      this.entityManager.registerEntity(minionState)
+    }
+
+    if (!this.entityRenderers.has(state.id)) {
+      const minionEntity = this.entityManager.getEntity(state.id) as MinionState
+      const isAlly = state.team === this.localTeam
+      this.entityRenderers.set(state.id, new MinionRenderer(this, minionEntity, isAlly))
+    }
+
+    this.entityManager.updateEntity<MinionState>(state.id, (m) => ({
+      ...m,
+      position: { x: state.x, y: state.y },
+      facing: state.facing,
+      hp: state.hp,
+      maxHp: state.maxHp,
+      dead: state.dead,
+    }))
+  }
+
+  private handleServerMinionRemove(minionId: string): void {
+    const renderer = this.entityRenderers.get(minionId)
+    if (renderer) {
+      renderer.destroy()
+      this.entityRenderers.delete(minionId)
+    }
+    this.entityManager.removeEntity(minionId)
+  }
+
   private handleAttackEvent(event: AttackEvent): void {
     if (event.attackType !== 'melee') return
     this.meleeSwing.play({ position: event.position, facing: event.facing })
@@ -747,6 +901,8 @@ export class GameScene extends Phaser.Scene {
       if (isHero(entity) && renderer instanceof HeroRenderer) {
         renderer.sync(entity)
       } else if (isTower(entity) && renderer instanceof TowerRenderer) {
+        renderer.sync(entity)
+      } else if (isMinion(entity) && renderer instanceof MinionRenderer) {
         renderer.sync(entity)
       }
     }

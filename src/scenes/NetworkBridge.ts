@@ -6,6 +6,7 @@ import type {
   ProjectileSpawnEvent,
   ServerHeroState,
   ServerTowerState,
+  ServerMinionState,
   ServerProjectileState,
 } from '@/network/GameMode'
 import type { EntityManager } from '@/scenes/EntityManager'
@@ -20,6 +21,10 @@ export interface NetworkBridgeCallbacks {
   onServerHeroUpdated?: (state: ServerHeroState) => void
   /** Server-authoritative: tower state updated */
   onServerTowerUpdated?: (state: ServerTowerState) => void
+  /** Server-authoritative: minion state updated */
+  onServerMinionUpdated?: (state: ServerMinionState) => void
+  /** Server-authoritative: minion removed from server */
+  onServerMinionRemoved?: (minionId: string) => void
   /** Server-authoritative: projectiles changed */
   onServerProjectilesUpdated?: (projectiles: readonly ServerProjectileState[]) => void
   /** Server-authoritative: combat event — attack occurred */
@@ -91,6 +96,14 @@ export class NetworkBridge {
 
     this.gameMode.onServerTowerUpdate((state) => {
       this.callbacks.onServerTowerUpdated?.(state)
+    })
+
+    this.gameMode.onServerMinionUpdate((state) => {
+      this.callbacks.onServerMinionUpdated?.(state)
+    })
+
+    this.gameMode.onServerMinionRemove((minionId) => {
+      this.callbacks.onServerMinionRemoved?.(minionId)
     })
 
     this.gameMode.onServerProjectileUpdate((projectiles) => {
