@@ -49,6 +49,14 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "HTTP (redirect to HTTPS)"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -86,6 +94,7 @@ resource "aws_lb" "game" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
+  idle_timeout       = 300
 }
 
 # --- ALB Target Group ---
@@ -124,6 +133,22 @@ resource "aws_lb_listener" "https" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.game.arn
+  }
+}
+
+# --- ALB HTTP → HTTPS Redirect ---
+resource "aws_lb_listener" "http_redirect" {
+  load_balancer_arn = aws_lb.game.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 
@@ -191,8 +216,9 @@ resource "aws_ecs_service" "game" {
   name            = "simoba-game-${var.environment}"
   cluster         = aws_ecs_cluster.game.id
   task_definition = aws_ecs_task_definition.game[0].arn
-  desired_count   = var.desired_count
-  launch_type     = "FARGATE"
+  desired_count                      = var.desired_count
+  launch_type                        = "FARGATE"
+  health_check_grace_period_seconds  = 60
 
   network_configuration {
     subnets          = var.public_subnet_ids

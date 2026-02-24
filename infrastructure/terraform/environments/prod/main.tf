@@ -48,6 +48,17 @@ module "vpc" {
   environment = "prod"
 }
 
+module "certificates" {
+  source = "../../modules/certificates"
+
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  hosted_zone_id = var.hosted_zone_id
+  domain_name    = var.domain_name
+}
+
 module "static_hosting" {
   source = "../../modules/static-hosting"
 
@@ -55,7 +66,7 @@ module "static_hosting" {
   environment       = "prod"
   enable_cloudfront = true
   domain_name       = var.domain_name
-  certificate_arn   = module.dns.global_certificate_arn
+  certificate_arn   = module.certificates.global_certificate_arn
 }
 
 module "game_server" {
@@ -65,20 +76,16 @@ module "game_server" {
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
   container_image   = "012502956603.dkr.ecr.ap-northeast-1.amazonaws.com/simoba-game-prod:de4e027e57eed347478b5ae755dfc105002a799d"
-  certificate_arn   = module.dns.regional_certificate_arn
+  certificate_arn   = module.certificates.regional_certificate_arn
 }
 
 module "dns" {
   source = "../../modules/dns"
 
-  providers = {
-    aws.us_east_1 = aws.us_east_1
-  }
-
-  hosted_zone_id                       = var.hosted_zone_id
-  domain_name                          = var.domain_name
+  hosted_zone_id                 = var.hosted_zone_id
+  domain_name                    = var.domain_name
   cloudfront_distribution_domain  = module.static_hosting.cloudfront_domain
   cloudfront_distribution_zone_id = module.static_hosting.cloudfront_hosted_zone_id
-  alb_dns_name                         = module.game_server.alb_dns_name
-  alb_zone_id                          = module.game_server.alb_zone_id
+  alb_dns_name                   = module.game_server.alb_dns_name
+  alb_zone_id                    = module.game_server.alb_zone_id
 }
