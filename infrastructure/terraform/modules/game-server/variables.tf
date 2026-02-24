@@ -59,3 +59,9 @@ variable "enable_deletion_protection" {
   type        = bool
   default     = true
 }
+
+variable "cors_origins" {
+  description = "List of allowed CORS origins for the game server"
+  type        = list(string)
+  default     = []
+}

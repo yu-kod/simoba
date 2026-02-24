@@ -182,10 +182,16 @@ resource "aws_ecs_task_definition" "game" {
       protocol      = "tcp"
     }]
 
-    environment = [{
-      name  = "PORT"
-      value = tostring(var.container_port)
-    }]
+    environment = [
+      {
+        name  = "PORT"
+        value = tostring(var.container_port)
+      },
+      {
+        name  = "CORS_ORIGINS"
+        value = join(",", var.cors_origins)
+      }
+    ]
 
     logConfiguration = {
       logDriver = "awslogs"

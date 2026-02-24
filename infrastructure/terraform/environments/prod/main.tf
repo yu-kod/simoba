@@ -77,6 +77,7 @@ module "game_server" {
   public_subnet_ids = module.vpc.public_subnet_ids
   container_image   = "012502956603.dkr.ecr.ap-northeast-1.amazonaws.com/simoba-game-prod:de4e027e57eed347478b5ae755dfc105002a799d"
   certificate_arn   = module.certificates.regional_certificate_arn
+  cors_origins      = ["https://${var.domain_name}"]
 }
 
 module "dns" {
