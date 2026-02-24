@@ -68,11 +68,11 @@
 
 ## 12. クライアントオンライン同期
 
-- [ ] 12.1 `GameScene` にサーバーミニオン state の受信・同期処理を追加（`handleServerMinionUpdate`）
-- [ ] 12.2 サーバーからの minion 追加/更新/削除をレンダラーと EntityManager に反映
+- [x] 12.1 `GameScene` にサーバーミニオン state の受信・同期処理を追加（`handleServerMinionUpdate`）
+- [x] 12.2 サーバーからの minion 追加/更新/削除をレンダラーと EntityManager に反映
 
 ## 13. テスト・仕上げ
 
-- [ ] 13.1 全ユニットテスト PASS を確認（`npm run test:unit`）
+- [x] 13.1 全ユニットテスト PASS を確認（`npm run test:unit`）
 - [ ] 13.2 E2E テスト: ミニオンスポーン・移動・戦闘の基本フロー確認（`npm run test:e2e`）
 - [ ] 13.3 レベルアップシステムの GitHub Issue を作成（XP付与のみ実装、レベルアップは別 Issue）
