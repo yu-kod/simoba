@@ -76,9 +76,15 @@ export class GameRoom extends Room<GameRoomState> {
 
   onJoin(client: Client, options?: Record<string, unknown>): void {
     const hero = new HeroSchema()
-    const isBlue = this.state.heroes.size === 0
-    const spawn = isBlue ? BLUE_SPAWN : RED_SPAWN
-    const team = isBlue ? 'blue' : 'red'
+    // Assign to the team with fewer players (blue breaks ties)
+    let blueCount = 0
+    let redCount = 0
+    this.state.heroes.forEach((h) => {
+      if (h.team === 'blue') blueCount++
+      else redCount++
+    })
+    const team = blueCount <= redCount ? 'blue' : 'red'
+    const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
     const heroType: HeroType = isValidHeroType(options?.heroType)
       ? options.heroType as HeroType
       : 'BLADE'
