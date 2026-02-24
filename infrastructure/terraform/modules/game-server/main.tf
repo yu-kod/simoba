@@ -93,8 +93,9 @@ resource "aws_lb" "game" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = var.public_subnet_ids
-  idle_timeout       = 300
+  subnets                    = var.public_subnet_ids
+  idle_timeout               = 300
+  enable_deletion_protection = var.enable_deletion_protection
 }
 
 # --- ALB Target Group ---
@@ -201,6 +202,7 @@ data "aws_region" "current" {}
 
 # --- ECS Service Linked Role ---
 resource "aws_iam_service_linked_role" "ecs" {
+  count            = var.create_ecs_service_linked_role ? 1 : 0
   aws_service_name = "ecs.amazonaws.com"
 
   # Service-linked roles restrict tagging; ignore provider default_tags
@@ -233,4 +235,22 @@ resource "aws_ecs_service" "game" {
   }
 
   depends_on = [aws_iam_service_linked_role.ecs]
+}
+
+# --- ECR Lifecycle Policy ---
+resource "aws_ecr_lifecycle_policy" "game_server" {
+  repository = aws_ecr_repository.game_server.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 10 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
 }

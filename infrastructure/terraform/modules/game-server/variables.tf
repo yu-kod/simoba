@@ -53,3 +53,15 @@ variable "certificate_arn" {
   description = "ACM certificate ARN for ALB HTTPS listener"
   type        = string
 }
+
+variable "enable_deletion_protection" {
+  description = "Enable ALB deletion protection to prevent accidental destruction"
+  type        = bool
+  default     = true
+}
+
+variable "create_ecs_service_linked_role" {
+  description = "Whether to create the ECS service-linked role. Set to false if it already exists in the account."
+  type        = bool
+  default     = false
+}
