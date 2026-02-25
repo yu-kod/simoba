@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { GameRoomState } from '../schema/GameRoomState.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { HeroSchema } from '../schema/HeroSchema.js'
+import { checkTowerDestroyed, endMatch } from '../game/ServerMatchSystem.js'
 import { MAX_PLAYERS, BLUE_SPAWN, RED_SPAWN } from '../rooms/GameRoom.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
@@ -32,38 +33,13 @@ function createTower(id: string, team: string, pos: { x: number; y: number }): T
   return tower
 }
 
-/**
- * Create a mock GameRoom with direct access to endMatch and checkTowerDestroyed.
- * Uses the real GameRoom class methods via a test subclass.
- */
-function createTestRoom() {
+function createPlayingState(): GameRoomState {
   const state = new GameRoomState()
-  // Simulate a playing match
   state.matchPhase = 'playing'
   state.winnerTeam = ''
-
-  // Add towers
   state.towers.set('tower-blue', createTower('tower-blue', 'blue', TOWER_BLUE_POS))
   state.towers.set('tower-red', createTower('tower-red', 'red', TOWER_RED_POS))
-
-  // Create a minimal room-like object that mirrors GameRoom's endMatch logic
-  const room = {
-    state,
-    endMatch(winnerTeam: string): void {
-      if (state.matchPhase === 'finished') return
-      state.matchPhase = 'finished'
-      state.winnerTeam = winnerTeam
-    },
-    checkTowerDestroyed(): void {
-      state.towers.forEach((tower) => {
-        if (tower.dead) {
-          const winner = tower.team === 'blue' ? 'red' : 'blue'
-          this.endMatch(winner)
-        }
-      })
-    },
-  }
-  return room
+  return state
 }
 
 describe('matchPhase state management', () => {
@@ -82,58 +58,56 @@ describe('matchPhase state management', () => {
 
 describe('endMatch', () => {
   it('should set matchPhase to finished and winnerTeam', () => {
-    const room = createTestRoom()
-    room.endMatch('blue')
-    expect(room.state.matchPhase).toBe('finished')
-    expect(room.state.winnerTeam).toBe('blue')
+    const state = createPlayingState()
+    endMatch(state, 'blue')
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('blue')
   })
 
   it('should be idempotent — second call does not change winnerTeam', () => {
-    const room = createTestRoom()
-    room.endMatch('blue')
-    room.endMatch('red')
-    expect(room.state.matchPhase).toBe('finished')
-    expect(room.state.winnerTeam).toBe('blue')
+    const state = createPlayingState()
+    endMatch(state, 'blue')
+    endMatch(state, 'red')
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('blue')
   })
 })
 
 describe('checkTowerDestroyed', () => {
   it('should end match with red as winner when blue tower is destroyed', () => {
-    const room = createTestRoom()
-    const blueTower = room.state.towers.get('tower-blue')!
-    blueTower.dead = true
+    const state = createPlayingState()
+    state.towers.get('tower-blue')!.dead = true
 
-    room.checkTowerDestroyed()
-    expect(room.state.matchPhase).toBe('finished')
-    expect(room.state.winnerTeam).toBe('red')
+    checkTowerDestroyed(state.towers, (winner) => endMatch(state, winner))
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('red')
   })
 
   it('should end match with blue as winner when red tower is destroyed', () => {
-    const room = createTestRoom()
-    const redTower = room.state.towers.get('tower-red')!
-    redTower.dead = true
+    const state = createPlayingState()
+    state.towers.get('tower-red')!.dead = true
 
-    room.checkTowerDestroyed()
-    expect(room.state.matchPhase).toBe('finished')
-    expect(room.state.winnerTeam).toBe('blue')
+    checkTowerDestroyed(state.towers, (winner) => endMatch(state, winner))
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('blue')
   })
 
   it('should keep playing when both towers are alive', () => {
-    const room = createTestRoom()
-    room.checkTowerDestroyed()
-    expect(room.state.matchPhase).toBe('playing')
-    expect(room.state.winnerTeam).toBe('')
+    const state = createPlayingState()
+    checkTowerDestroyed(state.towers, (winner) => endMatch(state, winner))
+    expect(state.matchPhase).toBe('playing')
+    expect(state.winnerTeam).toBe('')
   })
 
   it('should not change winner if both towers are destroyed simultaneously', () => {
-    const room = createTestRoom()
-    room.state.towers.get('tower-blue')!.dead = true
-    room.state.towers.get('tower-red')!.dead = true
+    const state = createPlayingState()
+    state.towers.get('tower-blue')!.dead = true
+    state.towers.get('tower-red')!.dead = true
 
-    room.checkTowerDestroyed()
-    expect(room.state.matchPhase).toBe('finished')
+    checkTowerDestroyed(state.towers, (winner) => endMatch(state, winner))
+    expect(state.matchPhase).toBe('finished')
     // First tower checked wins — idempotent endMatch prevents overwrite
-    expect(['blue', 'red']).toContain(room.state.winnerTeam)
+    expect(['blue', 'red']).toContain(state.winnerTeam)
   })
 })
 

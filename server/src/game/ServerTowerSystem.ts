@@ -30,7 +30,7 @@ function selectNearestEnemy(
   // Check minions first (higher priority)
   if (minions) {
     minions.forEach((m, minionId) => {
-      if (m.dead || m.hp <= 0) return
+      if (m.dead) return
       if (m.team === tower.team) return
 
       const dx = m.x - tower.x
@@ -63,7 +63,7 @@ function selectNearestEnemy(
 
   // Then check heroes
   heroes.forEach((hero, heroId) => {
-    if (hero.dead || hero.hp <= 0) return
+    if (hero.dead) return
     if (hero.team === tower.team) return
 
     const dx = hero.x - tower.x

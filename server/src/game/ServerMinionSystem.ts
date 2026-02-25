@@ -128,17 +128,17 @@ function collectEnemyTargets(
   const targets: TargetCandidate[] = []
 
   minions.forEach((m, id) => {
-    if ((m.dead || m.hp <= 0) || m.team === minion.team) return
+    if (m.dead || m.team === minion.team) return
     targets.push({ id, x: m.x, y: m.y, radius: m.radius, entityType: 'minion' })
   })
 
   towers.forEach((t, id) => {
-    if ((t.dead || t.hp <= 0) || t.team === minion.team) return
+    if (t.dead || t.team === minion.team) return
     targets.push({ id, x: t.x, y: t.y, radius: t.radius, entityType: 'tower' })
   })
 
   heroes.forEach((h, id) => {
-    if ((h.dead || h.hp <= 0) || h.team === minion.team) return
+    if (h.dead || h.team === minion.team) return
     targets.push({ id, x: h.x, y: h.y, radius: h.radius, entityType: 'hero' })
   })
 

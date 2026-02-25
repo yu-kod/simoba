@@ -13,6 +13,7 @@ import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerComba
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
+import { checkTowerDestroyed, endMatch } from '../game/ServerMatchSystem.js'
 import { MinionSchema } from '../schema/MinionSchema.js'
 import {
   spawnMinionWave,
@@ -161,27 +162,11 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   /**
-   * Terminate the match with a winner. This is a generic entry point for match
-   * termination — any trigger (tower destruction, player disconnect, surrender,
-   * etc.) should call this method rather than setting state directly.
+   * Terminate the match with a winner. Delegates to the pure function
+   * in ServerMatchSystem for testability.
    */
   endMatch(winnerTeam: string): void {
-    if (this.state.matchPhase === 'finished') return
-    this.state.matchPhase = 'finished'
-    this.state.winnerTeam = winnerTeam
-  }
-
-  /**
-   * Check if any tower has been destroyed and trigger match end if so.
-   * Separated from endMatch to keep trigger detection and termination logic decoupled.
-   */
-  private checkTowerDestroyed(): void {
-    this.state.towers.forEach((tower) => {
-      if (tower.dead) {
-        const winner = tower.team === 'blue' ? 'red' : 'blue'
-        this.endMatch(winner)
-      }
-    })
+    endMatch(this.state, winnerTeam)
   }
 
   private gameUpdate(deltaTime: number): void {
@@ -272,7 +257,7 @@ export class GameRoom extends Room<GameRoomState> {
     events.push(...deathEvents)
 
     // 7. Check win condition (tower destroyed)
-    this.checkTowerDestroyed()
+    checkTowerDestroyed(towers, (winner) => this.endMatch(winner))
 
     // 8. Broadcast combat events to all clients
     for (const msg of events) {
