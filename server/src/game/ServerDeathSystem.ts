@@ -22,9 +22,9 @@ export function processDeathAndRespawn(
   const events: CombatEventMessage[] = []
 
   heroes.forEach((hero, sessionId) => {
-    // Death detection
-    if (!hero.dead && hero.hp <= 0) {
-      hero.dead = true
+    // Death detection — applyDamage() already sets dead=true when hp reaches 0,
+    // so we detect newly dead heroes by dead=true with no respawn timer yet.
+    if (hero.dead && hero.respawnTimer <= 0 && hero.hp <= 0) {
       hero.respawnTimer = DEFAULT_RESPAWN_TIME
       hero.attackTargetId = ''
       hero.attackCooldown = 0

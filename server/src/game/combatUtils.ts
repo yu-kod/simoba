@@ -4,8 +4,9 @@ import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 
 /**
- * Apply damage to a hero, tower, or minion by ID (mutable schema version).
- * Looks up the target in heroes first, then towers, then minions.
+ * Apply damage to a hero, tower, or minion by ID.
+ * Delegates to CombatEntitySchema.applyDamage() which handles
+ * HP clamping and automatic dead flag transition.
  */
 export function applyDamageToTarget(
   targetId: string,
@@ -16,18 +17,18 @@ export function applyDamageToTarget(
 ): void {
   const hero = heroes.get(targetId)
   if (hero) {
-    hero.hp = Math.max(0, hero.hp - damage)
+    hero.applyDamage(damage)
     return
   }
   const tower = towers.get(targetId)
   if (tower) {
-    tower.hp = Math.max(0, tower.hp - damage)
+    tower.applyDamage(damage)
     return
   }
   if (minions) {
     const minion = minions.get(targetId)
     if (minion) {
-      minion.hp = Math.max(0, minion.hp - damage)
+      minion.applyDamage(damage)
     }
   }
 }

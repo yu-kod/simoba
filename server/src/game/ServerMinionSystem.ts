@@ -356,17 +356,17 @@ function applyDamageById(
 ): void {
   const hero = heroes.get(targetId)
   if (hero) {
-    hero.hp = Math.max(0, hero.hp - damage)
+    hero.applyDamage(damage)
     return
   }
   const tower = towers.get(targetId)
   if (tower) {
-    tower.hp = Math.max(0, tower.hp - damage)
+    tower.applyDamage(damage)
     return
   }
   const minion = minions.get(targetId)
   if (minion) {
-    minion.hp = Math.max(0, minion.hp - damage)
+    minion.applyDamage(damage)
   }
 }
 
@@ -440,10 +440,10 @@ export function processMinionDeaths(
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
 
-  // Mark dead
+  // Process newly dead minions — applyDamage() already sets dead=true,
+  // so we detect "newly dead" by dead=true with no cleanup timer yet.
   minions.forEach((minion) => {
-    if (!minion.dead && minion.hp <= 0) {
-      minion.dead = true
+    if (minion.dead && !ctx.deathTimers.has(minion.id)) {
       minion.attackTargetId = ''
 
       // Distribute XP to nearby enemy heroes

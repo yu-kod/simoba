@@ -181,7 +181,7 @@ export class LobbyScene extends Phaser.Scene {
     // NOT a function that returns an unsubscribe callback.
     const cb = (state: unknown): void => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((state as any).gameStarted === true) {
+      if ((state as any).matchPhase === 'playing') {
         room.onStateChange.remove(cb)
         this.onGameStart()
       }

@@ -64,6 +64,7 @@ export class GameRoom extends Room<GameRoomState> {
 
     // Input message handler (replaces updatePosition, damage, projectileSpawn)
     this.onMessage('input', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
       if (!isValidInputMessage(message)) return
       this.playerInputs.set(client.sessionId, message)
     })
@@ -112,7 +113,7 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.heroes.set(client.sessionId, hero)
 
     if (this.state.heroes.size === this.maxClients) {
-      this.state.gameStarted = true
+      this.state.matchPhase = 'playing'
       this.setupTowers()
     }
   }
@@ -159,8 +160,32 @@ export class GameRoom extends Room<GameRoomState> {
     return tower
   }
 
+  /**
+   * Terminate the match with a winner. This is a generic entry point for match
+   * termination — any trigger (tower destruction, player disconnect, surrender,
+   * etc.) should call this method rather than setting state directly.
+   */
+  endMatch(winnerTeam: string): void {
+    if (this.state.matchPhase === 'finished') return
+    this.state.matchPhase = 'finished'
+    this.state.winnerTeam = winnerTeam
+  }
+
+  /**
+   * Check if any tower has been destroyed and trigger match end if so.
+   * Separated from endMatch to keep trigger detection and termination logic decoupled.
+   */
+  private checkTowerDestroyed(): void {
+    this.state.towers.forEach((tower) => {
+      if (tower.dead) {
+        const winner = tower.team === 'blue' ? 'red' : 'blue'
+        this.endMatch(winner)
+      }
+    })
+  }
+
   private gameUpdate(deltaTime: number): void {
-    if (!this.state.gameStarted) return
+    if (this.state.matchPhase !== 'playing') return
 
     // Update match time
     this.state.matchTime += deltaTime
@@ -246,7 +271,10 @@ export class GameRoom extends Room<GameRoomState> {
     const deathEvents = processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
     events.push(...deathEvents)
 
-    // 7. Broadcast combat events to all clients
+    // 7. Check win condition (tower destroyed)
+    this.checkTowerDestroyed()
+
+    // 8. Broadcast combat events to all clients
     for (const msg of events) {
       this.broadcast(msg.kind, msg.event)
     }

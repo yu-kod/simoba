@@ -134,6 +134,9 @@ export interface GameMode {
   /** Register callback for server death/respawn event (server-authoritative) */
   onDeathEvent(callback: (event: DeathEvent) => void): void
 
+  /** Register callback for match end (matchPhase becomes 'finished') */
+  onMatchEnd(callback: (winnerTeam: string) => void): void
+
   /** Whether this mode is server-authoritative */
   readonly isServerAuthoritative: boolean
 

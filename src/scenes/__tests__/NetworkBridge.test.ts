@@ -39,6 +39,7 @@ function createMockGameMode(): GameMode & {
     onAttackEvent: vi.fn(),
     onDamageEvent: vi.fn(),
     onDeathEvent: vi.fn(),
+    onMatchEnd: vi.fn(),
     dispose: vi.fn(),
     _triggerJoin: (s) => joinCb?.(s),
     _triggerLeave: (id) => leaveCb?.(id),
