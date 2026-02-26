@@ -151,7 +151,9 @@ export class GameScene extends Phaser.Scene {
 
     // E2E test API (dev only)
     if (import.meta.env.DEV) {
-      registerTestApi(this.entityManager)
+      registerTestApi(this.entityManager, {
+        getProjectileCount: () => this.serverProjectiles.length,
+      })
     }
 
     // Network

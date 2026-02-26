@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { type TestWindow, startOfflineGame, rightClickOnEnemy } from './helpers'
+import { type TestWindow, startSoloGame, rightClickOnEnemy } from './helpers'
 
 test.describe('Melee Attack', () => {
   test.beforeEach(async ({ page }) => {
-    await startOfflineGame(page)
+    await startSoloGame(page)
   })
 
   test('should display an enemy hero on the map', async ({ page }) => {

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { type TestWindow, startOfflineGame, rightClickOnEnemy } from './helpers'
+import { type TestWindow, startSoloGame, rightClickOnEnemy } from './helpers'
 
 test.describe('Projectile Attack', () => {
   test.beforeEach(async ({ page }) => {
-    await startOfflineGame(page, 'BOLT')
+    await startSoloGame(page, 'BOLT')
   })
 
   test('should reduce enemy HP when BOLT attacks with projectile', async ({ page }) => {
@@ -15,17 +15,16 @@ test.describe('Projectile Attack', () => {
       () => (window as unknown as TestWindow).__test__.getEnemyHp().current
     )
 
-    // BOLT attackRange=300, initial distance=200 → already in range
-    // Right-click on enemy using computed screen position
+    // Right-click on enemy to initiate attack
     const canvas = page.locator('#game-container canvas')
     await rightClickOnEnemy(page, canvas)
 
-    // Wait for projectile to fly and hit
+    // Wait for projectile to fly and hit (server-authoritative, needs more time)
     await page.waitForFunction(
       (initial) =>
         (window as unknown as TestWindow).__test__.getEnemyHp().current < initial,
       initialHp,
-      { timeout: 5000 }
+      { timeout: 10000 }
     )
 
     const finalHp = await page.evaluate(
