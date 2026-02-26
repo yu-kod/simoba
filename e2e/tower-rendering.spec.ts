@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { startOfflineGame, type TestWindow } from './helpers'
+import { startSoloGame, type TestWindow } from './helpers'
 
 test.describe('Tower Rendering', () => {
   test.beforeEach(async ({ page }) => {
-    await startOfflineGame(page)
+    await startSoloGame(page)
     await page.waitForTimeout(500)
   })
 

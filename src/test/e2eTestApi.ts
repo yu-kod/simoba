@@ -42,6 +42,7 @@ function getEnemyHero(entityManager: EntityManager): HeroState {
 
 export function registerTestApi(
   entityManager: EntityManager,
+  options?: { getProjectileCount?: () => number },
 ): void {
   window.__test__ = {
     getHeroType: () => getLocalHero(entityManager).type,
@@ -63,7 +64,7 @@ export function registerTestApi(
       return { x, y }
     },
     getEnemyDead: () => getEnemyHero(entityManager).dead,
-    getProjectileCount: () => 0, // Projectiles are server-managed; E2E tests should check visually
+    getProjectileCount: () => options?.getProjectileCount?.() ?? 0,
     getHeroAttackTarget: () => getLocalHero(entityManager).attackTargetId,
     getTowers: () =>
       entityManager.allEntities

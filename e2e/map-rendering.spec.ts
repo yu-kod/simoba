@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { startOfflineGame } from './helpers'
+import { startSoloGame } from './helpers'
 
 test.describe('Map Rendering', () => {
   test.beforeEach(async ({ page }) => {
-    await startOfflineGame(page)
+    await startSoloGame(page)
     // Allow a frame for rendering to complete
     await page.waitForTimeout(500)
   })

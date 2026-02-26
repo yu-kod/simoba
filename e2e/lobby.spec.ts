@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { waitForScene, startOfflineGame } from './helpers'
+import { waitForScene, startSoloGame } from './helpers'
 
 test.describe('Lobby', () => {
   test('should display LobbyScene on game load', async ({ page }) => {
@@ -18,8 +18,8 @@ test.describe('Lobby', () => {
     expect(isLobbyActive).toBe(true)
   })
 
-  test('should transition to GameScene when "Offline Play" is clicked', async ({ page }) => {
-    await startOfflineGame(page)
+  test('should transition to GameScene when "Solo Play" is clicked', async ({ page }) => {
+    await startSoloGame(page)
 
     const isGameActive = await page.evaluate(() => {
       const game = (window as unknown as {

@@ -33,7 +33,8 @@ const WORLD_WIDTH = 3200
 const WORLD_HEIGHT = 720
 
 // Lobby button positions (must match LobbyScene layout)
-const OFFLINE_PLAY_BUTTON = { x: 640, y: 460 }
+// Online Battle: y=370, Solo Play: y=440
+const SOLO_PLAY_BUTTON = { x: 640, y: 440 }
 
 // Hero selection button positions (y=300, horizontal row centered at GAME_WIDTH/2)
 // HERO_BUTTON_WIDTH=96, HERO_BUTTON_GAP=12, 3 buttons
@@ -58,7 +59,7 @@ export async function waitForScene(page: Page, sceneKey: string): Promise<void> 
       return game?.scene?.isActive(key)
     },
     sceneKey,
-    { timeout: 10000 }
+    { timeout: 15000 }
   )
 }
 
@@ -68,14 +69,14 @@ export async function waitForScene(page: Page, sceneKey: string): Promise<void> 
 export async function waitForTestApi(page: Page): Promise<void> {
   await page.waitForFunction(
     () => (window as unknown as TestWindow).__test__ !== undefined,
-    { timeout: 10000 }
+    { timeout: 15000 }
   )
   await page.waitForTimeout(500)
 }
 
 /**
  * Click a hero selection button in the lobby.
- * Must be called after LobbyScene is active but before clicking "Offline Play".
+ * Must be called after LobbyScene is active but before clicking "Solo Play".
  */
 export async function selectHeroInLobby(page: Page, heroType: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
   const canvas = page.locator('#game-container canvas')
@@ -93,11 +94,13 @@ export async function selectHeroInLobby(page: Page, heroType: 'BLADE' | 'BOLT' |
 }
 
 /**
- * Navigate to the page, click "Offline Play" in the lobby, and wait for GameScene.
+ * Navigate to the page, click "Solo Play" in the lobby, and wait for GameScene.
  * Use this as the standard entry point for E2E tests that need GameScene.
  * Pass heroType to select a specific hero before starting (default: BLADE).
+ *
+ * Requires the Colyseus server to be running (started by `npm run dev`).
  */
-export async function startOfflineGame(page: Page, heroType?: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
+export async function startSoloGame(page: Page, heroType?: 'BLADE' | 'BOLT' | 'AURA'): Promise<void> {
   await page.goto('/')
 
   const canvas = page.locator('#game-container canvas')
@@ -115,8 +118,8 @@ export async function startOfflineGame(page: Page, heroType?: 'BLADE' | 'BOLT' |
   const scaleX = bounds.width / GAME_WIDTH
   const scaleY = bounds.height / GAME_HEIGHT
   await page.mouse.click(
-    bounds.x + OFFLINE_PLAY_BUTTON.x * scaleX,
-    bounds.y + OFFLINE_PLAY_BUTTON.y * scaleY
+    bounds.x + SOLO_PLAY_BUTTON.x * scaleX,
+    bounds.y + SOLO_PLAY_BUTTON.y * scaleY
   )
 
   await waitForTestApi(page)

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { type TestWindow, startOfflineGame } from './helpers'
+import { type TestWindow, startSoloGame } from './helpers'
 
 test.describe('Hero Selection', () => {
   test('should start as BLADE by default', async ({ page }) => {
-    await startOfflineGame(page)
+    await startSoloGame(page)
 
     const heroType = await page.evaluate(
       () => (window as unknown as TestWindow).__test__.getHeroType()
@@ -12,7 +12,7 @@ test.describe('Hero Selection', () => {
   })
 
   test('should start as BOLT when selected in lobby', async ({ page }) => {
-    await startOfflineGame(page, 'BOLT')
+    await startSoloGame(page, 'BOLT')
 
     const state = await page.evaluate(() => {
       const api = (window as unknown as TestWindow).__test__
@@ -24,7 +24,7 @@ test.describe('Hero Selection', () => {
   })
 
   test('should start as AURA when selected in lobby', async ({ page }) => {
-    await startOfflineGame(page, 'AURA')
+    await startSoloGame(page, 'AURA')
 
     const state = await page.evaluate(() => {
       const api = (window as unknown as TestWindow).__test__
