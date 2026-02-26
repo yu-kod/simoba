@@ -91,6 +91,8 @@ export class GameScene extends Phaser.Scene {
   // Online mode: entity interpolation
   private interpolationBuffers = new Map<string, InterpolationBuffer>()
   private projectileInterpolationBuffers = new Map<string, InterpolationBuffer>()
+  // Projectiles removed by server but still rendering (interpolation catch-up)
+  private retiredProjectiles = new Map<string, { state: ServerProjectileState; buffer: InterpolationBuffer; retiredAt: number }>()
 
   constructor() {
     super({ key: 'GameScene' })
@@ -209,9 +211,7 @@ export class GameScene extends Phaser.Scene {
         this.handleServerMinionRemove(minionId)
       },
       onServerProjectilesUpdated: (projectiles) => {
-        this.serverProjectiles = projectiles
         if (this.networkBridge.isServerAuthoritative) {
-          // Track active projectile IDs to clean up removed ones
           const activeIds = new Set<string>()
           for (const p of projectiles) {
             activeIds.add(p.id)
@@ -222,13 +222,25 @@ export class GameScene extends Phaser.Scene {
               x: p.x, y: p.y, facing: 0,
             })
           }
-          // Remove buffers for destroyed projectiles
+          // Move destroyed projectiles to retired list (keeps rendering for catch-up)
+          // Use previous serverProjectiles to preserve team/radius info
+          const prevById = new Map(this.serverProjectiles.map((p) => [p.id, p]))
           for (const id of this.projectileInterpolationBuffers.keys()) {
             if (!activeIds.has(id)) {
+              const buffer = this.projectileInterpolationBuffers.get(id)!
+              const prev = prevById.get(id)
+              if (prev) {
+                this.retiredProjectiles.set(id, {
+                  state: prev,
+                  buffer,
+                  retiredAt: performance.now(),
+                })
+              }
               this.projectileInterpolationBuffers.delete(id)
             }
           }
         }
+        this.serverProjectiles = projectiles
       },
       // Server-authoritative combat events
       onAttackEvent: (event) => {
@@ -330,13 +342,26 @@ export class GameScene extends Phaser.Scene {
     // --- Projectile rendering ---
     if (isOnline) {
       // Interpolate projectile positions for smooth rendering
-      const interpolatedProjectiles = this.serverProjectiles.map((p) => {
+      const interpolatedProjectiles: ServerProjectileState[] = this.serverProjectiles.map((p) => {
         const buffer = this.projectileInterpolationBuffers.get(p.id)
         if (!buffer) return p
         const interp = buffer.getInterpolatedPosition()
         if (!interp) return p
         return { ...p, x: interp.x, y: interp.y }
       })
+      // Include retired projectiles (catch-up rendering after server removal)
+      const RETIRED_TTL = 150 // ms — keep rendering after server removal
+      const now = performance.now()
+      for (const [id, retired] of this.retiredProjectiles) {
+        if (now - retired.retiredAt > RETIRED_TTL) {
+          this.retiredProjectiles.delete(id)
+          continue
+        }
+        const interp = retired.buffer.getInterpolatedPosition()
+        if (interp) {
+          interpolatedProjectiles.push({ ...retired.state, x: interp.x, y: interp.y })
+        }
+      }
       this.projectileRenderer.drawServer(interpolatedProjectiles)
     } else {
       this.projectileRenderer.draw(this.combatManager.projectiles)
