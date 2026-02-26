@@ -468,7 +468,7 @@ export function processMinionDeaths(
       events.push({
         kind: 'death',
         event: {
-          heroId: minion.id,
+          entityId: minion.id,
           type: 'death',
           position: { x: minion.x, y: minion.y },
         },
