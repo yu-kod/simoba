@@ -73,6 +73,8 @@ jobs:
 
       - run: npm ci
 
+      - run: cd server && npm ci
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
