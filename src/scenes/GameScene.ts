@@ -82,6 +82,9 @@ export class GameScene extends Phaser.Scene {
   private minionDeathTimers = new Map<string, number>()
   private minionSpawnCtx = createMinionSpawnContext()
 
+  // Match end state
+  private matchEnded = false
+
   // Online mode: input sending (no client-side prediction)
   private inputBuffer: InputBuffer | null = null
   private serverProjectiles: readonly ServerProjectileState[] = []
@@ -243,6 +246,11 @@ export class GameScene extends Phaser.Scene {
     })
     this.networkBridge.setupCallbacks()
 
+    // Match end callback
+    this.gameMode.onMatchEnd((winnerTeam) => {
+      this.showMatchEndOverlay(winnerTeam)
+    })
+
     this.gameMode.onSceneCreate()
       .catch(() => {
         this.gameMode.dispose()
@@ -251,6 +259,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.matchEnded) return
+
     const deltaSeconds = delta / 1000
     const localHeroId = this.entityManager.localHeroId
     const localHero = this.entityManager.getEntity(localHeroId) as HeroState
@@ -899,6 +909,65 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.respawnText.setVisible(false)
     }
+  }
+
+  /**
+   * Show the VICTORY / DEFEAT overlay with a "Back to Lobby" button.
+   * Freezes game input and renders a semi-transparent overlay on top of the game.
+   */
+  private showMatchEndOverlay(winnerTeam: string): void {
+    if (this.matchEnded) return
+    this.matchEnded = true
+
+    const isVictory = winnerTeam === this.localTeam
+    const resultText = isVictory ? 'VICTORY' : 'DEFEAT'
+    const resultColor = isVictory ? '#FFD700' : '#FF4444'
+
+    // Semi-transparent overlay (fixed to camera)
+    const overlay = this.add.graphics()
+    overlay.setScrollFactor(0)
+    overlay.setDepth(2000)
+    overlay.fillStyle(0x000000, 0.6)
+    overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+
+    // Result text
+    const text = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, resultText, {
+      fontSize: '72px',
+      color: resultColor,
+      stroke: '#000000',
+      strokeThickness: 6,
+      fontStyle: 'bold',
+      align: 'center',
+    })
+    text.setOrigin(0.5)
+    text.setScrollFactor(0)
+    text.setDepth(2001)
+
+    // "Back to Lobby" button
+    const buttonText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'Back to Lobby', {
+      fontSize: '32px',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center',
+      backgroundColor: '#333333',
+      padding: { x: 24, y: 12 },
+    })
+    buttonText.setOrigin(0.5)
+    buttonText.setScrollFactor(0)
+    buttonText.setDepth(2001)
+    buttonText.setInteractive({ useHandCursor: true })
+
+    buttonText.on('pointerover', () => {
+      buttonText.setStyle({ backgroundColor: '#555555' })
+    })
+    buttonText.on('pointerout', () => {
+      buttonText.setStyle({ backgroundColor: '#333333' })
+    })
+    buttonText.on('pointerdown', () => {
+      this.gameMode.dispose()
+      this.scene.start('LobbyScene')
+    })
   }
 
   private syncEntityRenderers(): void {

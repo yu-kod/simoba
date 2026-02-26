@@ -1,17 +1,11 @@
-import { Schema, type } from '@colyseus/schema'
+import { type } from '@colyseus/schema'
+import { CombatEntitySchema } from './CombatEntitySchema.js'
 
 /**
  * Colyseus state schema for a tower entity.
+ * Inherits id, x, y, hp, maxHp, dead, team, radius, applyDamage() from CombatEntitySchema.
  */
-export class TowerSchema extends Schema {
-  @type('string') id: string = ''
-  @type('float32') x: number = 0
-  @type('float32') y: number = 0
-  @type('int16') hp: number = 0
-  @type('int16') maxHp: number = 0
-  @type('boolean') dead: boolean = false
-  @type('string') team: string = 'blue'
-  @type('float32') radius: number = 0
+export class TowerSchema extends CombatEntitySchema {
   @type('float32') attackCooldown: number = 0
   @type('string') attackTargetId: string = ''
   @type('int16') attackDamage: number = 0

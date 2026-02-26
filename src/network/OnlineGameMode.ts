@@ -45,6 +45,9 @@ export class OnlineGameMode implements GameMode {
   private damageEventCallbacks: ((event: ServerDamageEvent) => void)[] = []
   private deathEventCallbacks: ((event: DeathEvent) => void)[] = []
 
+  // Match lifecycle callbacks
+  private matchEndCallbacks: ((winnerTeam: string) => void)[] = []
+
   // Legacy client-authoritative callbacks (kept for interface compat)
   private remoteUpdateCallbacks: ((state: RemotePlayerState) => void)[] = []
   private remoteJoinCallbacks: ((state: RemotePlayerState) => void)[] = []
@@ -98,6 +101,14 @@ export class OnlineGameMode implements GameMode {
     })
     this.room.onMessage('death', (event: DeathEvent) => {
       for (const cb of this.deathEventCallbacks) cb(event)
+    })
+
+    // --- Match phase listener ---
+    $(this.room.state).listen('matchPhase', (value: unknown) => {
+      if (value === 'finished') {
+        const winnerTeam = (this.room?.state as SchemaInstance).winnerTeam as string
+        for (const cb of this.matchEndCallbacks) cb(winnerTeam)
+      }
     })
 
     // --- Server-authoritative hero sync ---
@@ -370,6 +381,10 @@ export class OnlineGameMode implements GameMode {
     this.deathEventCallbacks = [...this.deathEventCallbacks, callback]
   }
 
+  onMatchEnd(callback: (winnerTeam: string) => void): void {
+    this.matchEndCallbacks = [...this.matchEndCallbacks, callback]
+  }
+
   dispose(): void {
     if (this.networkClient) {
       this.networkClient.disconnect()
@@ -389,5 +404,6 @@ export class OnlineGameMode implements GameMode {
     this.attackEventCallbacks = []
     this.damageEventCallbacks = []
     this.deathEventCallbacks = []
+    this.matchEndCallbacks = []
   }
 }

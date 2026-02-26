@@ -21,8 +21,11 @@ export class GameRoomState extends Schema {
   @type({ map: ProjectileSchema })
   projectiles = new MapSchema<ProjectileSchema>()
 
-  @type('boolean')
-  gameStarted = false
+  @type('string')
+  matchPhase: 'waiting' | 'playing' | 'finished' = 'waiting'
+
+  @type('string')
+  winnerTeam: string = ''
 
   @type('float32')
   matchTime = 0

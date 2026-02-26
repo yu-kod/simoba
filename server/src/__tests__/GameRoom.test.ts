@@ -100,7 +100,7 @@ describe('Team assignment pattern', () => {
   })
 })
 
-describe('gameStart state flag logic', () => {
+describe('matchPhase state flag logic', () => {
   function createMockRoom() {
     const state = new GameRoomState()
     const broadcasts: { type: string }[] = []
@@ -112,15 +112,21 @@ describe('gameStart state flag logic', () => {
       },
       onJoin(client: { sessionId: string }, options?: Record<string, unknown>) {
         const hero = new HeroSchema()
-        const isBlue = state.heroes.size === 0
-        const spawn = isBlue ? BLUE_SPAWN : RED_SPAWN
+        let blueCount = 0
+        let redCount = 0
+        state.heroes.forEach((h) => {
+          if (h.team === 'blue') blueCount++
+          else redCount++
+        })
+        const team = blueCount <= redCount ? 'blue' : 'red'
+        const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
         const heroType: HeroType = (typeof options?.heroType === 'string' && options.heroType in HERO_DEFINITIONS)
           ? options.heroType as HeroType
           : 'BLADE'
         const def = HERO_DEFINITIONS[heroType]
         hero.x = spawn.x
         hero.y = spawn.y
-        hero.team = isBlue ? 'blue' : 'red'
+        hero.team = team
         hero.heroType = heroType
         hero.hp = def.base.maxHp
         hero.maxHp = def.base.maxHp
@@ -128,26 +134,26 @@ describe('gameStart state flag logic', () => {
         hero.attackDamage = def.base.attackDamage
         state.heroes.set(client.sessionId, hero)
         if (state.heroes.size === room.maxClients) {
-          state.gameStarted = true
+          state.matchPhase = 'playing'
         }
       },
     }
     return { room, broadcasts }
   }
 
-  it('should set gameStarted to true when heroes reach maxClients', () => {
+  it('should set matchPhase to playing when heroes reach maxClients', () => {
     const { room } = createMockRoom()
     room.onJoin({ sessionId: 'session-1' })
-    expect(room.state.gameStarted).toBe(false)
+    expect(room.state.matchPhase).toBe('waiting')
 
     room.onJoin({ sessionId: 'session-2' })
-    expect(room.state.gameStarted).toBe(true)
+    expect(room.state.matchPhase).toBe('playing')
   })
 
-  it('should keep gameStarted false with only one player', () => {
+  it('should keep matchPhase as waiting with only one player', () => {
     const { room } = createMockRoom()
     room.onJoin({ sessionId: 'session-1' })
-    expect(room.state.gameStarted).toBe(false)
+    expect(room.state.matchPhase).toBe('waiting')
   })
 
   it('should NOT use broadcast for gameStart (prevents race condition)', () => {
@@ -158,9 +164,9 @@ describe('gameStart state flag logic', () => {
     expect(gameStartBroadcasts).toEqual([])
   })
 
-  it('should have gameStarted default to false on new GameRoomState', () => {
+  it('should have matchPhase default to waiting on new GameRoomState', () => {
     const state = new GameRoomState()
-    expect(state.gameStarted).toBe(false)
+    expect(state.matchPhase).toBe('waiting')
   })
 
   it('should apply valid heroType from join options', () => {

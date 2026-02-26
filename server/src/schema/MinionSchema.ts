@@ -1,15 +1,12 @@
-import { Schema, type } from '@colyseus/schema'
+import { type } from '@colyseus/schema'
+import { CombatEntitySchema } from './CombatEntitySchema.js'
 
-export class MinionSchema extends Schema {
-  @type('string') id: string = ''
-  @type('float32') x: number = 0
-  @type('float32') y: number = 0
-  @type('int16') hp: number = 0
-  @type('int16') maxHp: number = 0
-  @type('boolean') dead: boolean = false
-  @type('string') team: string = 'blue'
+/**
+ * Colyseus state schema for a minion entity.
+ * Inherits id, x, y, hp, maxHp, dead, team, radius, applyDamage() from CombatEntitySchema.
+ */
+export class MinionSchema extends CombatEntitySchema {
   @type('string') minionType: string = 'melee'
-  @type('float32') radius: number = 0
   // Server-only fields (not synced to clients)
   attackCooldown: number = 0
   attackTargetId: string = ''

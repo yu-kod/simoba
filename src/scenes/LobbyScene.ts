@@ -2,7 +2,6 @@ import Phaser from 'phaser'
 import { GAME_WIDTH } from '@/config/gameConfig'
 import { NetworkClient } from '@/network/NetworkClient'
 import { OnlineGameMode } from '@/network/OnlineGameMode'
-import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode } from '@/network/GameMode'
 import type { Room } from 'colyseus.js'
 import type { Team, Position, HeroType } from '@/domain/types'
@@ -77,12 +76,6 @@ export class LobbyScene extends Phaser.Scene {
       () => this.startOnline(),
       this.menuContainer
     )
-    this.createButton(
-      GAME_WIDTH / 2, 460,
-      'Offline Play',
-      () => this.startOffline(),
-      this.menuContainer
-    )
 
     // Waiting container (hidden initially)
     this.waitingContainer = this.add.container(0, 0)
@@ -151,11 +144,6 @@ export class LobbyScene extends Phaser.Scene {
     }
   }
 
-  private startOffline(): void {
-    const gameMode: GameMode = new OfflineGameMode()
-    this.scene.start('GameScene', { gameMode, heroType: this.selectedHeroType })
-  }
-
   private async startOnline(): Promise<void> {
     if (this.lobbyState !== 'menu') return
 
@@ -181,7 +169,7 @@ export class LobbyScene extends Phaser.Scene {
     // NOT a function that returns an unsubscribe callback.
     const cb = (state: unknown): void => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((state as any).gameStarted === true) {
+      if ((state as any).matchPhase === 'playing') {
         room.onStateChange.remove(cb)
         this.onGameStart()
       }

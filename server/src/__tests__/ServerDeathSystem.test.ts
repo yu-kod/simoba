@@ -20,6 +20,13 @@ function createHero(id: string, overrides: Partial<Record<keyof HeroSchema, unkn
   return hero
 }
 
+/** Create a hero that just took lethal damage (dead=true, hp=0 via applyDamage). */
+function createLethalHero(id: string, overrides: Partial<Record<keyof HeroSchema, unknown>> = {}): HeroSchema {
+  const hero = createHero(id, overrides)
+  hero.applyDamage(hero.hp)
+  return hero
+}
+
 const BLUE_SPAWN = { x: 320, y: 360 }
 const RED_SPAWN = { x: 2880, y: 360 }
 
@@ -35,8 +42,8 @@ describe('ServerDeathSystem', () => {
   })
 
   describe('processDeathAndRespawn', () => {
-    it('should mark hero as dead when hp <= 0', () => {
-      const hero = createHero('hero-1', { hp: 0 })
+    it('should set respawn timer for newly dead hero', () => {
+      const hero = createLethalHero('hero-1')
       heroes.set('hero-1', hero)
 
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
@@ -46,7 +53,7 @@ describe('ServerDeathSystem', () => {
     })
 
     it('should clear attack state on death', () => {
-      const hero = createHero('hero-1', { hp: 0, attackTargetId: 'enemy', attackCooldown: 0.5 })
+      const hero = createLethalHero('hero-1', { attackTargetId: 'enemy', attackCooldown: 0.5 })
       heroes.set('hero-1', hero)
 
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
@@ -112,7 +119,7 @@ describe('ServerDeathSystem', () => {
     })
 
     it('should return DeathEvent(death) when hero dies', () => {
-      const hero = createHero('hero-1', { hp: 0, x: 500, y: 300 })
+      const hero = createLethalHero('hero-1', { x: 500, y: 300 })
       heroes.set('hero-1', hero)
 
       const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
@@ -147,7 +154,7 @@ describe('ServerDeathSystem', () => {
 
     it('should handle multiple heroes independently', () => {
       const alive = createHero('alive', { hp: 500 })
-      const dying = createHero('dying', { hp: 0 })
+      const dying = createLethalHero('dying')
       const dead = createHero('dead', { dead: true, hp: 0, respawnTimer: 3.0 })
       heroes.set('alive', alive)
       heroes.set('dying', dying)

@@ -95,6 +95,10 @@ export class OfflineGameMode implements GameMode {
     // No-op
   }
 
+  onMatchEnd(_callback: (winnerTeam: string) => void): void {
+    // No-op — offline mode has no match end logic (see #143)
+  }
+
   dispose(): void {
     // Nothing to clean up
   }

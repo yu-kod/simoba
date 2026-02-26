@@ -90,6 +90,7 @@ function createMockGameMode(overrides?: Partial<GameMode>): GameMode {
     onAttackEvent: vi.fn(),
     onDamageEvent: vi.fn(),
     onDeathEvent: vi.fn(),
+    onMatchEnd: vi.fn(),
     dispose: vi.fn(),
     ...overrides,
   }

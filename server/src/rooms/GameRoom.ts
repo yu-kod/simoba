@@ -13,6 +13,7 @@ import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerComba
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
+import { checkTowerDestroyed, endMatch } from '../game/ServerMatchSystem.js'
 import { MinionSchema } from '../schema/MinionSchema.js'
 import {
   spawnMinionWave,
@@ -64,6 +65,7 @@ export class GameRoom extends Room<GameRoomState> {
 
     // Input message handler (replaces updatePosition, damage, projectileSpawn)
     this.onMessage('input', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
       if (!isValidInputMessage(message)) return
       this.playerInputs.set(client.sessionId, message)
     })
@@ -112,7 +114,7 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.heroes.set(client.sessionId, hero)
 
     if (this.state.heroes.size === this.maxClients) {
-      this.state.gameStarted = true
+      this.state.matchPhase = 'playing'
       this.setupTowers()
     }
   }
@@ -159,8 +161,16 @@ export class GameRoom extends Room<GameRoomState> {
     return tower
   }
 
+  /**
+   * Terminate the match with a winner. Delegates to the pure function
+   * in ServerMatchSystem for testability.
+   */
+  endMatch(winnerTeam: string): void {
+    endMatch(this.state, winnerTeam)
+  }
+
   private gameUpdate(deltaTime: number): void {
-    if (!this.state.gameStarted) return
+    if (this.state.matchPhase !== 'playing') return
 
     // Update match time
     this.state.matchTime += deltaTime
@@ -246,7 +256,10 @@ export class GameRoom extends Room<GameRoomState> {
     const deathEvents = processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
     events.push(...deathEvents)
 
-    // 7. Broadcast combat events to all clients
+    // 7. Check win condition (tower destroyed)
+    checkTowerDestroyed(towers, (winner) => this.endMatch(winner))
+
+    // 8. Broadcast combat events to all clients
     for (const msg of events) {
       this.broadcast(msg.kind, msg.event)
     }

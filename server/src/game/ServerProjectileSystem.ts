@@ -88,7 +88,7 @@ export function processProjectiles(
     // Check collision against enemy entities
     let hit = false
     for (const target of targets) {
-      if (target.dead || target.hp <= 0) continue
+      if (target.dead) continue
       if (target.team === proj.team) continue
 
       const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
