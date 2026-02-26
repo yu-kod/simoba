@@ -309,7 +309,7 @@ describe('GameScene', () => {
       const call = (scene as any).handleDeathEvent.bind(scene)
 
       expect(() => call({
-        heroId: 'local-session',
+        entityId: 'local-session',
         type: 'death',
         position: { x: 100, y: 200 },
       })).not.toThrow()

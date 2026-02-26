@@ -28,9 +28,9 @@ export interface DamageEvent {
   readonly sourceId: string
 }
 
-/** Fired when a hero dies or respawns */
+/** Fired when any entity dies or respawns (hero, minion, tower) */
 export interface DeathEvent {
-  readonly heroId: string
+  readonly entityId: string
   readonly type: 'death' | 'respawn'
   readonly position: { readonly x: number; readonly y: number }
 }

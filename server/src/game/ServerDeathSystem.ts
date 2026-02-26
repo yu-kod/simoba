@@ -32,7 +32,7 @@ export function processDeathAndRespawn(
       events.push({
         kind: 'death',
         event: {
-          heroId: sessionId,
+          entityId: sessionId,
           type: 'death',
           position: { x: hero.x, y: hero.y },
         },
@@ -57,7 +57,7 @@ export function processDeathAndRespawn(
         events.push({
           kind: 'death',
           event: {
-            heroId: sessionId,
+            entityId: sessionId,
             type: 'respawn',
             position: { x: spawn.x, y: spawn.y },
           },

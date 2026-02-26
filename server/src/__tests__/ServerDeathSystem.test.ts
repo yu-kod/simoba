@@ -127,7 +127,7 @@ describe('ServerDeathSystem', () => {
       expect(events).toHaveLength(1)
       expect(events[0]).toEqual({
         kind: 'death',
-        event: { heroId: 'hero-1', type: 'death', position: { x: 500, y: 300 } },
+        event: { entityId: 'hero-1', type: 'death', position: { x: 500, y: 300 } },
       })
     })
 
@@ -140,7 +140,7 @@ describe('ServerDeathSystem', () => {
       expect(events).toHaveLength(1)
       expect(events[0]).toEqual({
         kind: 'death',
-        event: { heroId: 'hero-1', type: 'respawn', position: { x: BLUE_SPAWN.x, y: BLUE_SPAWN.y } },
+        event: { entityId: 'hero-1', type: 'respawn', position: { x: BLUE_SPAWN.x, y: BLUE_SPAWN.y } },
       })
     })
 
