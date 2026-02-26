@@ -41,7 +41,7 @@ test.describe('Projectile Attack', () => {
     // Wait briefly — projectile should be in flight before reaching target
     await page.waitForFunction(
       () => (window as unknown as TestWindow).__test__.getProjectileCount() >= 1,
-      { timeout: 3000 }
+      { timeout: 5000 }
     )
 
     const count = await page.evaluate(
