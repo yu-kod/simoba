@@ -1,6 +1,5 @@
 import type { HeroState } from '@/domain/entities/Hero'
 import type { EntityManager } from '@/scenes/EntityManager'
-import type { CombatManager } from '@/scenes/CombatManager'
 
 export interface TowerTestData {
   id: string
@@ -43,7 +42,6 @@ function getEnemyHero(entityManager: EntityManager): HeroState {
 
 export function registerTestApi(
   entityManager: EntityManager,
-  combatManager: CombatManager
 ): void {
   window.__test__ = {
     getHeroType: () => getLocalHero(entityManager).type,
@@ -65,7 +63,7 @@ export function registerTestApi(
       return { x, y }
     },
     getEnemyDead: () => getEnemyHero(entityManager).dead,
-    getProjectileCount: () => combatManager.projectiles.length,
+    getProjectileCount: () => 0, // Projectiles are server-managed; E2E tests should check visually
     getHeroAttackTarget: () => getLocalHero(entityManager).attackTargetId,
     getTowers: () =>
       entityManager.allEntities

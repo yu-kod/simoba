@@ -22,6 +22,7 @@ import {
   processMinionDeaths,
   createMinionSystemContext,
 } from '../game/ServerMinionSystem.js'
+import { generateBotInputs } from '../game/ServerBotSystem.js'
 
 export const MAX_PLAYERS = 2
 
@@ -59,11 +60,18 @@ export class GameRoom extends Room<GameRoomState> {
   private playerInputs = new Map<string, InputMessage>()
   private nextWaveTime = MINION_WAVE_INTERVAL
   private minionCtx = createMinionSystemContext()
+  private isSoloMode = false
 
-  onCreate(): void {
+  onCreate(options?: Record<string, unknown>): void {
     this.setState(new GameRoomState())
 
-    // Input message handler (replaces updatePosition, damage, projectileSpawn)
+    // Solo mode: 1 player + bot
+    if (options?.mode === 'solo') {
+      this.isSoloMode = true
+      this.maxClients = 1
+    }
+
+    // Input message handler
     this.onMessage('input', (client, message: unknown) => {
       if (this.state.matchPhase !== 'playing') return
       if (!isValidInputMessage(message)) return
@@ -77,6 +85,23 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   onJoin(client: Client, options?: Record<string, unknown>): void {
+    const hero = this.createHero(client.sessionId, options?.heroType)
+    this.state.heroes.set(client.sessionId, hero)
+
+    if (this.isSoloMode) {
+      // Solo mode: add bot to enemy team, start immediately
+      const playerTeam = hero.team
+      const enemyTeam = playerTeam === 'blue' ? 'red' : 'blue'
+      this.addBotHero(enemyTeam, 0)
+      this.state.matchPhase = 'playing'
+      this.setupTowers()
+    } else if (this.state.heroes.size === this.maxClients) {
+      this.state.matchPhase = 'playing'
+      this.setupTowers()
+    }
+  }
+
+  private createHero(id: string, heroTypeOption?: unknown): HeroSchema {
     const hero = new HeroSchema()
     // Assign to the team with fewer players (blue breaks ties)
     let blueCount = 0
@@ -87,12 +112,12 @@ export class GameRoom extends Room<GameRoomState> {
     })
     const team = blueCount <= redCount ? 'blue' : 'red'
     const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
-    const heroType: HeroType = isValidHeroType(options?.heroType)
-      ? options.heroType as HeroType
+    const heroType: HeroType = isValidHeroType(heroTypeOption)
+      ? heroTypeOption as HeroType
       : 'BLADE'
     const def = HERO_DEFINITIONS[heroType]
 
-    hero.id = client.sessionId
+    hero.id = id
     hero.x = spawn.x
     hero.y = spawn.y
     hero.facing = 0
@@ -111,12 +136,37 @@ export class GameRoom extends Room<GameRoomState> {
     hero.respawnTimer = 0
     hero.lastProcessedSeq = 0
 
-    this.state.heroes.set(client.sessionId, hero)
+    return hero
+  }
 
-    if (this.state.heroes.size === this.maxClients) {
-      this.state.matchPhase = 'playing'
-      this.setupTowers()
-    }
+  /** Add a bot hero to the given team. */
+  private addBotHero(team: string, index: number): void {
+    const botId = `bot-${team}-${index}`
+    const hero = new HeroSchema()
+    const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
+    const def = HERO_DEFINITIONS['BLADE']
+
+    hero.id = botId
+    hero.x = spawn.x
+    hero.y = spawn.y
+    hero.facing = 0
+    hero.team = team
+    hero.heroType = 'BLADE'
+    hero.hp = def.base.maxHp
+    hero.maxHp = def.base.maxHp
+    hero.speed = def.base.speed
+    hero.attackDamage = def.base.attackDamage
+    hero.attackRange = def.base.attackRange
+    hero.attackSpeed = def.base.attackSpeed
+    hero.radius = def.radius
+    hero.dead = false
+    hero.attackCooldown = 0
+    hero.attackTargetId = ''
+    hero.respawnTimer = 0
+    hero.lastProcessedSeq = 0
+    hero.isBot = true
+
+    this.state.heroes.set(botId, hero)
   }
 
   onLeave(client: Client): void {
@@ -178,7 +228,13 @@ export class GameRoom extends Room<GameRoomState> {
     const { heroes, towers, projectiles, minions } = this.state
     const events: CombatEventMessage[] = []
 
-    // 0. Minion wave spawn
+    // 0. Generate bot inputs
+    const botInputs = generateBotInputs(heroes, towers, minions)
+    for (const [botId, input] of botInputs) {
+      this.playerInputs.set(botId, input)
+    }
+
+    // 0.5. Minion wave spawn
     this.nextWaveTime = spawnMinionWave(
       this.minionCtx,
       this.state.matchTime,

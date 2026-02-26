@@ -38,6 +38,8 @@ jobs:
 
       - run: npm ci
 
+      - run: cd server && npm ci
+
       - run: npm run test:unit
 
   openspec-check:

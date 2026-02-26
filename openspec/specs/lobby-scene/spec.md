@@ -7,14 +7,19 @@ BootScene の次に LobbyScene を表示しなければならない（SHALL）�
 
 #### Scenario: ロビーにモード選択ボタンが表示される
 - **WHEN** LobbyScene が表示される
-- **THEN** 「オンライン対戦」ボタンと「オフラインで遊ぶ」ボタンが表示される
+- **THEN** 「Online Battle」ボタンと「Solo Play」ボタンが表示される
 
-### Requirement: オフラインモード選択
-「オフラインで遊ぶ」ボタンをクリックした場合、OfflineGameMode で GameScene に遷移しなければならない（SHALL）。
+### Requirement: Solo Play モード選択
+「Solo Play」ボタンをクリックした場合、`{ mode: 'solo', heroType }` でサーバーに接続しなければならない（SHALL）。接続後、サーバーが即座に `matchPhase = 'playing'` に設定するため、waiting 状態をスキップして GameScene に遷移しなければならない（SHALL）。
 
-#### Scenario: オフラインモードでゲームを開始する
-- **WHEN** プレイヤーが「オフラインで遊ぶ」ボタンをクリックする
-- **THEN** OfflineGameMode が生成され、GameScene に遷移してローカル Bot 対戦が開始される
+#### Scenario: Solo Play でゲームを開始する
+- **WHEN** プレイヤーが「Solo Play」ボタンをクリックする
+- **THEN** サーバーに `{ mode: 'solo', heroType }` で接続される
+- **THEN** `matchPhase` が `'playing'` になった時点で GameScene に遷移する
+
+#### Scenario: Solo Play の接続に失敗した場合
+- **WHEN** Solo Play でサーバーへの接続が失敗する
+- **THEN** エラーメッセージが表示され、メニューに戻る
 
 ### Requirement: オンラインモード接続
 「オンライン対戦」ボタンをクリックした場合、Colyseus サーバーに接続を開始しなければならない（SHALL）。接続中は「接続中...」の表示をしなければならない（SHALL）。
@@ -46,15 +51,15 @@ BootScene の次に LobbyScene を表示しなければならない（SHALL）�
 - **THEN** 「ゲーム開始!」が短時間表示された後、OnlineGameMode 付きで GameScene に遷移する
 
 ### Requirement: GameScene の GameMode 受け取り
-GameScene はシーンデータから GameMode を受け取らなければならない（SHALL）。GameMode が渡されない場合は OfflineGameMode をフォールバックとして使用しなければならない（SHALL）。
+GameScene はシーンデータから GameMode を受け取らなければならない（SHALL）。GameMode が渡されない場合はエラーとして扱わなければならない（SHALL）。
 
 #### Scenario: シーンデータから GameMode を受け取る
 - **WHEN** LobbyScene から GameMode 付きのシーンデータで GameScene が開始される
 - **THEN** GameScene は渡された GameMode を使用してゲームを初期化する
 
-#### Scenario: GameMode が渡されない場合のフォールバック
+#### Scenario: GameMode が渡されない場合のエラー
 - **WHEN** GameScene がシーンデータなし、または GameMode なしで開始される
-- **THEN** OfflineGameMode がデフォルトとして使用される
+- **THEN** エラーログを出力し、LobbyScene に遷移する
 
 ### Requirement: ロビー UI のスタイル
 ロビー UI は Phaser の Text/Graphics で描画しなければならない（SHALL）。プロジェクトのジオメトリックスタイルに準拠しなければならない（SHALL）。

@@ -1,22 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { registerTestApi, unregisterTestApi } from '@/test/e2eTestApi'
 import { EntityManager } from '@/scenes/EntityManager'
-import { CombatManager } from '@/scenes/CombatManager'
 import { createHeroState, type HeroState } from '@/domain/entities/Hero'
 import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 
 describe('e2eTestApi', () => {
   let em: EntityManager
-  let cm: CombatManager
 
   beforeEach(() => {
     em = new EntityManager(
       { id: 'player-1', type: 'BLADE', team: 'blue', position: { x: 100, y: 200 } },
       { id: 'enemy-1', type: 'BOLT', team: 'red', position: { x: 500, y: 300 } }
     )
-    cm = new CombatManager(em)
-    registerTestApi(em, cm)
+    registerTestApi(em)
   })
 
   afterEach(() => {

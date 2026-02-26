@@ -71,9 +71,16 @@ export class LobbyScene extends Phaser.Scene {
     this.createHeroSelectionButtons(300, this.menuContainer)
 
     this.createButton(
-      GAME_WIDTH / 2, 380,
+      GAME_WIDTH / 2, 370,
       'Online Battle',
       () => this.startOnline(),
+      this.menuContainer
+    )
+
+    this.createButton(
+      GAME_WIDTH / 2, 440,
+      'Solo Play',
+      () => this.startSolo(),
       this.menuContainer
     )
 
@@ -92,7 +99,7 @@ export class LobbyScene extends Phaser.Scene {
     this.statusText.setVisible(false)
 
     this.createButton(
-      GAME_WIDTH / 2, 440,
+      GAME_WIDTH / 2, 500,
       'Cancel',
       () => this.cancelWaiting(),
       this.waitingContainer
@@ -144,6 +151,26 @@ export class LobbyScene extends Phaser.Scene {
     }
   }
 
+  private async startSolo(): Promise<void> {
+    if (this.lobbyState !== 'menu') return
+
+    this.setState('connecting')
+    this.networkClient = new NetworkClient()
+
+    try {
+      const room = await this.networkClient.connect('game', {
+        mode: 'solo',
+        heroType: this.selectedHeroType,
+      })
+      // Solo mode: server starts immediately (matchPhase = 'playing' on join)
+      this.watchForGameReady(room)
+    } catch {
+      this.setState('error')
+      this.errorText.setText('Connection failed.\nIs the server running?')
+      this.networkClient = null
+    }
+  }
+
   private async startOnline(): Promise<void> {
     if (this.lobbyState !== 'menu') return
 
@@ -178,7 +205,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private onGameStart(): void {
-    if (this.lobbyState !== 'waiting') return
+    if (this.lobbyState !== 'waiting' && this.lobbyState !== 'connecting') return
 
     this.setState('starting')
 

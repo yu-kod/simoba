@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EntityManager } from '@/scenes/EntityManager'
 import type { HeroState } from '@/domain/entities/Hero'
-import type { RemotePlayerState } from '@/network/GameMode'
+import type { RemotePlayerState } from '@/scenes/EntityManager'
 import { createMockCombatEntity } from '@/test/helpers/entityHelpers'
 import { createMinionState } from '@shared/entities/Minion'
 

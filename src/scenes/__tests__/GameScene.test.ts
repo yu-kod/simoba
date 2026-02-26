@@ -58,10 +58,8 @@ vi.mock('@/test/e2eTestApi', () => ({
 
 import { GameScene } from '@/scenes/GameScene'
 import { EntityManager } from '@/scenes/EntityManager'
-import { CombatManager } from '@/scenes/CombatManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
 import { InputBuffer } from '@/network/InputBuffer'
-import { OfflineGameMode } from '@/network/OfflineGameMode'
 import type { GameMode, ServerHeroState, ServerTowerState } from '@/network/GameMode'
 import type { HeroState } from '@/domain/entities/Hero'
 import { createTowerState } from '@/domain/entities/Tower'
@@ -69,18 +67,9 @@ import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 
 function createMockGameMode(overrides?: Partial<GameMode>): GameMode {
   return {
-    isServerAuthoritative: true,
     localSessionId: 'local-session',
     onSceneCreate: vi.fn().mockResolvedValue(undefined),
     sendInput: vi.fn(),
-    sendLocalState: vi.fn(),
-    sendDamageEvent: vi.fn(),
-    sendProjectileSpawn: vi.fn(),
-    onRemotePlayerUpdate: vi.fn(),
-    onRemotePlayerJoin: vi.fn(),
-    onRemotePlayerLeave: vi.fn(),
-    onRemoteDamage: vi.fn(),
-    onRemoteProjectileSpawn: vi.fn(),
     onServerHeroUpdate: vi.fn(),
     onServerHeroRemove: vi.fn(),
     onServerTowerUpdate: vi.fn(),
@@ -119,9 +108,8 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
     { id: localSessionId, type: 'BLADE', team: 'blue', position: { x: 100, y: 200 } },
     { id: 'enemy-1', type: 'BLADE', team: 'red', position: { x: 300, y: 200 } }
   )
-  const cm = new CombatManager(em)
   const gm = createMockGameMode({ localSessionId })
-  const bridge = new NetworkBridge(gm, em, cm)
+  const bridge = new NetworkBridge(gm)
 
   const mockMeleeSwing = { play: vi.fn(), update: vi.fn() }
   const inputBuffer = new InputBuffer()
@@ -130,7 +118,6 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s = scene as any as Record<string, unknown>
   s.entityManager = em
-  s.combatManager = cm
   s.networkBridge = bridge
   s.entityRenderers = new Map()
   s.meleeSwing = mockMeleeSwing
@@ -196,20 +183,6 @@ function makeServerTowerState(overrides?: Partial<ServerTowerState>): ServerTowe
 
 describe('GameScene', () => {
   describe('init — GameMode receiving', () => {
-    it('should fall back to OfflineGameMode when no data is passed', () => {
-      const scene = new GameScene()
-      scene.init()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((scene as any).gameMode).toBeInstanceOf(OfflineGameMode)
-    })
-
-    it('should fall back to OfflineGameMode when data has no gameMode', () => {
-      const scene = new GameScene()
-      scene.init({})
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((scene as any).gameMode).toBeInstanceOf(OfflineGameMode)
-    })
-
     it('should use the provided GameMode', () => {
       const scene = new GameScene()
       const mockMode = createMockGameMode()
@@ -218,10 +191,22 @@ describe('GameScene', () => {
       expect((scene as any).gameMode).toBe(mockMode)
     })
 
-    it('should default to OfflineGameMode before init is called', () => {
+    it('should redirect to LobbyScene when no gameMode is provided', () => {
       const scene = new GameScene()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((scene as any).gameMode).toBeInstanceOf(OfflineGameMode)
+      ;(scene as any).scene = { start: vi.fn() }
+      scene.init()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((scene as any).scene.start).toHaveBeenCalledWith('LobbyScene')
+    })
+
+    it('should redirect to LobbyScene when data has no gameMode', () => {
+      const scene = new GameScene()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(scene as any).scene = { start: vi.fn() }
+      scene.init({})
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((scene as any).scene.start).toHaveBeenCalledWith('LobbyScene')
     })
   })
 

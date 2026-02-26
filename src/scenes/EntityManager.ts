@@ -3,7 +3,17 @@ import { isHero, isMinion } from '@/domain/entities/typeGuards'
 import type { MinionState } from '@shared/entities/Minion'
 import type { CombatEntityState, HeroType, Team } from '@/domain/types'
 import { DEFAULT_ENTITY_RADIUS } from '@/domain/constants'
-import type { RemotePlayerState } from '@/network/GameMode'
+export interface RemotePlayerState {
+  readonly sessionId: string
+  readonly x: number
+  readonly y: number
+  readonly facing: number
+  readonly hp: number
+  readonly maxHp: number
+  readonly heroType: string
+  readonly team: string
+  readonly radius: number
+}
 
 export class EntityManager {
   private readonly _entities = new Map<string, CombatEntityState>()

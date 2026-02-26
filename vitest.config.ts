@@ -7,7 +7,7 @@ export default mergeConfig(
     test: {
       globals: true,
       environment: 'happy-dom',
-      include: ['src/**/__tests__/**/*.test.ts'],
+      include: ['src/**/__tests__/**/*.test.ts', 'server/src/__tests__/**/*.test.ts'],
       coverage: {
         provider: 'v8',
         include: ['src/**/*.ts'],
