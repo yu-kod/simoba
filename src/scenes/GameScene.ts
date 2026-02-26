@@ -176,13 +176,10 @@ export class GameScene extends Phaser.Scene {
 
   private initGameMode(): void {
     this.networkBridge = new NetworkBridge(this.gameMode, this.entityManager, this.combatManager, {
-      onRemotePlayerAdded: (sessionId) => {
-        if (this.entityRenderers.has(sessionId)) return
-        const state = this.entityManager.getEntity(sessionId) as HeroState | null
-        // TODO(#119): isAlly is hardcoded false here. In Colyseus, onAdd fires before
-        // the first state update, so team info may not be available yet. ensureHeroEntityExists
-        // uses correct isAlly logic but only applies if renderer doesn't already exist.
-        if (state) this.entityRenderers.set(sessionId, new HeroRenderer(this, state, false))
+      onRemotePlayerAdded: (_sessionId) => {
+        // No-op: renderer creation is deferred to ensureHeroEntityExists
+        // (called via onServerHeroUpdated) which has correct team info for isAlly.
+        // See #119 — creating renderer here with hardcoded isAlly=false was a bug.
       },
       onRemotePlayerRemoved: (sessionId) => {
         this.entityRenderers.get(sessionId)?.destroy()
