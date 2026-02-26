@@ -1,20 +1,7 @@
-import type { HeroState } from '@/domain/entities/Hero'
-import type { Position } from '@/domain/types'
 import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 
-export interface DamageEvent {
-  readonly targetId: string
-  readonly amount: number
-}
-
-export interface ProjectileSpawnEvent {
-  readonly targetId: string
-  readonly startPosition: Position
-  readonly damage: number
-  readonly speed: number
-}
-
-export interface RemotePlayerState {
+/** Server-synced hero state */
+export interface ServerHeroState {
   readonly sessionId: string
   readonly x: number
   readonly y: number
@@ -24,10 +11,6 @@ export interface RemotePlayerState {
   readonly heroType: string
   readonly team: string
   readonly radius: number
-}
-
-/** Server-synced hero state (includes lastProcessedSeq for reconciliation) */
-export interface ServerHeroState extends RemotePlayerState {
   readonly dead: boolean
   readonly attackTargetId: string
   readonly attackCooldown: number
@@ -80,34 +63,10 @@ export interface GameMode {
   /** Initialize this mode (called during GameScene.create) */
   onSceneCreate(): Promise<void>
 
-  /** Send input message to server (server-authoritative mode) */
+  /** Send input message to server */
   sendInput(input: InputMessage): void
 
-  /** Send local player state to the network (client-authoritative, offline) */
-  sendLocalState(state: HeroState): void
-
-  /** Send a damage event to the server (client-authoritative, offline) */
-  sendDamageEvent(event: DamageEvent): void
-
-  /** Send a projectile spawn event to the server (client-authoritative, offline) */
-  sendProjectileSpawn(event: ProjectileSpawnEvent): void
-
-  /** Register a callback for when a remote player's state changes */
-  onRemotePlayerUpdate(callback: (state: RemotePlayerState) => void): void
-
-  /** Register a callback for when a remote player joins */
-  onRemotePlayerJoin(callback: (state: RemotePlayerState) => void): void
-
-  /** Register a callback for when a remote player leaves */
-  onRemotePlayerLeave(callback: (sessionId: string) => void): void
-
-  /** Register a callback for when remote damage is received (client-authoritative) */
-  onRemoteDamage(callback: (event: DamageEvent & { attackerId: string }) => void): void
-
-  /** Register a callback for when a remote projectile spawns (client-authoritative) */
-  onRemoteProjectileSpawn(callback: (event: ProjectileSpawnEvent & { ownerId: string }) => void): void
-
-  /** Register callback for server hero state sync (server-authoritative) */
+  /** Register callback for server hero state sync */
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void
 
   /** Register callback for server hero removed */
@@ -137,11 +96,8 @@ export interface GameMode {
   /** Register callback for match end (matchPhase becomes 'finished') */
   onMatchEnd(callback: (winnerTeam: string) => void): void
 
-  /** Whether this mode is server-authoritative */
-  readonly isServerAuthoritative: boolean
-
-  /** Local player's session ID (null for offline mode) */
-  readonly localSessionId: string | null
+  /** Local player's session ID */
+  readonly localSessionId: string
 
   /** Clean up resources */
   dispose(): void

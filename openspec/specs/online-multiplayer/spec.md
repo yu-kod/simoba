@@ -92,10 +92,9 @@ Colyseus の `@type()` デコレータを使用して、Room 状態スキーマ�
 ### Requirement: プレイヤー位置・facing の同期
 ローカルプレイヤーの `position` と `facing` をサーバーに送信しなければならない（SHALL）。送信レートはフレームレートより低い固定間隔（20Hz）でなければならない（SHALL）。リモートプレイヤーの状態変更を受信して描画に反映しなければならない（SHALL）。
 
-`handleServerHeroUpdate` はオンラインモードとオフラインモードで異なる状態適用パスを実行しなければならない（SHALL）:
+`handleServerHeroUpdate` はサーバー権威モードで状態適用を実行しなければならない（SHALL）:
 
-- **オンラインモード**: `applyServerHeroNonPositionState` で position/facing 以外の全フィールド（type, radius, hp, maxHp, dead, attackTargetId, respawnTimer）を適用する。position と facing は `InterpolationBuffer` 経由で毎フレーム適用される
-- **オフラインモード**: `applyServerHeroState` で position を含む全フィールドを一括適用する
+- `applyServerHeroNonPositionState` で position/facing 以外の全フィールド（type, radius, hp, maxHp, dead, attackTargetId, respawnTimer）を適用する。position と facing は `InterpolationBuffer` 経由で毎フレーム適用される
 
 ローカルヒーローの facing はクライアントが即座に反映し、InterpolationBuffer の facing は無視しなければならない（SHALL）。リモートヒーローの facing は InterpolationBuffer から補間した値を使用しなければならない（SHALL）。
 
@@ -137,17 +136,6 @@ Colyseus の `@type()` デコレータを使用して、Room 状態スキーマ�
 #### Scenario: プロジェクタイル命中ダメージを同期する
 - **WHEN** プロジェクタイルがリモートプレイヤーに命中する
 - **THEN** ダメージイベントがサーバー経由で同期され、両方のクライアントで HP が更新される
-
-### Requirement: オフラインフォールバック
-サーバー未起動時は既存のローカル Bot 対戦モードで動作しなければならない（SHALL）。オンライン/オフラインの切り替えは GameScene のコード変更なしに行えなければならない（SHALL）。
-
-#### Scenario: サーバー未起動でゲームを開始する
-- **WHEN** Colyseus サーバーが起動していない状態でゲームを開始する
-- **THEN** 接続失敗後、自動的にローカル Bot 対戦モードで動作し、既存の静的敵ヒーローが表示される
-
-#### Scenario: オンラインモードからオフラインモードへの切り替え
-- **WHEN** ゲーム中にサーバーとの接続が切れる
-- **THEN** ゲームがローカルモードにフォールバックし、プレイが中断されない
 
 ### Requirement: 開発時の同時起動
 `npm run dev` で Vite（フロントエンド）と Colyseus（バックエンド）を同時に起動できなければならない（SHALL）。
