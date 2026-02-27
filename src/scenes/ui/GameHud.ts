@@ -11,6 +11,7 @@ import { HudHpBar } from './HudHpBar'
 const HUD_DEPTH = 1100
 const PANEL_BG_COLOR = 0x1a1a2e
 const PANEL_BG_ALPHA = 0.75
+const PANEL_CORNER_RADIUS = 3
 
 /**
  * Base design dimensions for HUD layout.
@@ -57,7 +58,7 @@ export class GameHud {
       layout.panelY,
       layout.panelWidth,
       layout.panelHeight,
-      3
+      PANEL_CORNER_RADIUS
     )
     this.container.add(this.panelGraphics)
 

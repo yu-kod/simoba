@@ -241,6 +241,10 @@ export class GameScene extends Phaser.Scene {
     this.gameMode.onSceneCreate()
   }
 
+  shutdown(): void {
+    this.gameHud.destroy()
+  }
+
   update(_time: number, delta: number): void {
     if (this.matchEnded) return
 

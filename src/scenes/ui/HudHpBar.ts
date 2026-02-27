@@ -15,6 +15,8 @@ export class HudHpBar {
   private readonly hpText: Phaser.GameObjects.Text
   private readonly barWidth: number
   private readonly barHeight: number
+  private lastHp = -1
+  private lastMaxHp = -1
 
   constructor(
     scene: Phaser.Scene,
@@ -49,6 +51,9 @@ export class HudHpBar {
   }
 
   update(hp: number, maxHp: number): void {
+    if (hp === this.lastHp && maxHp === this.lastMaxHp) return
+    this.lastHp = hp
+    this.lastMaxHp = maxHp
     this.draw(hp, maxHp)
     this.hpText.setText(`${Math.ceil(hp)} / ${Math.ceil(maxHp)}`)
   }

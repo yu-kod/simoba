@@ -1,14 +1,11 @@
 import Phaser from 'phaser'
 import type { UiScale } from './uiScale'
 import { createText } from './createText'
-import { MAX_LEVEL } from '@shared/constants'
+import { MAX_LEVEL, XP_THRESHOLDS } from '@shared/constants'
 
 const COLOR_BADGE_BG = 0x2c3e50
 const COLOR_BADGE_FILL = 0xf39c12
 const COLOR_BADGE_BORDER = 0xe67e22
-
-/** XP thresholds per level (cumulative). Level 1->2 needs 100, 2->3 needs 200, etc. */
-const XP_THRESHOLDS = [0, 100, 300, 600, 1000]
 
 /** Start angle: 12 o'clock position */
 const START_ANGLE = -Math.PI / 2

@@ -10,6 +10,8 @@ export const SUDDEN_DEATH_TIME = 300 // seconds (5:00)
 
 // Progression
 export const MAX_LEVEL = 5
+/** XP thresholds per level (cumulative). Level 1→2 needs 100, 2→3 needs 200, etc. */
+export const XP_THRESHOLDS = [0, 100, 300, 600, 1000] as const
 export const ULTIMATE_UNLOCK_LEVEL = 3
 export const ULTIMATE_ENHANCE_LEVEL = 5
 

@@ -13,6 +13,8 @@ const COLOR_ICON_PASSIVE = 0x9b59b6
 
 const COOLDOWN_OVERLAY_ALPHA = 0.6
 const BORDER_WIDTH = 1
+const ICON_RADIUS_RATIO = 0.25
+const PASSIVE_ICON_RADIUS_RATIO = 0.21
 
 export class SkillSlotRenderer {
   private readonly graphics: Phaser.GameObjects.Graphics
@@ -134,7 +136,7 @@ export class SkillSlotRenderer {
   private drawActiveIcon(): void {
     const cx = this.slotSize / 2
     const cy = this.slotSize / 2
-    const r = 14
+    const r = this.slotSize * ICON_RADIUS_RATIO
 
     this.graphics.fillStyle(COLOR_ICON_ACTIVE, 0.9)
     this.graphics.beginPath()
@@ -149,7 +151,7 @@ export class SkillSlotRenderer {
   private drawPassiveIcon(): void {
     const cx = this.slotSize / 2
     const cy = this.slotSize / 2
-    const r = 12
+    const r = this.slotSize * PASSIVE_ICON_RADIUS_RATIO
 
     this.graphics.fillStyle(COLOR_ICON_PASSIVE, 0.9)
     this.graphics.fillCircle(cx, cy, r)
