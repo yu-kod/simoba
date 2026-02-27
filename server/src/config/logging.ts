@@ -1,4 +1,5 @@
 import {
+  type Sink,
   configure,
   getConsoleSink,
   getStreamSink,
@@ -8,7 +9,7 @@ import stream from 'node:stream'
 
 export async function setupServerLogging(): Promise<void> {
   const isProduction = process.env.NODE_ENV === 'production'
-  const sinks: Record<string, ReturnType<typeof getConsoleSink>> = {}
+  const sinks: Record<string, Sink> = {}
   const sinkNames: string[] = []
 
   // JSON sink → stdout (always active, CloudWatch Logs Insights compatible)

@@ -37,5 +37,5 @@ const gameServer = new Server({
 gameServer.define('game', GameRoom)
 
 gameServer.listen(PORT).then(() => {
-  logger.info`Colyseus server listening on ws://localhost:${PORT}`
+  logger.info('Colyseus server listening', { port: PORT })
 })
