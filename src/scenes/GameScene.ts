@@ -61,7 +61,7 @@ export class GameScene extends Phaser.Scene {
   private cameraFollowing = true
   private gameMode!: GameMode
   private localTeam: Team = 'blue'
-  private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+  private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
   private localHeroType: HeroType = 'BLADE'
 
   // Match end state
@@ -88,7 +88,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.gameMode = data.gameMode
     this.localTeam = data.localTeam ?? 'blue'
-    this.localSpawnPosition = data.localPosition ?? { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+    this.localSpawnPosition = data.localPosition ?? { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
     this.localHeroType = data.heroType ?? 'BLADE'
   }
 
@@ -99,15 +99,16 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
-    // Zoom camera so the viewport covers the same game area as the original 1280x720.
+    // Zoom camera so the viewport covers the same game area as the base 1280x720 design.
     // The canvas buffer is 2560x1440 for sharp rendering; zoom keeps gameplay feel identical.
-    const CAMERA_ZOOM = GAME_WIDTH / 1280
+    const BASE_WIDTH = 1280
+    const CAMERA_ZOOM = GAME_WIDTH / BASE_WIDTH
     this.cameras.main.setZoom(CAMERA_ZOOM)
 
     // Entity manager with local hero placeholder
     this.entityManager = new EntityManager(
       { id: 'player-1', type: this.localHeroType, team: this.localTeam, position: this.localSpawnPosition },
-      { id: 'enemy-1', type: 'BLADE', team: this.localTeam === 'blue' ? 'red' : 'blue', position: { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 } }
+      { id: 'enemy-1', type: 'BLADE', team: this.localTeam === 'blue' ? 'red' : 'blue', position: { x: GAME_WIDTH / 4 + 200, y: WORLD_HEIGHT / 2 } }
     )
 
     // Towers (placeholders — server provides real towers)
