@@ -21,6 +21,13 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      'no-console': 'warn',
+    },
+  },
+  {
+    files: ['**/*.test.ts', '**/__tests__/**'],
+    rules: {
+      'no-console': 'off',
     },
   },
   {

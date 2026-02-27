@@ -32,6 +32,9 @@ import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
 import type { MinionState } from '@shared/entities/Minion'
 import { registerTestApi } from '@/test/e2eTestApi'
 import { GameHud } from '@/scenes/ui/GameHud'
+import { createClientLogger } from '@shared/logging'
+
+const logger = createClientLogger('scene')
 
 const FREE_CAMERA_SPEED = 400
 
@@ -84,7 +87,7 @@ export class GameScene extends Phaser.Scene {
 
   init(data?: { gameMode?: GameMode; localTeam?: Team; localPosition?: Position; heroType?: HeroType }): void {
     if (!data?.gameMode) {
-      console.error('GameScene: No gameMode provided, returning to LobbyScene')
+      logger.error('No gameMode provided, returning to LobbyScene')
       this.scene.start('LobbyScene')
       return
     }
@@ -96,6 +99,7 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     if (!this.gameMode) return
+    logger.debug('Scene created', { sceneKey: this.scene.key })
 
     renderMap(this)
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
@@ -242,6 +246,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    logger.debug('Scene shutdown', { sceneKey: this.scene.key })
     this.gameHud.destroy()
   }
 

@@ -1,5 +1,8 @@
 import Phaser from 'phaser'
 import { gameConfig } from '@/config/gameConfig'
+import { setupClientLogging } from '@/config/logging'
+
+await setupClientLogging()
 
 const game = new Phaser.Game(gameConfig)
 

@@ -23,6 +23,9 @@ import {
   createMinionSystemContext,
 } from '../game/ServerMinionSystem.js'
 import { generateBotInputs } from '../game/ServerBotSystem.js'
+import { createServerLogger } from '@shared/logging'
+
+const logger = createServerLogger('room')
 
 export const MAX_PLAYERS = 2
 
@@ -64,6 +67,7 @@ export class GameRoom extends Room<GameRoomState> {
 
   onCreate(options?: Record<string, unknown>): void {
     this.setState(new GameRoomState())
+    logger.info('Room created', { roomId: this.roomId })
 
     // Solo mode: 1 player + bot
     if (options?.mode === 'solo') {
@@ -87,6 +91,11 @@ export class GameRoom extends Room<GameRoomState> {
   onJoin(client: Client, options?: Record<string, unknown>): void {
     const hero = this.createHero(client.sessionId, options?.heroType)
     this.state.heroes.set(client.sessionId, hero)
+    logger.info('Player joined', {
+      roomId: this.roomId,
+      playerId: client.sessionId,
+      playerCount: this.state.heroes.size,
+    })
 
     if (this.isSoloMode) {
       // Solo mode: add bot to enemy team, start immediately
@@ -172,9 +181,15 @@ export class GameRoom extends Room<GameRoomState> {
   onLeave(client: Client): void {
     this.state.heroes.delete(client.sessionId)
     this.playerInputs.delete(client.sessionId)
+    logger.info('Player left', {
+      roomId: this.roomId,
+      playerId: client.sessionId,
+      playerCount: this.state.heroes.size,
+    })
   }
 
   onDispose(): void {
+    logger.info('Room disposed', { roomId: this.roomId })
     resetProjectileIdCounter()
     resetTowerProjectileIdCounter()
     this.minionCtx = createMinionSystemContext()

@@ -16,6 +16,7 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "@logtape/logtape": "^2.0.4",
     "colyseus.js": "^0.16.22",
     "phaser": "^3.87.0"
   },
