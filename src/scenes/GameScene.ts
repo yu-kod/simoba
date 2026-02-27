@@ -31,6 +31,7 @@ import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
 import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
 import type { MinionState } from '@shared/entities/Minion'
 import { registerTestApi } from '@/test/e2eTestApi'
+import { GameHud } from '@/scenes/ui/GameHud'
 
 const FREE_CAMERA_SPEED = 400
 
@@ -58,6 +59,7 @@ export class GameScene extends Phaser.Scene {
   private meleeSwing!: MeleeSwingRenderer
   private projectileRenderer!: ProjectileRenderer
   private respawnText!: Phaser.GameObjects.Text
+  private gameHud!: GameHud
   private cameraFollowing = true
   private gameMode!: GameMode
   private localTeam: Team = 'blue'
@@ -156,6 +158,9 @@ export class GameScene extends Phaser.Scene {
     this.respawnText.setDepth(1000)
     this.respawnText.setVisible(false)
 
+    // Game HUD (skill bar, level badge, XP bar, HP bar)
+    this.gameHud = new GameHud(this, CAMERA_ZOOM)
+
     // E2E test API (dev only)
     if (import.meta.env.DEV) {
       registerTestApi(this.entityManager, {
@@ -236,6 +241,10 @@ export class GameScene extends Phaser.Scene {
     this.gameMode.onSceneCreate()
   }
 
+  shutdown(): void {
+    this.gameHud.destroy()
+  }
+
   update(_time: number, delta: number): void {
     if (this.matchEnded) return
 
@@ -257,6 +266,9 @@ export class GameScene extends Phaser.Scene {
 
     // --- Respawn timer UI ---
     this.updateRespawnUI()
+
+    // --- Game HUD ---
+    this.gameHud.update(delta, localHero)
 
     // --- Entity interpolation ---
     const localId = this.entityManager.localHeroId
