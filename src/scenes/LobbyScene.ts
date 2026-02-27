@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH } from '@/config/gameConfig'
+import { createText } from '@/scenes/ui/createText'
 import { NetworkClient } from '@/network/NetworkClient'
 import { OnlineGameMode } from '@/network/OnlineGameMode'
 import type { GameMode } from '@/network/GameMode'
@@ -8,19 +9,19 @@ import type { Team, Position, HeroType } from '@/domain/types'
 
 type LobbyState = 'menu' | 'connecting' | 'waiting' | 'starting' | 'error'
 
-const TITLE_FONT_SIZE = '48px'
-const BUTTON_FONT_SIZE = '28px'
-const STATUS_FONT_SIZE = '24px'
+const TITLE_FONT_SIZE = '96px'
+const BUTTON_FONT_SIZE = '56px'
+const STATUS_FONT_SIZE = '48px'
 const BG_COLOR = '#2d3436'
 const TEXT_COLOR = '#ffffff'
 const BUTTON_COLOR = '#636e72'
 const BUTTON_HOVER_COLOR = '#74b9ff'
-const BUTTON_WIDTH = 320
-const BUTTON_HEIGHT = 56
-const BUTTON_RADIUS = 12
-const HERO_BUTTON_WIDTH = 96
-const HERO_BUTTON_HEIGHT = 48
-const HERO_BUTTON_GAP = 12
+const BUTTON_WIDTH = 640
+const BUTTON_HEIGHT = 112
+const BUTTON_RADIUS = 24
+const HERO_BUTTON_WIDTH = 192
+const HERO_BUTTON_HEIGHT = 96
+const HERO_BUTTON_GAP = 24
 const SELECTED_COLOR = '#74b9ff'
 const HERO_TYPES: readonly HeroType[] = ['BLADE', 'BOLT', 'AURA'] as const
 const GAME_START_DELAY_MS = 1000
@@ -43,14 +44,14 @@ export class LobbyScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(BG_COLOR)
 
     // Title
-    const title = this.add.text(GAME_WIDTH / 2, 140, 'SIMOBA', {
+    const title = createText(this, GAME_WIDTH / 2, 280, 'SIMOBA', {
       fontSize: TITLE_FONT_SIZE,
       color: TEXT_COLOR,
       fontStyle: 'bold',
     })
     title.setOrigin(0.5)
 
-    const subtitle = this.add.text(GAME_WIDTH / 2, 200, '2v2 Micro Arena', {
+    const subtitle = createText(this, GAME_WIDTH / 2, 400, '2v2 Micro Arena', {
       fontSize: STATUS_FONT_SIZE,
       color: '#b2bec3',
     })
@@ -60,25 +61,25 @@ export class LobbyScene extends Phaser.Scene {
     this.menuContainer = this.add.container(0, 0)
 
     // Hero selection label
-    const heroLabel = this.add.text(GAME_WIDTH / 2, 260, 'Select Hero', {
-      fontSize: '20px',
+    const heroLabel = createText(this, GAME_WIDTH / 2, 520, 'Select Hero', {
+      fontSize: '40px',
       color: '#b2bec3',
     })
     heroLabel.setOrigin(0.5)
     this.menuContainer.add(heroLabel)
 
     // Hero selection buttons (horizontal row)
-    this.createHeroSelectionButtons(300, this.menuContainer)
+    this.createHeroSelectionButtons(600, this.menuContainer)
 
     this.createButton(
-      GAME_WIDTH / 2, 370,
+      GAME_WIDTH / 2, 740,
       'Online Battle',
       () => this.startOnline(),
       this.menuContainer
     )
 
     this.createButton(
-      GAME_WIDTH / 2, 440,
+      GAME_WIDTH / 2, 880,
       'Solo Play',
       () => this.startSolo(),
       this.menuContainer
@@ -90,7 +91,7 @@ export class LobbyScene extends Phaser.Scene {
 
     // statusText is a standalone object (not in waitingContainer)
     // so it can remain visible in 'starting' state when waitingContainer is hidden.
-    this.statusText = this.add.text(GAME_WIDTH / 2, 360, '', {
+    this.statusText = createText(this, GAME_WIDTH / 2, 720, '', {
       fontSize: STATUS_FONT_SIZE,
       color: TEXT_COLOR,
       align: 'center',
@@ -99,14 +100,14 @@ export class LobbyScene extends Phaser.Scene {
     this.statusText.setVisible(false)
 
     this.createButton(
-      GAME_WIDTH / 2, 500,
+      GAME_WIDTH / 2, 1000,
       'Cancel',
       () => this.cancelWaiting(),
       this.waitingContainer
     )
 
     // Error text (hidden initially)
-    this.errorText = this.add.text(GAME_WIDTH / 2, 320, '', {
+    this.errorText = createText(this, GAME_WIDTH / 2, 640, '', {
       fontSize: STATUS_FONT_SIZE,
       color: '#e74c3c',
       align: 'center',
@@ -254,8 +255,8 @@ export class LobbyScene extends Phaser.Scene {
       )
       this.heroButtonGraphics.set(ht, bg)
 
-      const text = this.add.text(x, y, ht, {
-        fontSize: '20px',
+      const text = createText(this, x, y, ht, {
+        fontSize: '40px',
         color: TEXT_COLOR,
       })
       text.setOrigin(0.5)
@@ -279,7 +280,7 @@ export class LobbyScene extends Phaser.Scene {
       const startX = GAME_WIDTH / 2 - totalWidth / 2 + HERO_BUTTON_WIDTH / 2
       const i = HERO_TYPES.indexOf(type)
       const x = startX + i * (HERO_BUTTON_WIDTH + HERO_BUTTON_GAP)
-      const y = 300
+      const y = 600
 
       bg.clear()
       bg.fillStyle(Phaser.Display.Color.HexStringToColor(color).color, 1)
@@ -313,7 +314,7 @@ export class LobbyScene extends Phaser.Scene {
       BUTTON_RADIUS
     )
 
-    const text = this.add.text(x, y, label, {
+    const text = createText(this, x, y, label, {
       fontSize: BUTTON_FONT_SIZE,
       color: TEXT_COLOR,
     })

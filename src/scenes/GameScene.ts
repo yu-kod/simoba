@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, GAME_HEIGHT } from '@/config/gameConfig'
+import { createText } from '@/scenes/ui/createText'
 import {
   WORLD_WIDTH,
   WORLD_HEIGHT,
@@ -60,7 +61,7 @@ export class GameScene extends Phaser.Scene {
   private cameraFollowing = true
   private gameMode!: GameMode
   private localTeam: Team = 'blue'
-  private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+  private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
   private localHeroType: HeroType = 'BLADE'
 
   // Match end state
@@ -87,7 +88,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.gameMode = data.gameMode
     this.localTeam = data.localTeam ?? 'blue'
-    this.localSpawnPosition = data.localPosition ?? { x: GAME_WIDTH / 4, y: GAME_HEIGHT / 2 }
+    this.localSpawnPosition = data.localPosition ?? { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
     this.localHeroType = data.heroType ?? 'BLADE'
   }
 
@@ -98,10 +99,16 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
+    // Zoom camera so the viewport covers the same game area as the base 1280x720 design.
+    // The canvas buffer is 2560x1440 for sharp rendering; zoom keeps gameplay feel identical.
+    const BASE_WIDTH = 1280
+    const CAMERA_ZOOM = GAME_WIDTH / BASE_WIDTH
+    this.cameras.main.setZoom(CAMERA_ZOOM)
+
     // Entity manager with local hero placeholder
     this.entityManager = new EntityManager(
       { id: 'player-1', type: this.localHeroType, team: this.localTeam, position: this.localSpawnPosition },
-      { id: 'enemy-1', type: 'BLADE', team: this.localTeam === 'blue' ? 'red' : 'blue', position: { x: GAME_WIDTH / 4 + 200, y: GAME_HEIGHT / 2 } }
+      { id: 'enemy-1', type: 'BLADE', team: this.localTeam === 'blue' ? 'red' : 'blue', position: { x: GAME_WIDTH / 4 + 200, y: WORLD_HEIGHT / 2 } }
     )
 
     // Towers (placeholders — server provides real towers)
@@ -137,7 +144,7 @@ export class GameScene extends Phaser.Scene {
     this.inputHandler = new InputHandler(this)
 
     // Respawn timer UI (fixed to camera, centered)
-    this.respawnText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, '', {
+    this.respawnText = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, '', {
       fontSize: '48px',
       color: '#ffffff',
       stroke: '#000000',
@@ -592,15 +599,17 @@ export class GameScene extends Phaser.Scene {
   private updateFreeCamera(movement: { x: number; y: number }, deltaSeconds: number): void {
     if (movement.x === 0 && movement.y === 0) return
     const cam = this.cameras.main
+    const viewWidth = GAME_WIDTH / cam.zoom
+    const viewHeight = GAME_HEIGHT / cam.zoom
     cam.scrollX = Phaser.Math.Clamp(
       cam.scrollX + movement.x * FREE_CAMERA_SPEED * deltaSeconds,
       0,
-      WORLD_WIDTH - GAME_WIDTH
+      Math.max(0, WORLD_WIDTH - viewWidth)
     )
     cam.scrollY = Phaser.Math.Clamp(
       cam.scrollY + movement.y * FREE_CAMERA_SPEED * deltaSeconds,
       0,
-      WORLD_HEIGHT - GAME_HEIGHT
+      Math.max(0, WORLD_HEIGHT - viewHeight)
     )
   }
 
@@ -634,7 +643,7 @@ export class GameScene extends Phaser.Scene {
     overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
     // Result text
-    const text = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, resultText, {
+    const text = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, resultText, {
       fontSize: '72px',
       color: resultColor,
       stroke: '#000000',
@@ -647,7 +656,7 @@ export class GameScene extends Phaser.Scene {
     text.setDepth(2001)
 
     // "Back to Lobby" button
-    const buttonText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'Back to Lobby', {
+    const buttonText = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'Back to Lobby', {
       fontSize: '32px',
       color: '#FFFFFF',
       stroke: '#000000',

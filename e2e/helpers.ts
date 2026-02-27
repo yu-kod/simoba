@@ -27,22 +27,23 @@ export type TestWindow = { __test__: TestApi }
 // Game constants — duplicated from src/config/gameConfig.ts and src/domain/constants.ts.
 // E2E tests run in Playwright (Node.js) and cannot import Vite-bundled game modules.
 // If these values change in the source, update here too.
-const GAME_WIDTH = 1280
-const GAME_HEIGHT = 720
+const GAME_WIDTH = 2560
+const GAME_HEIGHT = 1440
 const WORLD_WIDTH = 3200
 const WORLD_HEIGHT = 720
+const CAMERA_ZOOM = 2 // GameScene camera zoom (must match GameScene.ts)
 
 // Lobby button positions (must match LobbyScene layout)
-// Online Battle: y=370, Solo Play: y=440
-const SOLO_PLAY_BUTTON = { x: 640, y: 440 }
+// Online Battle: y=740, Solo Play: y=880
+const SOLO_PLAY_BUTTON = { x: 1280, y: 880 }
 
-// Hero selection button positions (y=300, horizontal row centered at GAME_WIDTH/2)
-// HERO_BUTTON_WIDTH=96, HERO_BUTTON_GAP=12, 3 buttons
-const HERO_BUTTON_Y = 300
+// Hero selection button positions (y=600, horizontal row centered at GAME_WIDTH/2)
+// HERO_BUTTON_WIDTH=192, HERO_BUTTON_GAP=24, 3 buttons
+const HERO_BUTTON_Y = 600
 const HERO_BUTTON_POSITIONS: Record<string, { x: number; y: number }> = {
-  BLADE: { x: 532, y: HERO_BUTTON_Y },
-  BOLT: { x: 640, y: HERO_BUTTON_Y },
-  AURA: { x: 748, y: HERO_BUTTON_Y },
+  BLADE: { x: 1064, y: HERO_BUTTON_Y },
+  BOLT: { x: 1280, y: HERO_BUTTON_Y },
+  AURA: { x: 1496, y: HERO_BUTTON_Y },
 }
 
 type GameWindow = {
@@ -146,15 +147,19 @@ export async function rightClickOnEnemy(page: Page, canvas: Locator): Promise<vo
   if (!bounds) throw new Error('Canvas not found')
 
   // Approximate camera scroll (camera follows hero, clamped to world bounds)
-  const cameraScrollX = Math.max(0, Math.min(positions.hero.x - GAME_WIDTH / 2, WORLD_WIDTH - GAME_WIDTH))
-  const cameraScrollY = Math.max(0, Math.min(positions.hero.y - GAME_HEIGHT / 2, WORLD_HEIGHT - GAME_HEIGHT))
+  // With zoom, the visible viewport in world-space is GAME_WIDTH/zoom × GAME_HEIGHT/zoom
+  const viewWidth = GAME_WIDTH / CAMERA_ZOOM
+  const viewHeight = GAME_HEIGHT / CAMERA_ZOOM
+  const cameraScrollX = Math.max(0, Math.min(positions.hero.x - viewWidth / 2, WORLD_WIDTH - viewWidth))
+  const cameraScrollY = Math.max(0, Math.min(positions.hero.y - viewHeight / 2, WORLD_HEIGHT - viewHeight))
 
   // Scale factor: Phaser Scale.FIT maps logical pixels to actual canvas size
+  // World-to-screen needs zoom factor: world coords → zoomed canvas → CSS pixels
   const scaleX = bounds.width / GAME_WIDTH
   const scaleY = bounds.height / GAME_HEIGHT
 
-  const screenX = bounds.x + (positions.enemy.x - cameraScrollX) * scaleX
-  const screenY = bounds.y + (positions.enemy.y - cameraScrollY) * scaleY
+  const screenX = bounds.x + (positions.enemy.x - cameraScrollX) * CAMERA_ZOOM * scaleX
+  const screenY = bounds.y + (positions.enemy.y - cameraScrollY) * CAMERA_ZOOM * scaleY
 
   await page.mouse.click(screenX, screenY, { button: 'right' })
 }

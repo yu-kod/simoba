@@ -10,12 +10,12 @@ import { GAME_WIDTH, GAME_HEIGHT, gameConfig } from '@/config/gameConfig'
 
 describe('gameConfig', () => {
   describe('resolution', () => {
-    it('should have width of 1280', () => {
-      expect(GAME_WIDTH).toBe(1280)
+    it('should have width of 2560', () => {
+      expect(GAME_WIDTH).toBe(2560)
     })
 
-    it('should have height of 720', () => {
-      expect(GAME_HEIGHT).toBe(720)
+    it('should have height of 1440', () => {
+      expect(GAME_HEIGHT).toBe(1440)
     })
 
     it('should use GAME_WIDTH and GAME_HEIGHT in config', () => {
