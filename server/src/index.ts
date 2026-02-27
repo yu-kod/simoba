@@ -4,6 +4,12 @@ import cors from 'cors'
 import { Server } from '@colyseus/core'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { GameRoom } from './rooms/GameRoom.js'
+import { setupServerLogging } from './config/logging.js'
+import { createServerLogger } from '@shared/logging'
+
+await setupServerLogging()
+
+const logger = createServerLogger('system')
 
 const PORT = Number(process.env.PORT) || 2567
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
@@ -31,6 +37,5 @@ const gameServer = new Server({
 gameServer.define('game', GameRoom)
 
 gameServer.listen(PORT).then(() => {
-  // eslint-disable-next-line no-console
-  console.log(`Colyseus server listening on ws://localhost:${PORT}`)
+  logger.info('Colyseus server listening', { port: PORT })
 })
