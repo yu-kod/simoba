@@ -18,5 +18,7 @@ export class HeroSchema extends CombatEntitySchema {
   @type('float32') respawnTimer: number = 0
   @type('uint32') lastProcessedSeq: number = 0
   @type('uint32') xp: number = 0
+  @type('uint8') level: number = 1
+  @type('uint8') talentPoints: number = 0
   @type('boolean') isBot: boolean = false
 }

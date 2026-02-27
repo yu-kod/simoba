@@ -119,6 +119,9 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('radius', schedule)
       $(hero).listen('respawnTimer', schedule)
       $(hero).listen('lastProcessedSeq', schedule)
+      $(hero).listen('xp', schedule)
+      $(hero).listen('level', schedule)
+      $(hero).listen('talentPoints', schedule)
     })
 
     $(this.room.state.heroes).onRemove((_hero: SchemaInstance, sessionId: string) => {
@@ -210,6 +213,9 @@ export class OnlineGameMode implements GameMode {
       attackCooldown: hero.attackCooldown as number,
       respawnTimer: hero.respawnTimer as number,
       lastProcessedSeq: hero.lastProcessedSeq as number,
+      xp: hero.xp as number,
+      level: hero.level as number,
+      talentPoints: hero.talentPoints as number,
     }
     for (const cb of this.serverHeroUpdateCallbacks) cb(state)
   }

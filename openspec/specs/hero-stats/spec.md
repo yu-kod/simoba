@@ -34,11 +34,11 @@
 - **THEN** AURA 固有のベースステータス（中 HP、低攻撃力、中距離攻撃範囲、中速度）と成長量が返され、`canMoveWhileAttacking` は `false` である
 
 ### Requirement: HeroState の拡張
-HeroState に `stats: StatBlock`（実効ステータス）と `facing: number`（ラジアン角度）と `attackCooldown: number`（次の攻撃まで残り秒数）と `attackTargetId: string | null`（現在のターゲット ID）を持たなければならない（SHALL）。`stats` は試合中にバフ・レベルアップ等で変動する現在値を保持する。
+HeroState に `stats: StatBlock`（実効ステータス）と `facing: number`（ラジアン角度）と `attackCooldown: number`（次の攻撃まで残り秒数）と `attackTargetId: string | null`（現在のターゲット ID）と `talentPoints: number`（未使用タレントポイント数、初期値 0）を持たなければならない（SHALL）。`stats` は試合中にバフ・レベルアップ等で変動する現在値を保持する。
 
 #### Scenario: createHeroState で初期状態を生成する
 - **WHEN** `createHeroState({ id, type: 'BLADE', team: 'blue', position })` を呼ぶ
-- **THEN** `stats` は `HERO_DEFINITIONS['BLADE'].base` と同じ値で初期化され、`facing` は 0、`attackCooldown` は 0、`attackTargetId` は `null` で初期化される
+- **THEN** `stats` は `HERO_DEFINITIONS['BLADE'].base` と同じ値で初期化され、`facing` は 0、`attackCooldown` は 0、`attackTargetId` は `null`、`talentPoints` は 0 で初期化される
 
 #### Scenario: 実効ステータスがイミュータブルに更新される
 - **WHEN** ヒーローの移動速度がバフで変更される

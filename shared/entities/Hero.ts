@@ -82,6 +82,7 @@ export interface HeroState extends AttackerEntityState {
   readonly type: HeroType
   readonly level: number
   readonly xp: number
+  readonly talentPoints: number
   /** Seconds remaining until respawn (0 = alive or ready to respawn) */
   readonly respawnTimer: number
   /** Position where the hero died (reserved for custom respawn logic — Issue #84) */
@@ -110,6 +111,7 @@ export function createHeroState(params: CreateHeroParams): HeroState {
     radius: definition.radius,
     level: 1,
     xp: 0,
+    talentPoints: 0,
     stats,
     facing: 0,
     attackCooldown: 0,

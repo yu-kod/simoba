@@ -1,5 +1,6 @@
 import { MapSchema } from '@colyseus/schema'
 import { isInAttackRange } from '@shared/combat'
+import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { MELEE_MINION, RANGED_MINION } from '@shared/entities/Minion'
 import {
   MINION_WAVE_INTERVAL,
@@ -15,6 +16,8 @@ import {
   RANGED_Y,
   getWaveConfig,
 } from '@shared/constants'
+import type { HeroType } from '@shared/types'
+import { computeLevelUp } from '@shared/systems/levelUp'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
@@ -430,6 +433,29 @@ function separateTeam(team: MinionSchema[]): void {
   }
 }
 
+// --- Stats Growth ---
+
+/** Recalculate hero stats from base + growth * (level - 1). Mutates the HeroSchema. */
+export function applyStatsGrowth(hero: HeroSchema, newLevel: number): void {
+  const def = HERO_DEFINITIONS[hero.heroType as HeroType]
+  if (!def) {
+    throw new Error(`Unknown heroType: "${hero.heroType}"`)
+  }
+  const prevMaxHp = hero.maxHp
+
+  hero.maxHp = Math.round(def.base.maxHp + def.growth.maxHp * (newLevel - 1))
+  hero.speed = def.base.speed + def.growth.speed * (newLevel - 1)
+  hero.attackDamage = Math.round(def.base.attackDamage + def.growth.attackDamage * (newLevel - 1))
+  hero.attackRange = def.base.attackRange + def.growth.attackRange * (newLevel - 1)
+  hero.attackSpeed = def.base.attackSpeed + def.growth.attackSpeed * (newLevel - 1)
+
+  // Increase current HP by the same amount maxHp grew (prevent level-up death)
+  const hpGain = hero.maxHp - prevMaxHp
+  if (hpGain > 0) {
+    hero.hp = Math.min(hero.hp + hpGain, hero.maxHp)
+  }
+}
+
 // --- Death + XP Distribution ---
 
 export function processMinionDeaths(
@@ -462,6 +488,12 @@ export function processMinionDeaths(
         const xpEach = Math.floor(MINION_XP_REWARD / eligibleHeroes.length)
         for (const hero of eligibleHeroes) {
           hero.xp = hero.xp + xpEach
+          const { newLevel, levelsGained } = computeLevelUp(hero.level, hero.xp)
+          if (levelsGained > 0) {
+            hero.level = newLevel
+            hero.talentPoints = hero.talentPoints + levelsGained
+            applyStatsGrowth(hero, newLevel)
+          }
         }
       }
 

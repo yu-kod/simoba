@@ -16,6 +16,9 @@ export interface ServerHeroState {
   readonly attackCooldown: number
   readonly respawnTimer: number
   readonly lastProcessedSeq: number
+  readonly xp: number
+  readonly level: number
+  readonly talentPoints: number
 }
 
 /** Server-synced projectile for rendering */
