@@ -27,22 +27,22 @@ export type TestWindow = { __test__: TestApi }
 // Game constants — duplicated from src/config/gameConfig.ts and src/domain/constants.ts.
 // E2E tests run in Playwright (Node.js) and cannot import Vite-bundled game modules.
 // If these values change in the source, update here too.
-const GAME_WIDTH = 1280
-const GAME_HEIGHT = 720
+const GAME_WIDTH = 2560
+const GAME_HEIGHT = 1440
 const WORLD_WIDTH = 3200
 const WORLD_HEIGHT = 720
 
 // Lobby button positions (must match LobbyScene layout)
-// Online Battle: y=370, Solo Play: y=440
-const SOLO_PLAY_BUTTON = { x: 640, y: 440 }
+// Online Battle: y=740, Solo Play: y=880
+const SOLO_PLAY_BUTTON = { x: 1280, y: 880 }
 
-// Hero selection button positions (y=300, horizontal row centered at GAME_WIDTH/2)
-// HERO_BUTTON_WIDTH=96, HERO_BUTTON_GAP=12, 3 buttons
-const HERO_BUTTON_Y = 300
+// Hero selection button positions (y=600, horizontal row centered at GAME_WIDTH/2)
+// HERO_BUTTON_WIDTH=192, HERO_BUTTON_GAP=24, 3 buttons
+const HERO_BUTTON_Y = 600
 const HERO_BUTTON_POSITIONS: Record<string, { x: number; y: number }> = {
-  BLADE: { x: 532, y: HERO_BUTTON_Y },
-  BOLT: { x: 640, y: HERO_BUTTON_Y },
-  AURA: { x: 748, y: HERO_BUTTON_Y },
+  BLADE: { x: 1064, y: HERO_BUTTON_Y },
+  BOLT: { x: 1280, y: HERO_BUTTON_Y },
+  AURA: { x: 1496, y: HERO_BUTTON_Y },
 }
 
 type GameWindow = {
