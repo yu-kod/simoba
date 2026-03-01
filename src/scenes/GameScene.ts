@@ -461,6 +461,9 @@ export class GameScene extends Phaser.Scene {
       dead: state.dead,
       attackTargetId: state.attackTargetId || null,
       respawnTimer: state.respawnTimer,
+      xp: state.xp,
+      level: state.level,
+      talentPoints: state.talentPoints,
     }))
   }
 
