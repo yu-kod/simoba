@@ -9,6 +9,9 @@ export interface LevelUpResult {
  * Compute the new level based on current level and total XP.
  * Iterates through XP_THRESHOLDS to find the highest level the XP qualifies for.
  * Caps at MAX_LEVEL.
+ *
+ * Index-to-level mapping: XP_THRESHOLDS[i] is the cumulative XP required to
+ * reach level i+1. e.g. XP_THRESHOLDS[1]=100 means 100 XP → level 2.
  */
 export function computeLevelUp(currentLevel: number, xp: number): LevelUpResult {
   const clamped = Math.max(1, Math.min(currentLevel, MAX_LEVEL))

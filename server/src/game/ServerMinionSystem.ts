@@ -14,6 +14,7 @@ import {
   RED_RANGED_X,
   MELEE_Y_OFFSETS,
   RANGED_Y,
+  MAX_LEVEL,
   getWaveConfig,
 } from '@shared/constants'
 import type { HeroType } from '@shared/types'
@@ -437,6 +438,9 @@ function separateTeam(team: MinionSchema[]): void {
 
 /** Recalculate hero stats from base + growth * (level - 1). Mutates the HeroSchema. */
 export function applyStatsGrowth(hero: HeroSchema, newLevel: number): void {
+  if (newLevel < 1 || newLevel > MAX_LEVEL) {
+    throw new Error(`applyStatsGrowth: newLevel ${newLevel} out of range`)
+  }
   const def = HERO_DEFINITIONS[hero.heroType as HeroType]
   if (!def) {
     throw new Error(`Unknown heroType: "${hero.heroType}"`)
