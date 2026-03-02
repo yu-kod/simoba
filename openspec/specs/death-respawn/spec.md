@@ -104,17 +104,22 @@
 
 ### Requirement: Configurable respawn time
 
-リスポーン時間は関数引数として外部から渡せる構造とする。デフォルト値は `DEFAULT_RESPAWN_TIME`（5秒）定数を使用する。
+リスポーン時間はヒーローのレベルに応じて `computeRespawnTime(hero.level)` で算出しなければならない（SHALL）。`DEFAULT_RESPAWN_TIME` 定数は使用しない。
 
-#### Scenario: Default respawn time
+#### Scenario: レベル1ヒーローの死亡
 
-- **WHEN** リスポーン時間が明示的に指定されていない
-- **THEN** `DEFAULT_RESPAWN_TIME`（5秒）が使用される
+- **WHEN** レベル1のヒーローが死亡する
+- **THEN** `respawnTimer` に 3秒がセットされる
 
-#### Scenario: Custom respawn time
+#### Scenario: レベル5ヒーローの死亡
 
-- **WHEN** リスポーン時間が引数で指定される
-- **THEN** 指定された秒数が `respawnTimer` にセットされる
+- **WHEN** レベル5のヒーローが死亡する
+- **THEN** `respawnTimer` に 15秒がセットされる
+
+#### Scenario: レベルアップ後の死亡
+
+- **WHEN** レベル3のヒーローが死亡する
+- **THEN** `respawnTimer` に 8秒がセットされる（死亡時点のレベルで算出）
 
 ### Requirement: Free camera during death
 

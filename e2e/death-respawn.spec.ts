@@ -42,7 +42,7 @@ test.describe('Death and Respawn', () => {
     expect(deadState.dead).toBe(true)
     expect(deadState.hp).toBeLessThanOrEqual(0)
 
-    // Wait for enemy to respawn (DEFAULT_RESPAWN_TIME = 5s)
+    // Wait for enemy to respawn (level-dependent: Lv1 = 3s, see RESPAWN_TIMES)
     await page.waitForFunction(
       () => !((window as unknown as TestWindow).__test__.getEnemyDead()),
       { timeout: 10000 }
