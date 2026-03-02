@@ -28,6 +28,11 @@ playwright-report/
 .claude/
 .serena/
 
+# Screenshots / images (ad-hoc debug captures)
+*.png
+*.jpg
+*.jpeg
+
 # OS
 .DS_Store
 Thumbs.db

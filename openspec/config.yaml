@@ -7,7 +7,7 @@ context: |
   Language: TypeScript
   Max match duration: 5 minutes
   No account required, instant play
-  Phase 1: Bot-only (no backend), static hosting only
+  Phase 1: Online-first — Colyseus server + Phaser.js client
   Visual style: Geometric (.io style), Canvas-only, no image assets
 
 rules:
