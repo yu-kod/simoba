@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema'
-import { DEFAULT_RESPAWN_TIME } from '@shared/constants'
+import { computeRespawnTime } from '@shared/systems/respawnTimer'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 
@@ -25,7 +25,7 @@ export function processDeathAndRespawn(
     // Death detection — applyDamage() already sets dead=true when hp reaches 0,
     // so we detect newly dead heroes by dead=true with no respawn timer yet.
     if (hero.dead && hero.respawnTimer <= 0 && hero.hp <= 0) {
-      hero.respawnTimer = DEFAULT_RESPAWN_TIME
+      hero.respawnTimer = computeRespawnTime(hero.level)
       hero.attackTargetId = ''
       hero.attackCooldown = 0
 

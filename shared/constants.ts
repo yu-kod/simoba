@@ -19,7 +19,9 @@ export const ULTIMATE_ENHANCE_LEVEL = 5
 export const DODGE_COOLDOWN = 10 // seconds
 
 // Respawn
-export const DEFAULT_RESPAWN_TIME = 5 // seconds
+export const DEFAULT_RESPAWN_TIME = 5 // seconds (legacy fallback)
+/** Respawn time per level (seconds). Index = level. Lv1=3s … Lv5=15s. */
+export const RESPAWN_TIMES = [0, 3, 5, 8, 12, 15] as const
 
 // Camera (client-only but harmless to share)
 export const CAMERA_LERP = 0.1

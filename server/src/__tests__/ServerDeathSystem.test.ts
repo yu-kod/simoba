@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
-import { DEFAULT_RESPAWN_TIME } from '@shared/constants'
+import { RESPAWN_TIMES } from '@shared/constants'
 
 function createHero(id: string, overrides: Partial<Record<keyof HeroSchema, unknown>> = {}): HeroSchema {
   const hero = new HeroSchema()
@@ -42,14 +42,14 @@ describe('ServerDeathSystem', () => {
   })
 
   describe('processDeathAndRespawn', () => {
-    it('should set respawn timer for newly dead hero', () => {
+    it('should set respawn timer for newly dead hero based on level', () => {
       const hero = createLethalHero('hero-1')
       heroes.set('hero-1', hero)
 
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
       expect(hero.dead).toBe(true)
-      expect(hero.respawnTimer).toBe(DEFAULT_RESPAWN_TIME)
+      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[1]) // Level 1 = 3s
     })
 
     it('should clear attack state on death', () => {
@@ -164,9 +164,36 @@ describe('ServerDeathSystem', () => {
 
       expect(alive.dead).toBe(false)
       expect(dying.dead).toBe(true)
-      expect(dying.respawnTimer).toBe(DEFAULT_RESPAWN_TIME)
+      expect(dying.respawnTimer).toBe(RESPAWN_TIMES[1]) // Level 1 = 3s
       expect(dead.dead).toBe(true)
       expect(dead.respawnTimer).toBeCloseTo(2.0, 2)
+    })
+
+    it('should use level-dependent respawn time for level 1 hero', () => {
+      const hero = createLethalHero('hero-1', { level: 1 })
+      heroes.set('hero-1', hero)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[1]) // 3s
+    })
+
+    it('should use level-dependent respawn time for level 3 hero', () => {
+      const hero = createLethalHero('hero-1', { level: 3 })
+      heroes.set('hero-1', hero)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[3]) // 8s
+    })
+
+    it('should use level-dependent respawn time for level 5 hero', () => {
+      const hero = createLethalHero('hero-1', { level: 5 })
+      heroes.set('hero-1', hero)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[5]) // 15s
     })
   })
 })
