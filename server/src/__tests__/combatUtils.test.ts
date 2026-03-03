@@ -41,15 +41,15 @@ describe('applyDamageToTarget — lastAttackerSessionId tracking', () => {
     expect(target.lastAttackerSessionId).toBe('')
   })
 
-  it('does not update lastAttackerSessionId for tower damage (empty attackerSessionId)', () => {
+  it('overwrites lastAttackerSessionId with tower ID on tower projectile hit (no XP because tower ID not in heroes map)', () => {
     const heroes = new MapSchema<HeroSchema>()
     const towers = new MapSchema<TowerSchema>()
     const target = createHero({ team: 'red', lastAttackerSessionId: 'prev-attacker' })
     heroes.set('target', target)
 
-    applyDamageToTarget('target', 50, heroes, towers, undefined, '')
+    applyDamageToTarget('target', 50, heroes, towers, undefined, 'tower-blue-1')
 
-    expect(target.lastAttackerSessionId).toBe('prev-attacker')
+    expect(target.lastAttackerSessionId).toBe('tower-blue-1')
   })
 
   it('overwrites previous attacker when a new hero deals damage', () => {

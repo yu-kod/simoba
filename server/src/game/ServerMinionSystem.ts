@@ -1,6 +1,5 @@
 import { MapSchema } from '@colyseus/schema'
 import { isInAttackRange } from '@shared/combat'
-import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { MELEE_MINION, RANGED_MINION } from '@shared/entities/Minion'
 import {
   MINION_WAVE_INTERVAL,
@@ -14,10 +13,8 @@ import {
   RED_RANGED_X,
   MELEE_Y_OFFSETS,
   RANGED_Y,
-  MAX_LEVEL,
   getWaveConfig,
 } from '@shared/constants'
-import type { HeroType } from '@shared/types'
 import { grantXpAndLevelUp } from './xpUtils.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { HeroSchema } from '../schema/HeroSchema.js'

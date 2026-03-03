@@ -288,17 +288,14 @@ describe('ServerDeathSystem', () => {
 
     it('should handle multi-level jump from kill XP', () => {
       const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
-      // Set XP so that kill reward pushes past level 3 threshold (600)
+      // XP_THRESHOLDS = [0, 100, 300, 600, 1000]
+      // killer starts at xp=150, after +150 reward = 300 → exactly lv3
       const killer = createHero('killer', {
         team: 'blue',
-        xp: XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD + 150, // 300 - 150 + 150 = 300 → exactly lv3
+        xp: XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD, // 300 - 150 = 150
         level: 1,
         heroType: 'BLADE',
       })
-      // Recalculate: killer starts with xp that after +150 reaches 300+ for lv3
-      // XP_THRESHOLDS = [0, 100, 300, 600, 1000]
-      // Set killer xp = 150, after +150 = 300 → lv3
-      killer.xp = XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD // 300 - 150 = 150
       heroes.set('victim', victim)
       heroes.set('killer', killer)
 
