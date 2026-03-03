@@ -21,4 +21,6 @@ export class HeroSchema extends CombatEntitySchema {
   @type('uint8') level: number = 1
   @type('uint8') talentPoints: number = 0
   @type('boolean') isBot: boolean = false
+  // Server-only: not synced to clients (no @type decorator)
+  lastAttackerSessionId: string = ''
 }

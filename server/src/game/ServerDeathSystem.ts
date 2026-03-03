@@ -1,7 +1,9 @@
 import { MapSchema } from '@colyseus/schema'
 import { computeRespawnTime } from '@shared/systems/respawnTimer'
+import { HERO_KILL_XP_REWARD } from '@shared/constants'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
+import { grantXpAndLevelUp } from './xpUtils.js'
 
 interface SpawnPosition {
   readonly x: number
@@ -11,6 +13,7 @@ interface SpawnPosition {
 /**
  * Process death detection and respawn for all heroes in one tick.
  * - If hp <= 0 and not yet dead, mark dead and start respawn timer.
+ *   Also grants kill XP to the last attacker if applicable.
  * - If dead, decrement timer. When timer expires, respawn at team spawn.
  * Returns DeathEvents for broadcasting to clients.
  */
@@ -28,6 +31,14 @@ export function processDeathAndRespawn(
       hero.respawnTimer = computeRespawnTime(hero.level)
       hero.attackTargetId = ''
       hero.attackCooldown = 0
+
+      // Grant kill XP to last attacker (if it's a valid hero)
+      if (hero.lastAttackerSessionId !== '') {
+        const killer = heroes.get(hero.lastAttackerSessionId)
+        if (killer) {
+          grantXpAndLevelUp(killer, HERO_KILL_XP_REWARD)
+        }
+      }
 
       events.push({
         kind: 'death',
@@ -53,6 +64,7 @@ export function processDeathAndRespawn(
         hero.y = spawn.y
         hero.attackTargetId = ''
         hero.attackCooldown = 0
+        hero.lastAttackerSessionId = ''
 
         events.push({
           kind: 'death',

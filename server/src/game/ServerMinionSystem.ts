@@ -18,7 +18,7 @@ import {
   getWaveConfig,
 } from '@shared/constants'
 import type { HeroType } from '@shared/types'
-import { computeLevelUp } from '@shared/systems/levelUp'
+import { grantXpAndLevelUp } from './xpUtils.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
@@ -361,6 +361,8 @@ function applyDamageById(
   const hero = heroes.get(targetId)
   if (hero) {
     hero.applyDamage(damage)
+    // Clear hero kill credit — minion damage should not award XP to any hero
+    hero.lastAttackerSessionId = ''
     return
   }
   const tower = towers.get(targetId)
@@ -434,32 +436,6 @@ function separateTeam(team: MinionSchema[]): void {
   }
 }
 
-// --- Stats Growth ---
-
-/** Recalculate hero stats from base + growth * (level - 1). Mutates the HeroSchema. */
-export function applyStatsGrowth(hero: HeroSchema, newLevel: number): void {
-  if (newLevel < 1 || newLevel > MAX_LEVEL) {
-    throw new Error(`applyStatsGrowth: newLevel ${newLevel} out of range`)
-  }
-  const def = HERO_DEFINITIONS[hero.heroType as HeroType]
-  if (!def) {
-    throw new Error(`Unknown heroType: "${hero.heroType}"`)
-  }
-  const prevMaxHp = hero.maxHp
-
-  hero.maxHp = Math.round(def.base.maxHp + def.growth.maxHp * (newLevel - 1))
-  hero.speed = def.base.speed + def.growth.speed * (newLevel - 1)
-  hero.attackDamage = Math.round(def.base.attackDamage + def.growth.attackDamage * (newLevel - 1))
-  hero.attackRange = def.base.attackRange + def.growth.attackRange * (newLevel - 1)
-  hero.attackSpeed = def.base.attackSpeed + def.growth.attackSpeed * (newLevel - 1)
-
-  // Increase current HP by the same amount maxHp grew (prevent level-up death)
-  const hpGain = hero.maxHp - prevMaxHp
-  if (hpGain > 0) {
-    hero.hp = Math.min(hero.hp + hpGain, hero.maxHp)
-  }
-}
-
 // --- Death + XP Distribution ---
 
 export function processMinionDeaths(
@@ -491,13 +467,7 @@ export function processMinionDeaths(
       if (eligibleHeroes.length > 0) {
         const xpEach = Math.floor(MINION_XP_REWARD / eligibleHeroes.length)
         for (const hero of eligibleHeroes) {
-          hero.xp = hero.xp + xpEach
-          const { newLevel, levelsGained } = computeLevelUp(hero.level, hero.xp)
-          if (levelsGained > 0) {
-            hero.level = newLevel
-            hero.talentPoints = hero.talentPoints + levelsGained
-            applyStatsGrowth(hero, newLevel)
-          }
+          grantXpAndLevelUp(hero, xpEach)
         }
       }
 

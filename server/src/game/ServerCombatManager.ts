@@ -123,7 +123,7 @@ export function processHeroCombat(
 
     if (def.projectileSpeed === 0) {
       // Melee: immediate damage
-      applyDamageToTarget(hero.attackTargetId, hero.attackDamage, heroes, towers, minions)
+      applyDamageToTarget(hero.attackTargetId, hero.attackDamage, heroes, towers, minions, heroId)
 
       events.push({
         kind: 'attack',

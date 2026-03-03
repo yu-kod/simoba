@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
-import { RESPAWN_TIMES } from '@shared/constants'
+import { RESPAWN_TIMES, HERO_KILL_XP_REWARD, XP_THRESHOLDS } from '@shared/constants'
 
 function createHero(id: string, overrides: Partial<Record<keyof HeroSchema, unknown>> = {}): HeroSchema {
   const hero = new HeroSchema()
@@ -194,6 +194,119 @@ describe('ServerDeathSystem', () => {
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
       expect(hero.respawnTimer).toBe(RESPAWN_TIMES[5]) // 15s
+    })
+  })
+
+  describe('hero kill XP', () => {
+    it('should grant HERO_KILL_XP_REWARD to killer on hero death', () => {
+      const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
+      const killer = createHero('killer', { team: 'blue', xp: 0, level: 1 })
+      heroes.set('victim', victim)
+      heroes.set('killer', killer)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(killer.xp).toBe(HERO_KILL_XP_REWARD)
+    })
+
+    it('should level up killer when kill XP pushes past threshold', () => {
+      const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
+      const killer = createHero('killer', {
+        team: 'blue',
+        xp: 0,
+        level: 1,
+        heroType: 'BLADE',
+      })
+      heroes.set('victim', victim)
+      heroes.set('killer', killer)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      // HERO_KILL_XP_REWARD=150 > XP_THRESHOLDS[1]=100 → level 2
+      expect(killer.xp).toBe(HERO_KILL_XP_REWARD)
+      expect(killer.level).toBe(2)
+      expect(killer.talentPoints).toBe(1)
+    })
+
+    it('should not grant XP when lastAttackerSessionId is empty (tower/minion kill)', () => {
+      const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: '' })
+      heroes.set('victim', victim)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      // No other hero should have XP changed
+      heroes.forEach((hero) => {
+        if (hero !== victim) {
+          expect(hero.xp).toBe(0)
+        }
+      })
+    })
+
+    it('should not grant XP when killer has disconnected (not in heroes map)', () => {
+      const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'disconnected-player' })
+      heroes.set('victim', victim)
+
+      // Should not throw
+      const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(events).toHaveLength(1)
+      expect(events[0]?.event).toMatchObject({ type: 'death' })
+    })
+
+    it('should grant XP even if killer is also dead', () => {
+      const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
+      const killer = createHero('killer', {
+        team: 'blue',
+        dead: true,
+        hp: 0,
+        respawnTimer: 5.0,
+        xp: 0,
+        level: 1,
+      })
+      heroes.set('victim', victim)
+      heroes.set('killer', killer)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(killer.xp).toBe(HERO_KILL_XP_REWARD)
+    })
+
+    it('should reset lastAttackerSessionId on respawn', () => {
+      const hero = createHero('hero-1', {
+        dead: true,
+        hp: 0,
+        respawnTimer: 0.1,
+        lastAttackerSessionId: 'some-attacker',
+      })
+      heroes.set('hero-1', hero)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 1.0)
+
+      expect(hero.dead).toBe(false)
+      expect(hero.lastAttackerSessionId).toBe('')
+    })
+
+    it('should handle multi-level jump from kill XP', () => {
+      const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
+      // Set XP so that kill reward pushes past level 3 threshold (600)
+      const killer = createHero('killer', {
+        team: 'blue',
+        xp: XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD + 150, // 300 - 150 + 150 = 300 → exactly lv3
+        level: 1,
+        heroType: 'BLADE',
+      })
+      // Recalculate: killer starts with xp that after +150 reaches 300+ for lv3
+      // XP_THRESHOLDS = [0, 100, 300, 600, 1000]
+      // Set killer xp = 150, after +150 = 300 → lv3
+      killer.xp = XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD // 300 - 150 = 150
+      heroes.set('victim', victim)
+      heroes.set('killer', killer)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(killer.xp).toBe(XP_THRESHOLDS[2]) // 300
+      expect(killer.level).toBe(3)
+      expect(killer.talentPoints).toBe(2) // 1→3 = +2
     })
   })
 })
