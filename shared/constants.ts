@@ -23,6 +23,15 @@ export const DEFAULT_RESPAWN_TIME = 5 // seconds (legacy fallback)
 /** Respawn time per level (seconds). Index = level. Lv1=3s … Lv5=15s. */
 export const RESPAWN_TIMES = [0, 3, 5, 8, 12, 15] as const
 
+// Map layout — base areas (the colored rectangles at each end)
+export const BASE_WIDTH = 120
+export const BASE_HEIGHT = 160
+export const BASE_Y = (WORLD_HEIGHT - BASE_HEIGHT) / 2
+export const BASES = {
+  blue: { x: 0, y: BASE_Y, width: BASE_WIDTH, height: BASE_HEIGHT },
+  red: { x: WORLD_WIDTH - BASE_WIDTH, y: BASE_Y, width: BASE_WIDTH, height: BASE_HEIGHT },
+} as const
+
 // Camera (client-only but harmless to share)
 export const CAMERA_LERP = 0.1
 

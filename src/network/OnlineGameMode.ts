@@ -14,6 +14,15 @@ import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 /** Colyseus schema instance — properties accessed dynamically via listen/onChange. */
 type SchemaInstance = Record<string, unknown>
 
+/** Read an ArraySchema<string> into a plain string[]. */
+function toStringArray(arr: unknown): string[] {
+  const result: string[] = []
+  if (arr && typeof (arr as { forEach?: unknown }).forEach === 'function') {
+    (arr as { forEach: (fn: (v: string) => void) => void }).forEach((v) => result.push(v))
+  }
+  return result
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StateCallbacks = (instance: SchemaInstance) => any
 
@@ -122,6 +131,16 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('xp', schedule)
       $(hero).listen('level', schedule)
       $(hero).listen('talentPoints', schedule)
+      $(hero).listen('skillSlotQ', schedule)
+      $(hero).listen('skillSlotE', schedule)
+      $(hero).listen('skillSlotR', schedule)
+
+      // Array fields — trigger hero update on add/remove
+      const arrSchedule = () => this.scheduleHeroUpdate(sessionId, hero)
+      $(hero.acquiredTalents as SchemaInstance).onAdd(arrSchedule)
+      $(hero.acquiredTalents as SchemaInstance).onRemove(arrSchedule)
+      $(hero.ownedSkills as SchemaInstance).onAdd(arrSchedule)
+      $(hero.ownedSkills as SchemaInstance).onRemove(arrSchedule)
     })
 
     $(this.room.state.heroes).onRemove((_hero: SchemaInstance, sessionId: string) => {
@@ -216,6 +235,11 @@ export class OnlineGameMode implements GameMode {
       xp: hero.xp as number,
       level: hero.level as number,
       talentPoints: hero.talentPoints as number,
+      acquiredTalents: toStringArray(hero.acquiredTalents),
+      ownedSkills: toStringArray(hero.ownedSkills),
+      skillSlotQ: (hero.skillSlotQ as string) ?? '',
+      skillSlotE: (hero.skillSlotE as string) ?? '',
+      skillSlotR: (hero.skillSlotR as string) ?? '',
     }
     for (const cb of this.serverHeroUpdateCallbacks) cb(state)
   }
@@ -283,6 +307,22 @@ export class OnlineGameMode implements GameMode {
 
   sendInput(input: InputMessage): void {
     this.room?.send('input', input)
+  }
+
+  sendAcquireTalent(talentId: string): void {
+    this.room?.send('acquireTalent', { talentId })
+  }
+
+  sendAssignSkillSlot(skillId: string, slot: string): void {
+    this.room?.send('assignSkillSlot', { skillId, slot })
+  }
+
+  sendSwapSkillSlots(slotA: string, slotB: string): void {
+    this.room?.send('swapSkillSlots', { slotA, slotB })
+  }
+
+  sendUnequipSkillSlot(slot: string): void {
+    this.room?.send('unequipSkillSlot', { slot })
   }
 
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void {

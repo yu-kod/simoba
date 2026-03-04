@@ -5,7 +5,7 @@ import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
-import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL } from '@shared/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL, BASES } from '@shared/constants'
 import type { HeroType } from '@shared/types'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
@@ -23,6 +23,14 @@ import {
   createMinionSystemContext,
 } from '../game/ServerMinionSystem.js'
 import { generateBotInputs } from '../game/ServerBotSystem.js'
+import { acquireTalent } from '../game/ServerTalentSystem.js'
+import {
+  assignSkillSlot,
+  swapSkillSlots,
+  unequipSkillSlot,
+} from '../game/ServerSkillSlotSystem.js'
+import { TALENT_TREES } from '@shared/talents/index'
+import type { SkillSlot } from '@shared/talents/types'
 import { createServerLogger } from '@shared/logging'
 
 const logger = createServerLogger('room')
@@ -58,6 +66,40 @@ function isValidHeroType(value: unknown): value is HeroType {
   return typeof value === 'string' && value in HERO_DEFINITIONS
 }
 
+const VALID_SLOTS = new Set(['Q', 'E', 'R'])
+
+function isValidTalentMessage(msg: unknown): msg is { talentId: string } {
+  if (typeof msg !== 'object' || msg === null) return false
+  return typeof (msg as Record<string, unknown>).talentId === 'string'
+}
+
+function isValidAssignSlotMessage(msg: unknown): msg is { skillId: string; slot: SkillSlot } {
+  if (typeof msg !== 'object' || msg === null) return false
+  const m = msg as Record<string, unknown>
+  return typeof m.skillId === 'string' && VALID_SLOTS.has(m.slot as string)
+}
+
+function isValidSwapSlotsMessage(msg: unknown): msg is { slotA: SkillSlot; slotB: SkillSlot } {
+  if (typeof msg !== 'object' || msg === null) return false
+  const m = msg as Record<string, unknown>
+  return VALID_SLOTS.has(m.slotA as string) && VALID_SLOTS.has(m.slotB as string)
+}
+
+function isValidUnequipSlotMessage(msg: unknown): msg is { slot: SkillSlot } {
+  if (typeof msg !== 'object' || msg === null) return false
+  return VALID_SLOTS.has((msg as Record<string, unknown>).slot as string)
+}
+
+function isHeroInBase(hero: HeroSchema): boolean {
+  const base = hero.team === 'blue' ? BASES.blue : BASES.red
+  return (
+    hero.x >= base.x &&
+    hero.x <= base.x + base.width &&
+    hero.y >= base.y &&
+    hero.y <= base.y + base.height
+  )
+}
+
 export class GameRoom extends Room<GameRoomState> {
   maxClients = MAX_PLAYERS
   private playerInputs = new Map<string, InputMessage>()
@@ -80,6 +122,44 @@ export class GameRoom extends Room<GameRoomState> {
       if (this.state.matchPhase !== 'playing') return
       if (!isValidInputMessage(message)) return
       this.playerInputs.set(client.sessionId, message)
+    })
+
+    // Talent acquisition handler
+    this.onMessage('acquireTalent', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
+      if (!isValidTalentMessage(message)) return
+      const hero = this.state.heroes.get(client.sessionId)
+      if (!hero) return
+      const treeDef = TALENT_TREES[hero.heroType as HeroType]
+      if (!treeDef) return
+      acquireTalent(hero, message.talentId, treeDef)
+    })
+
+    // Skill slot handlers
+    this.onMessage('assignSkillSlot', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
+      if (!isValidAssignSlotMessage(message)) return
+      const hero = this.state.heroes.get(client.sessionId)
+      if (!hero) return
+      assignSkillSlot(hero, message.skillId, message.slot)
+    })
+
+    this.onMessage('swapSkillSlots', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
+      if (!isValidSwapSlotsMessage(message)) return
+      const hero = this.state.heroes.get(client.sessionId)
+      if (!hero) return
+      const isInBase = isHeroInBase(hero)
+      swapSkillSlots(hero, message.slotA, message.slotB, isInBase)
+    })
+
+    this.onMessage('unequipSkillSlot', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
+      if (!isValidUnequipSlotMessage(message)) return
+      const hero = this.state.heroes.get(client.sessionId)
+      if (!hero) return
+      const isInBase = isHeroInBase(hero)
+      unequipSkillSlot(hero, message.slot, isInBase)
     })
 
     // Start simulation loop

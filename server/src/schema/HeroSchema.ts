@@ -1,4 +1,4 @@
-import { type } from '@colyseus/schema'
+import { ArraySchema, type } from '@colyseus/schema'
 import { CombatEntitySchema } from './CombatEntitySchema.js'
 
 /**
@@ -20,6 +20,11 @@ export class HeroSchema extends CombatEntitySchema {
   @type('uint32') xp: number = 0
   @type('uint8') level: number = 1
   @type('uint8') talentPoints: number = 0
+  @type(['string']) acquiredTalents: ArraySchema<string> = new ArraySchema<string>()
+  @type(['string']) ownedSkills: ArraySchema<string> = new ArraySchema<string>()
+  @type('string') skillSlotQ: string = ''
+  @type('string') skillSlotE: string = ''
+  @type('string') skillSlotR: string = ''
   @type('boolean') isBot: boolean = false
   // Server-only: not synced to clients (no @type decorator)
   lastAttackerSessionId: string = ''

@@ -19,6 +19,11 @@ export interface ServerHeroState {
   readonly xp: number
   readonly level: number
   readonly talentPoints: number
+  readonly acquiredTalents: readonly string[]
+  readonly ownedSkills: readonly string[]
+  readonly skillSlotQ: string
+  readonly skillSlotE: string
+  readonly skillSlotR: string
 }
 
 /** Server-synced projectile for rendering */
@@ -68,6 +73,18 @@ export interface GameMode {
 
   /** Send input message to server */
   sendInput(input: InputMessage): void
+
+  /** Send talent acquisition request */
+  sendAcquireTalent(talentId: string): void
+
+  /** Send skill slot assignment */
+  sendAssignSkillSlot(skillId: string, slot: string): void
+
+  /** Send skill slot swap */
+  sendSwapSkillSlots(slotA: string, slotB: string): void
+
+  /** Send skill slot unequip */
+  sendUnequipSkillSlot(slot: string): void
 
   /** Register callback for server hero state sync */
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void

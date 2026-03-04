@@ -87,6 +87,16 @@ export interface HeroState extends AttackerEntityState {
   readonly respawnTimer: number
   /** Position where the hero died (reserved for custom respawn logic — Issue #84) */
   readonly deathPosition: Position
+  /** Talent IDs acquired by this hero */
+  readonly acquiredTalents: readonly string[]
+  /** Skill IDs granted by talents */
+  readonly ownedSkills: readonly string[]
+  /** Skill assigned to Q slot (empty string = no skill) */
+  readonly skillSlotQ: string
+  /** Skill assigned to E slot (empty string = no skill) */
+  readonly skillSlotE: string
+  /** Skill assigned to R slot (empty string = no skill) */
+  readonly skillSlotR: string
 }
 
 export interface CreateHeroParams {
@@ -118,5 +128,10 @@ export function createHeroState(params: CreateHeroParams): HeroState {
     attackTargetId: null,
     respawnTimer: 0,
     deathPosition: params.position,
+    acquiredTalents: [],
+    ownedSkills: [],
+    skillSlotQ: '',
+    skillSlotE: '',
+    skillSlotR: '',
   }
 }

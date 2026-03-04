@@ -32,6 +32,7 @@ import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
 import type { MinionState } from '@shared/entities/Minion'
 import { registerTestApi } from '@/test/e2eTestApi'
 import { GameHud } from '@/scenes/ui/GameHud'
+import { TalentTreeOverlay } from '@/scenes/ui/TalentTreeOverlay'
 import { createClientLogger } from '@shared/logging'
 
 const logger = createClientLogger('scene')
@@ -63,6 +64,7 @@ export class GameScene extends Phaser.Scene {
   private projectileRenderer!: ProjectileRenderer
   private respawnText!: Phaser.GameObjects.Text
   private gameHud!: GameHud
+  private talentTreeOverlay!: TalentTreeOverlay
   private cameraFollowing = true
   private gameMode!: GameMode
   private localTeam: Team = 'blue'
@@ -163,7 +165,46 @@ export class GameScene extends Phaser.Scene {
     this.respawnText.setVisible(false)
 
     // Game HUD (skill bar, level badge, XP bar, HP bar)
-    this.gameHud = new GameHud(this, CAMERA_ZOOM)
+    this.gameHud = new GameHud(this, CAMERA_ZOOM, () => {
+      this.talentTreeOverlay.toggle()
+    })
+
+    // Talent tree overlay
+    this.talentTreeOverlay = new TalentTreeOverlay(this, CAMERA_ZOOM, {
+      onAcquireTalent: (talentId) => this.networkBridge.sendAcquireTalent(talentId),
+      onAssignSkillSlot: (skillId, slot) => this.networkBridge.sendAssignSkillSlot(skillId, slot),
+      onSwapSkillSlots: (slotA, slotB) => this.networkBridge.sendSwapSkillSlots(slotA, slotB),
+      onUnequipSkillSlot: (slot) => this.networkBridge.sendUnequipSkillSlot(slot),
+    })
+    this.talentTreeOverlay.setHeroType(this.localHeroType)
+
+    // Tab key toggles talent tree
+    this.input.keyboard!.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault()
+      this.talentTreeOverlay.toggle()
+    })
+
+    // ESC key closes talent tree
+    this.input.keyboard!.on('keydown-ESC', () => {
+      if (this.talentTreeOverlay.isOpen()) {
+        this.talentTreeOverlay.toggle()
+      }
+    })
+
+    // Scene-level pointer events for UI (scrollFactor(0) containers need manual hit testing)
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button !== 0) return // left click only for UI
+      if (this.talentTreeOverlay.isOpen()) {
+        this.talentTreeOverlay.handlePointerDown(pointer)
+      } else {
+        this.gameHud.handlePointerDown(pointer)
+      }
+    })
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.talentTreeOverlay.isOpen()) {
+        this.talentTreeOverlay.handlePointerMove(pointer)
+      }
+    })
 
     // E2E test API (dev only)
     if (import.meta.env.DEV) {
@@ -248,6 +289,7 @@ export class GameScene extends Phaser.Scene {
   shutdown(): void {
     logger.debug('Scene shutdown', { sceneKey: this.scene.key })
     this.gameHud.destroy()
+    this.talentTreeOverlay.destroy()
   }
 
   update(_time: number, delta: number): void {
@@ -262,8 +304,12 @@ export class GameScene extends Phaser.Scene {
     const localDead = localHero.dead
 
     // --- Local hero actions (skip if dead) ---
+    // When talent tree is open, allow movement only (suppress attack & skills)
+    const effectiveInput = this.talentTreeOverlay.isOpen()
+      ? { ...input, attack: false, targeting: { phase: 'idle' as const } }
+      : input
     if (!localDead) {
-      this.updateOnlineInput(deltaSeconds, input, isMoving)
+      this.updateOnlineInput(deltaSeconds, effectiveInput, isMoving)
     } else {
       // Dead: free camera movement with WASD
       this.updateFreeCamera(input.movement, deltaSeconds)
@@ -274,6 +320,9 @@ export class GameScene extends Phaser.Scene {
 
     // --- Game HUD ---
     this.gameHud.update(delta, localHero)
+
+    // --- Talent tree overlay ---
+    this.talentTreeOverlay.update(localHero)
 
     // --- Entity interpolation ---
     const localId = this.entityManager.localHeroId
@@ -464,6 +513,11 @@ export class GameScene extends Phaser.Scene {
       xp: state.xp,
       level: state.level,
       talentPoints: state.talentPoints,
+      acquiredTalents: [...state.acquiredTalents],
+      ownedSkills: [...state.ownedSkills],
+      skillSlotQ: state.skillSlotQ,
+      skillSlotE: state.skillSlotE,
+      skillSlotR: state.skillSlotR,
     }))
   }
 

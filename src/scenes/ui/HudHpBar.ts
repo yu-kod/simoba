@@ -24,7 +24,8 @@ export class HudHpBar {
     y: number,
     width: number,
     height: number,
-    scale: UiScale
+    scale: UiScale,
+    cameraZoom = 1,
   ) {
     // width/height in world coords — camera zoom scales to canvas
     this.barWidth = width
@@ -43,6 +44,7 @@ export class HudHpBar {
       align: 'center',
     })
     this.hpText.setOrigin(0.5)
+    this.hpText.setResolution(cameraZoom)
     this.container.add(this.hpText)
   }
 

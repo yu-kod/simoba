@@ -1,13 +1,9 @@
-import { WORLD_WIDTH, WORLD_HEIGHT } from '@/domain/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, BASES } from '@/domain/constants'
 
 // --- Layout geometry ---
 
 const LANE_HEIGHT = 200
 const LANE_Y = (WORLD_HEIGHT - LANE_HEIGHT) / 2
-
-const BASE_WIDTH = 120
-const BASE_HEIGHT = 160
-const BASE_Y = (WORLD_HEIGHT - BASE_HEIGHT) / 2
 
 const TOWER_RADIUS = 24
 const TOWER_DISTANCE_FROM_EDGE = 600
@@ -28,20 +24,7 @@ export const MAP_LAYOUT = {
     height: LANE_HEIGHT,
   },
 
-  bases: {
-    blue: {
-      x: 0,
-      y: BASE_Y,
-      width: BASE_WIDTH,
-      height: BASE_HEIGHT,
-    },
-    red: {
-      x: WORLD_WIDTH - BASE_WIDTH,
-      y: BASE_Y,
-      width: BASE_WIDTH,
-      height: BASE_HEIGHT,
-    },
-  },
+  bases: BASES,
 
   towers: {
     blue: {

@@ -2,7 +2,9 @@ import { MAX_LEVEL } from '@shared/constants'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { computeLevelUp } from '@shared/systems/levelUp'
 import type { HeroType } from '@shared/types'
+import { TALENT_TREES } from '@shared/talents/index'
 import type { HeroSchema } from '../schema/HeroSchema.js'
+import { recalculateEffectiveStats } from './ServerTalentSystem.js'
 
 /**
  * Recalculate hero stats from base + growth * (level - 1).
@@ -33,6 +35,7 @@ export function applyStatsGrowth(hero: HeroSchema, newLevel: number): void {
 
 /**
  * Grant XP to a hero and apply level-up + stats growth if threshold is reached.
+ * Uses recalculateEffectiveStats to include talent modifiers in the calculation.
  * Shared by both minion-kill and hero-kill XP paths.
  */
 export function grantXpAndLevelUp(hero: HeroSchema, xpAmount: number): void {
@@ -41,6 +44,11 @@ export function grantXpAndLevelUp(hero: HeroSchema, xpAmount: number): void {
   if (levelsGained > 0) {
     hero.level = newLevel
     hero.talentPoints = hero.talentPoints + levelsGained
-    applyStatsGrowth(hero, newLevel)
+    const treeDef = TALENT_TREES[hero.heroType as HeroType]
+    if (treeDef) {
+      recalculateEffectiveStats(hero, treeDef)
+    } else {
+      applyStatsGrowth(hero, newLevel)
+    }
   }
 }

@@ -82,6 +82,22 @@ export class NetworkBridge {
     this.gameMode.sendInput(input)
   }
 
+  sendAcquireTalent(talentId: string): void {
+    this.gameMode.sendAcquireTalent(talentId)
+  }
+
+  sendAssignSkillSlot(skillId: string, slot: string): void {
+    this.gameMode.sendAssignSkillSlot(skillId, slot)
+  }
+
+  sendSwapSkillSlots(slotA: string, slotB: string): void {
+    this.gameMode.sendSwapSkillSlots(slotA, slotB)
+  }
+
+  sendUnequipSkillSlot(slot: string): void {
+    this.gameMode.sendUnequipSkillSlot(slot)
+  }
+
   dispose(): void {
     this.gameMode.dispose()
   }

@@ -23,7 +23,8 @@ export class LevelBadge {
     cx: number,
     cy: number,
     badgeSize: number,
-    scale: UiScale
+    scale: UiScale,
+    cameraZoom = 1,
   ) {
     this.badgeRadius = badgeSize / 2
 
@@ -40,6 +41,7 @@ export class LevelBadge {
       align: 'center',
     })
     this.levelText.setOrigin(0.5)
+    this.levelText.setResolution(cameraZoom)
     this.container.add(this.levelText)
 
     this.draw(0)
