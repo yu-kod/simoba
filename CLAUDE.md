@@ -86,6 +86,7 @@ All game/tech specs live in `openspec/specs/`:
 
 - Use `gh pr create` directly with flags (e.g., `gh pr create --title '...' --body '...'`). Avoid interactive shell prompts or piping.
 - For GitHub operations (issues, PRs, checks), prefer `gh` CLI over GitHub MCP.
+- **Issue 探しは open のみ** — 次のタスクを選ぶ際は open Issue だけを見る。closed Issue の機能が実装済みであることを前提に判断する。
 
 ## Debugging
 
