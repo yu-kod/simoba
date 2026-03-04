@@ -1,4 +1,4 @@
-import type { Page, Locator } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 export type TowerTestData = {
   id: string
@@ -11,14 +11,7 @@ export type TowerTestData = {
 
 export type TestApi = {
   getHeroType: () => string
-  getHeroPosition: () => { x: number; y: number }
   getHeroHp: () => { current: number; max: number }
-  getHeroDead: () => boolean
-  getEnemyHp: () => { current: number; max: number }
-  getEnemyPosition: () => { x: number; y: number }
-  getEnemyDead: () => boolean
-  getProjectileCount: () => number
-  getHeroAttackTarget: () => string | null
   getTowers: () => TowerTestData[]
 }
 
@@ -29,9 +22,6 @@ export type TestWindow = { __test__: TestApi }
 // If these values change in the source, update here too.
 const GAME_WIDTH = 2560
 const GAME_HEIGHT = 1440
-const WORLD_WIDTH = 3200
-const WORLD_HEIGHT = 720
-const CAMERA_ZOOM = 2 // GameScene camera zoom (must match GameScene.ts)
 
 // Lobby button positions (must match LobbyScene layout)
 // Online Battle: y=740, Solo Play: y=880
@@ -124,42 +114,4 @@ export async function startSoloGame(page: Page, heroType?: 'BLADE' | 'BOLT' | 'A
   )
 
   await waitForTestApi(page)
-}
-
-/**
- * Right-click on the enemy's screen position.
- *
- * Computes the enemy's screen coordinates by:
- * 1. Getting world positions from the test API
- * 2. Approximating camera scroll (camera follows hero, clamped to world bounds)
- * 3. Accounting for Phaser Scale.FIT ratio
- */
-export async function rightClickOnEnemy(page: Page, canvas: Locator): Promise<void> {
-  const positions = await page.evaluate(() => {
-    const t = (window as unknown as TestWindow).__test__
-    return {
-      enemy: t.getEnemyPosition(),
-      hero: t.getHeroPosition(),
-    }
-  })
-
-  const bounds = await canvas.boundingBox()
-  if (!bounds) throw new Error('Canvas not found')
-
-  // Approximate camera scroll (camera follows hero, clamped to world bounds)
-  // With zoom, the visible viewport in world-space is GAME_WIDTH/zoom × GAME_HEIGHT/zoom
-  const viewWidth = GAME_WIDTH / CAMERA_ZOOM
-  const viewHeight = GAME_HEIGHT / CAMERA_ZOOM
-  const cameraScrollX = Math.max(0, Math.min(positions.hero.x - viewWidth / 2, WORLD_WIDTH - viewWidth))
-  const cameraScrollY = Math.max(0, Math.min(positions.hero.y - viewHeight / 2, WORLD_HEIGHT - viewHeight))
-
-  // Scale factor: Phaser Scale.FIT maps logical pixels to actual canvas size
-  // World-to-screen needs zoom factor: world coords → zoomed canvas → CSS pixels
-  const scaleX = bounds.width / GAME_WIDTH
-  const scaleY = bounds.height / GAME_HEIGHT
-
-  const screenX = bounds.x + (positions.enemy.x - cameraScrollX) * CAMERA_ZOOM * scaleX
-  const screenY = bounds.y + (positions.enemy.y - cameraScrollY) * CAMERA_ZOOM * scaleY
-
-  await page.mouse.click(screenX, screenY, { button: 'right' })
 }
