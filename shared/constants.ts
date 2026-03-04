@@ -32,6 +32,9 @@ export const DEFAULT_ENTITY_RADIUS = 20
 // Projectile
 export const DEFAULT_PROJECTILE_RADIUS = 5
 
+// Hero kill
+export const HERO_KILL_XP_REWARD = 150 // XP granted to killer on hero kill
+
 // Minion
 export const MINION_WAVE_INTERVAL = 30 // seconds between waves
 export const MINION_XP_REWARD = 20 // total XP per minion kill

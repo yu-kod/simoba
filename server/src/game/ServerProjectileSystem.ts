@@ -93,7 +93,7 @@ export function processProjectiles(
 
       const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
       if (distanceSq(proj.x, proj.y, target.x, target.y) <= collisionDist * collisionDist) {
-        applyDamageToTarget(target.id, proj.damage, heroes, towers, minions)
+        applyDamageToTarget(target.id, proj.damage, heroes, towers, minions, proj.ownerId)
         events.push({
           kind: 'damage',
           event: {

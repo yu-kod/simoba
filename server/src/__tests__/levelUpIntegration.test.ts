@@ -6,10 +6,10 @@ import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { XP_THRESHOLDS, MINION_XP_REWARD, MAX_LEVEL } from '@shared/constants'
 import {
   processMinionDeaths,
-  applyStatsGrowth,
   createMinionSystemContext,
   type MinionSystemContext,
 } from '../game/ServerMinionSystem.js'
+import { applyStatsGrowth } from '../game/xpUtils.js'
 
 function createTestHero(id: string, team: string, x: number): HeroSchema {
   const hero = new HeroSchema()
