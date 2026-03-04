@@ -75,3 +75,29 @@ All game/tech specs live in `openspec/specs/`:
 7. **Review** — Address feedback → all checks PASS
 8. **Done** — `/opsx:archive` first → then merge PR (CI openspec-check detects unarchived changes)
 - **Out-of-scope work → create an Issue** (don't implement on the spot)
+- **Task breakdown** — Before making changes, create a todo list breaking the feature into discrete tasks. Group by backend vs frontend. Implement backend first and verify with backend tests, then frontend and verify with frontend tests. Finally run E2E (`npm run test:e2e`) for integration. Check off each task as completed.
+- **End-to-end completion** — For each task: implement code → write/update tests → run `npm test` and fix failures → run `npm run lint` and fix issues. Do not stop until all tests and lint pass.
+
+## General Conventions
+
+- **TypeScript only** — Always write new code in TypeScript. When editing config files (`.claude.json`, `settings.json`, etc.), prefer using the Write tool to write the complete file rather than partial edits to avoid merge conflicts.
+
+## PR & Git Workflow
+
+- Use `gh pr create` directly with flags (e.g., `gh pr create --title '...' --body '...'`). Avoid interactive shell prompts or piping.
+- For GitHub operations (issues, PRs, checks), prefer `gh` CLI over GitHub MCP.
+
+## Debugging
+
+- **Preflight diagnostics** — Before starting work on test failures or CI issues, run these checks first:
+  1. Check for stale processes on dev ports (3000, 3001, 5173, 8080) with `lsof -i :<port>` and kill orphans
+  2. Verify shell environment: `echo $SHELL && ls .`
+  3. Check `git status` for clean working tree
+  4. Verify deps in sync: `npm ls --depth=0 2>&1 | head -20`
+- **Root cause first** — Diagnose by checking logs and process state, not just error messages. Don't jump to build config or dependency issues before ruling out environment problems.
+- **Local CI gate** — Push and open a PR only after `npm test && npm run test:e2e` pass locally.
+
+## Design & Spec Work
+
+- When a design spec or proposal document has already been reviewed and approved by the user, treat all details in it as requirements. Do not rearrange or reinterpret layout/positioning decisions that were explicitly stated in earlier phases.
+- When the user provides numbered hard constraints, follow them exactly. If any constraint conflicts with best practices, flag it but do not override.
