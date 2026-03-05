@@ -117,8 +117,10 @@ export function recalculateEffectiveStats(
     }
   }
 
-  // Apply formula for each stat
-  const stats: (keyof StatBlock)[] = ['maxHp', 'speed', 'attackDamage', 'attackRange', 'attackSpeed']
+  // Derive stat keys from the definition so new StatBlock fields are automatically included
+  const ROUNDED_STATS: ReadonlySet<keyof StatBlock> = new Set(['maxHp', 'attackDamage'])
+  const stats = Object.keys(def.base) as (keyof StatBlock)[]
+
   for (const stat of stats) {
     const base = def.base[stat]
     const growth = def.growth[stat]
@@ -126,30 +128,18 @@ export function recalculateEffectiveStats(
     const flat = flatMods[stat] ?? 0
     const percent = percentMods[stat] ?? 0
     const effective = baseWithGrowth + flat + baseWithGrowth * (percent / 100)
+    const value = ROUNDED_STATS.has(stat) ? Math.round(effective) : effective
 
-    // Write to HeroSchema fields
-    switch (stat) {
-      case 'maxHp': {
-        const prevMax = hero.maxHp
-        hero.maxHp = Math.round(effective)
-        // Scale current HP proportionally
-        if (prevMax > 0) {
-          hero.hp = Math.round((hero.hp / prevMax) * hero.maxHp)
-        }
-        break
+    // maxHp requires proportional HP scaling
+    if (stat === 'maxHp') {
+      const prevMax = hero.maxHp
+      hero.maxHp = value
+      if (prevMax > 0) {
+        hero.hp = Math.round((hero.hp / prevMax) * hero.maxHp)
       }
-      case 'speed':
-        hero.speed = effective
-        break
-      case 'attackDamage':
-        hero.attackDamage = Math.round(effective)
-        break
-      case 'attackRange':
-        hero.attackRange = effective
-        break
-      case 'attackSpeed':
-        hero.attackSpeed = effective
-        break
+    } else {
+      // HeroSchema field names match StatBlock keys
+      ;(hero as Record<string, number>)[stat] = value
     }
   }
 }

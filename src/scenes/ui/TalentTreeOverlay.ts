@@ -5,10 +5,11 @@ import type { TalentTreeDefinition, TalentNode } from '@shared/talents/types'
 import type { HeroType } from '@shared/types'
 import type { HeroState } from '@shared/entities/Hero'
 import { TALENT_TREES } from '@shared/talents/index'
+import { drawHexPath } from './drawHexPath'
 
 // Design space (pre-zoom)
-const BASE_WIDTH = 1280
-const BASE_HEIGHT = 720
+const DESIGN_WIDTH = 1280
+const DESIGN_HEIGHT = 720
 const OVERLAY_DEPTH = 1500
 
 // Tree layout
@@ -111,8 +112,8 @@ export class TalentTreeOverlay {
     this.callbacks = callbacks
 
     // Fixed overlay — scrollFactor(0) + offset for stable, jitter-free rendering
-    const offsetX = BASE_WIDTH * (cameraZoom - 1) / 2
-    const offsetY = BASE_HEIGHT * (cameraZoom - 1) / 2
+    const offsetX = DESIGN_WIDTH * (cameraZoom - 1) / 2
+    const offsetY = DESIGN_HEIGHT * (cameraZoom - 1) / 2
     this.container = scene.add.container(offsetX, offsetY)
     this.container.setScrollFactor(0)
     this.container.setDepth(OVERLAY_DEPTH)
@@ -121,7 +122,7 @@ export class TalentTreeOverlay {
     // Background (blocks clicks from reaching game)
     const bg = scene.add.graphics()
     bg.fillStyle(COLORS.bg, 0.8)
-    bg.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT)
+    bg.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT)
     this.container.add(bg)
 
     // Connection lines (below nodes)
@@ -129,7 +130,7 @@ export class TalentTreeOverlay {
     this.container.add(this.lineGfx)
 
     // Title
-    const title = this.createOverlayText(BASE_WIDTH / 2, 24, 'TALENT TREE', {
+    const title = this.createOverlayText(DESIGN_WIDTH / 2, 24, 'TALENT TREE', {
       fontSize: this.scale.fontSize(52),
       color: '#FFD700',
       fontStyle: 'bold',
@@ -140,7 +141,7 @@ export class TalentTreeOverlay {
     this.container.add(title)
 
     // Talent points display
-    this.pointsText = this.createOverlayText(BASE_WIDTH / 2, 72, 'Points: 0', {
+    this.pointsText = this.createOverlayText(DESIGN_WIDTH / 2, 72, 'Points: 0', {
       fontSize: this.scale.fontSize(32),
       color: '#FFFFFF',
     })
@@ -152,7 +153,7 @@ export class TalentTreeOverlay {
     this.container.add(this.ownedSkillLayer)
 
     // Close hint
-    const hint = this.createOverlayText(BASE_WIDTH / 2, BASE_HEIGHT - 18, 'TAB to close', {
+    const hint = this.createOverlayText(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 18, 'TAB to close', {
       fontSize: this.scale.fontSize(22),
       color: '#666666',
     })
@@ -288,7 +289,7 @@ export class TalentTreeOverlay {
       groups.get(d)!.push(n)
     }
 
-    const cx = BASE_WIDTH / 2
+    const cx = DESIGN_WIDTH / 2
     const result: NodeLayout[] = []
     for (const [depth, nodes] of groups) {
       const w = (nodes.length - 1) * COL_GAP
@@ -327,29 +328,16 @@ export class TalentTreeOverlay {
 
   private drawHexNode(gfx: Phaser.GameObjects.Graphics, state: NodeState): void {
     gfx.clear()
-    const r = NODE_RADIUS
     const fill = state === 'acquired' ? COLORS.acquired
       : state === 'available' ? COLORS.available : COLORS.locked
     const border = state === 'acquired' ? COLORS.borderAcquired
       : state === 'available' ? COLORS.borderAvailable : COLORS.borderLocked
 
-    const hexPath = () => {
-      gfx.beginPath()
-      for (let i = 0; i < 6; i++) {
-        const a = (Math.PI / 3) * i - Math.PI / 6
-        const px = Math.cos(a) * r
-        const py = Math.sin(a) * r
-        if (i === 0) gfx.moveTo(px, py)
-        else gfx.lineTo(px, py)
-      }
-      gfx.closePath()
-    }
-
     gfx.fillStyle(fill, 0.85)
-    hexPath()
+    drawHexPath(gfx, 0, 0, NODE_RADIUS)
     gfx.fillPath()
     gfx.lineStyle(2, border, 1)
-    hexPath()
+    drawHexPath(gfx, 0, 0, NODE_RADIUS)
     gfx.strokePath()
   }
 
@@ -420,9 +408,9 @@ export class TalentTreeOverlay {
     // Position tooltip to the right of the node, clamped to overlay bounds
     let tx = nodeX + NODE_RADIUS + 14
     let ty = nodeY - tooltipH / 2
-    if (tx + tooltipW > BASE_WIDTH - 10) tx = nodeX - NODE_RADIUS - tooltipW - 14
+    if (tx + tooltipW > DESIGN_WIDTH - 10) tx = nodeX - NODE_RADIUS - tooltipW - 14
     if (ty < 10) ty = 10
-    if (ty + tooltipH > BASE_HEIGHT - 10) ty = BASE_HEIGHT - tooltipH - 10
+    if (ty + tooltipH > DESIGN_HEIGHT - 10) ty = DESIGN_HEIGHT - tooltipH - 10
 
     this.tooltipContainer.setPosition(tx, ty)
     this.tooltipContainer.setVisible(true)
@@ -453,7 +441,7 @@ export class TalentTreeOverlay {
     // Check slot hits (rect test)
     if (this.slotPanelBuilt) {
       const slots = ['Q', 'E', 'R'] as const
-      const slotStartX = BASE_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
+      const slotStartX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
       for (let i = 0; i < slots.length; i++) {
         const sx = slotStartX + i * SLOT_SPACING
         if (localX >= sx && localX <= sx + SLOT_SIZE && localY >= PANEL_Y && localY <= PANEL_Y + SLOT_SIZE) {
@@ -466,7 +454,7 @@ export class TalentTreeOverlay {
     // Check owned skill hits
     if (this.lastHeroState && this.lastHeroState.ownedSkills.length > 0) {
       const skills = this.lastHeroState.ownedSkills
-      const ownedStartX = BASE_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
+      const ownedStartX = DESIGN_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
       const ownedStartY = PANEL_Y + SLOT_SIZE + 34
       for (let i = 0; i < skills.length; i++) {
         const sx = ownedStartX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
@@ -505,7 +493,7 @@ export class TalentTreeOverlay {
     if (this.slotPanelBuilt) return
     this.slotPanelBuilt = true
 
-    const label = this.createOverlayText(BASE_WIDTH / 2, PANEL_Y - 28, 'SKILL SLOTS', {
+    const label = this.createOverlayText(DESIGN_WIDTH / 2, PANEL_Y - 28, 'SKILL SLOTS', {
       fontSize: this.scale.fontSize(24),
       color: '#888888',
     })
@@ -513,7 +501,7 @@ export class TalentTreeOverlay {
     this.container.add(label)
 
     const slots = ['Q', 'E', 'R'] as const
-    const startX = BASE_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
+    const startX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
 
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]!
@@ -544,7 +532,7 @@ export class TalentTreeOverlay {
       this.slotLabelMap.set(slot, skillLabel)
     }
 
-    const ownedLabel = this.createOverlayText(BASE_WIDTH / 2, PANEL_Y + SLOT_SIZE + 18, 'Owned Skills', {
+    const ownedLabel = this.createOverlayText(DESIGN_WIDTH / 2, PANEL_Y + SLOT_SIZE + 18, 'Owned Skills', {
       fontSize: this.scale.fontSize(22),
       color: '#888888',
     })
@@ -602,7 +590,7 @@ export class TalentTreeOverlay {
     this.ownedSkillElements = []
     if (skills.length === 0) return
 
-    const startX = BASE_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
+    const startX = DESIGN_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
     const startY = PANEL_Y + SLOT_SIZE + 34
 
     for (let i = 0; i < skills.length; i++) {
@@ -711,7 +699,7 @@ export class TalentTreeOverlay {
       if (slotContainer) {
         const slots = ['Q', 'E', 'R']
         const idx = slots.indexOf(slot)
-        const slotStartX = BASE_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
+        const slotStartX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
         this.selectionGfx.setPosition(
           slotStartX + idx * SLOT_SPACING + SLOT_SIZE / 2,
           PANEL_Y + SLOT_SIZE / 2,

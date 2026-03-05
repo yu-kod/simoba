@@ -19,7 +19,7 @@ export interface GrantSkillEffect {
 export interface ModifyBasicAttackEffect {
   readonly type: 'modify_basic_attack'
   readonly property: string
-  readonly value: unknown
+  readonly value: number | string | boolean
 }
 
 export interface UnlockPassiveEffect {

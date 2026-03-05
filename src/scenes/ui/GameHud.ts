@@ -7,6 +7,7 @@ import { createText } from './createText'
 import { SkillSlotRenderer } from './SkillSlotRenderer'
 import { LevelBadge } from './LevelBadge'
 import { HudHpBar } from './HudHpBar'
+import { drawHexPath } from './drawHexPath'
 
 const HUD_DEPTH = 1100
 const PANEL_BG_COLOR = 0x1a1a2e
@@ -23,8 +24,8 @@ const BADGE_COLOR = 0xe74c3c
  * computeHudLayout returns positions in this 1280x720 coordinate space.
  * The container follows the camera worldView so it appears screen-fixed.
  */
-const BASE_WIDTH = 1280
-const BASE_HEIGHT = 720
+const DESIGN_WIDTH = 1280
+const DESIGN_HEIGHT = 720
 
 /** Build a SkillSlotConfig from hero state for a given slot. */
 function slotConfigFromHero(hero: HeroState, key: 'Q' | 'E' | 'R'): SkillSlotConfig {
@@ -70,11 +71,11 @@ export class GameHud {
       { type: 'empty', key: 'E', name: '' },
       { type: 'empty', key: 'R', name: '' },
     ]
-    const layout = computeHudLayout(BASE_WIDTH, BASE_HEIGHT, initialSlots.length)
+    const layout = computeHudLayout(DESIGN_WIDTH, DESIGN_HEIGHT, initialSlots.length)
 
     // Fixed HUD — scrollFactor(0) + offset for stable, jitter-free rendering
-    const offsetX = BASE_WIDTH * (cameraZoom - 1) / 2
-    const offsetY = BASE_HEIGHT * (cameraZoom - 1) / 2
+    const offsetX = DESIGN_WIDTH * (cameraZoom - 1) / 2
+    const offsetY = DESIGN_HEIGHT * (cameraZoom - 1) / 2
     this.container = scene.add.container(offsetX, offsetY)
     this.container.setScrollFactor(0)
     this.container.setDepth(HUD_DEPTH)
@@ -138,15 +139,6 @@ export class GameHud {
     this.drawTalentButton()
     this.container.add(this.talentButtonGfx)
 
-    // Hit zone for talent button
-    const hitZone = scene.add.zone(
-      this.talentButtonX + TALENT_BUTTON_SIZE / 2,
-      this.talentButtonY + TALENT_BUTTON_SIZE / 2,
-      TALENT_BUTTON_SIZE,
-      TALENT_BUTTON_SIZE,
-    )
-    this.container.add(hitZone)
-
     // Badge (talent point count)
     this.talentBadgeGfx = scene.add.graphics()
     this.container.add(this.talentBadgeGfx)
@@ -198,39 +190,20 @@ export class GameHud {
 
   private drawTalentButton(): void {
     this.talentButtonGfx.clear()
-    this.talentButtonGfx.fillStyle(TALENT_BUTTON_COLOR, 0.85)
-
-    // Hexagonal shape (matches talent tree nodes)
     const cx = this.talentButtonX + TALENT_BUTTON_SIZE / 2
     const cy = this.talentButtonY + TALENT_BUTTON_SIZE / 2
     const r = TALENT_BUTTON_SIZE / 2
 
-    this.talentButtonGfx.beginPath()
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i - Math.PI / 6
-      const px = cx + Math.cos(a) * r
-      const py = cy + Math.sin(a) * r
-      if (i === 0) this.talentButtonGfx.moveTo(px, py)
-      else this.talentButtonGfx.lineTo(px, py)
-    }
-    this.talentButtonGfx.closePath()
+    this.talentButtonGfx.fillStyle(TALENT_BUTTON_COLOR, 0.85)
+    drawHexPath(this.talentButtonGfx, cx, cy, r)
     this.talentButtonGfx.fillPath()
 
     this.talentButtonGfx.lineStyle(2, TALENT_BUTTON_BORDER, 0.9)
-    this.talentButtonGfx.beginPath()
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i - Math.PI / 6
-      const px = cx + Math.cos(a) * r
-      const py = cy + Math.sin(a) * r
-      if (i === 0) this.talentButtonGfx.moveTo(px, py)
-      else this.talentButtonGfx.lineTo(px, py)
-    }
-    this.talentButtonGfx.closePath()
+    drawHexPath(this.talentButtonGfx, cx, cy, r)
     this.talentButtonGfx.strokePath()
 
     // "T" letter inside
     this.talentButtonGfx.fillStyle(0xf39c12, 1)
-    // Simple T: horizontal bar + vertical bar
     const barW = r * 0.8
     const barH = r * 0.15
     this.talentButtonGfx.fillRect(cx - barW / 2, cy - r * 0.35, barW, barH)
@@ -286,7 +259,7 @@ export class GameHud {
     this.currentSlotKeys = [...newKeys]
 
     // Rebuild slot renderers
-    const layout = computeHudLayout(BASE_WIDTH, BASE_HEIGHT, keys.length)
+    const layout = computeHudLayout(DESIGN_WIDTH, DESIGN_HEIGHT, keys.length)
 
     for (const renderer of this.slotRenderers) {
       renderer.destroy()

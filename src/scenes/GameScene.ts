@@ -109,8 +109,8 @@ export class GameScene extends Phaser.Scene {
 
     // Zoom camera so the viewport covers the same game area as the base 1280x720 design.
     // The canvas buffer is 2560x1440 for sharp rendering; zoom keeps gameplay feel identical.
-    const BASE_WIDTH = 1280
-    const CAMERA_ZOOM = GAME_WIDTH / BASE_WIDTH
+    const DESIGN_WIDTH = 1280
+    const CAMERA_ZOOM = GAME_WIDTH / DESIGN_WIDTH
     this.cameras.main.setZoom(CAMERA_ZOOM)
 
     // Entity manager with local hero placeholder

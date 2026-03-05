@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import type { HeroState } from '@/domain/entities/Hero'
 import type { HeroType } from '@/domain/types'
 import { HpBarRenderer } from '@/scenes/ui/HpBarRenderer'
+import { drawHexPath } from '@/scenes/ui/drawHexPath'
 
 /** Type-specific body colors (not team colors — team is shown via HP bar) */
 const HERO_COLORS: Record<HeroType, number> = {
@@ -170,18 +171,7 @@ export class HeroRenderer {
 
   /** Regular hexagon centered at origin */
   private drawHexagon(size: number): void {
-    this.bodyGraphics.beginPath()
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 6
-      const px = Math.cos(angle) * size
-      const py = Math.sin(angle) * size
-      if (i === 0) {
-        this.bodyGraphics.moveTo(px, py)
-      } else {
-        this.bodyGraphics.lineTo(px, py)
-      }
-    }
-    this.bodyGraphics.closePath()
+    drawHexPath(this.bodyGraphics, 0, 0, size)
     this.bodyGraphics.fillPath()
   }
 
