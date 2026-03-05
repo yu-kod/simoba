@@ -12,4 +12,5 @@ export {
   DEFAULT_RESPAWN_TIME,
   CAMERA_LERP,
   DEFAULT_ENTITY_RADIUS,
+  BASES,
 } from '@shared/constants'

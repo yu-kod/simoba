@@ -22,6 +22,10 @@ function createMockGameMode(): GameMode & {
     onAttackEvent: vi.fn(),
     onDamageEvent: vi.fn(),
     onDeathEvent: vi.fn(),
+    sendAcquireTalent: vi.fn(),
+    sendAssignSkillSlot: vi.fn(),
+    sendSwapSkillSlots: vi.fn(),
+    sendUnequipSkillSlot: vi.fn(),
     onMatchEnd: vi.fn(),
     dispose: vi.fn(),
     _triggerServerHeroUpdate: (s) => heroUpdateCb?.(s),
@@ -36,6 +40,9 @@ const HERO_STATE: ServerHeroState = {
   heroType: 'AURA', team: 'red', radius: 20,
   dead: false, attackTargetId: '', attackCooldown: 0,
   respawnTimer: 0, lastProcessedSeq: 0,
+  xp: 0, level: 1, talentPoints: 0,
+  acquiredTalents: [], ownedSkills: [],
+  skillSlotQ: '', skillSlotE: '', skillSlotR: '',
 }
 
 describe('NetworkBridge', () => {

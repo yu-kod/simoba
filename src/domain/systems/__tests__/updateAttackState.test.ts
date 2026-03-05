@@ -15,6 +15,7 @@ function makeHero(overrides: Partial<HeroState> = {}): HeroState {
     radius: 22,
     level: 1,
     xp: 0,
+    talentPoints: 0,
     stats: {
       maxHp: 650,
       speed: 170,
@@ -27,6 +28,11 @@ function makeHero(overrides: Partial<HeroState> = {}): HeroState {
     attackTargetId: null,
     respawnTimer: 0,
     deathPosition: { x: 0, y: 0 },
+    acquiredTalents: [],
+    ownedSkills: [],
+    skillSlotQ: '',
+    skillSlotE: '',
+    skillSlotR: '',
     ...overrides,
   }
 }
