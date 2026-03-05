@@ -10,9 +10,7 @@
 - **Hosting:** S3 + CloudFront (static files)
 - **Language:** TypeScript (strict mode)
 
-## Backend (Phase 2+)
-
-Phase 1 has no backend. Bot-only, runs entirely client-side.
+## Backend
 
 - **Game Server:** Colyseus (Node.js)
 - **Protocol:** WebSocket (server-authoritative)
