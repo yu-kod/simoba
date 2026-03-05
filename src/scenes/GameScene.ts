@@ -20,7 +20,7 @@ import { EntityManager } from '@/scenes/EntityManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
 import { InputBuffer } from '@/network/InputBuffer'
 import { InterpolationBuffer } from '@/network/InterpolationBuffer'
-import type { HeroType, Team, Position } from '@/domain/types'
+import type { HeroType, Team, Position, AttackerEntityState } from '@/domain/types'
 import type { TowerState } from '@/domain/entities/Tower'
 import type { GameMode, ServerHeroState, ServerTowerState, ServerMinionState, ServerProjectileState } from '@/network/GameMode'
 import type { AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
@@ -324,7 +324,7 @@ export class GameScene extends Phaser.Scene {
     // --- Talent tree overlay ---
     this.talentTreeOverlay.update(localHero)
 
-    // --- Entity interpolation ---
+    // --- Entity interpolation (heroes + minions) ---
     const localId = this.entityManager.localHeroId
     for (const [entityId, buffer] of this.interpolationBuffers) {
       const interpolated = buffer.getInterpolatedPosition()
@@ -332,14 +332,14 @@ export class GameScene extends Phaser.Scene {
       if (!this.entityManager.getEntity(entityId)) continue
       if (entityId === localId) {
         // Local hero: only interpolate position, keep locally-computed facing
-        this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
-          ...hero,
+        this.entityManager.updateEntity<HeroState>(entityId, (entity) => ({
+          ...entity,
           position: { x: interpolated.x, y: interpolated.y },
         }))
       } else {
-        // Remote heroes: interpolate both position and facing
-        this.entityManager.updateEntity<HeroState>(entityId, (hero) => ({
-          ...hero,
+        // Remote heroes + minions: interpolate both position and facing
+        this.entityManager.updateEntity<AttackerEntityState>(entityId, (entity) => ({
+          ...entity,
           position: { x: interpolated.x, y: interpolated.y },
           facing: interpolated.facing,
         }))
@@ -605,10 +605,18 @@ export class GameScene extends Phaser.Scene {
       this.entityRenderers.set(state.id, new MinionRenderer(this, minionEntity, isAlly))
     }
 
+    // Push snapshot to interpolation buffer (same pattern as heroes)
+    if (!this.interpolationBuffers.has(state.id)) {
+      this.interpolationBuffers.set(state.id, new InterpolationBuffer())
+    }
+    this.interpolationBuffers.get(state.id)!.pushSnapshot({
+      x: state.x,
+      y: state.y,
+      facing: state.facing,
+    })
+
     this.entityManager.updateEntity<MinionState>(state.id, (m) => ({
       ...m,
-      position: { x: state.x, y: state.y },
-      facing: state.facing,
       hp: state.hp,
       maxHp: state.maxHp,
       dead: state.dead,
@@ -621,6 +629,7 @@ export class GameScene extends Phaser.Scene {
       renderer.destroy()
       this.entityRenderers.delete(minionId)
     }
+    this.interpolationBuffers.delete(minionId)
     this.entityManager.removeEntity(minionId)
   }
 
