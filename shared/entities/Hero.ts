@@ -6,8 +6,6 @@ export interface HeroDefinition {
   /** Per-level stat growth (added per level-up). Uses StatBlock so base + growth share the same shape. */
   readonly growth: StatBlock
   readonly radius: number
-  /** Whether the hero can move while performing basic attacks */
-  readonly canMoveWhileAttacking: boolean
   /** Projectile travel speed in px/sec. 0 = melee (instant damage). */
   readonly projectileSpeed: number
   /** Projectile collision/draw radius in px. 0 for melee heroes. */
@@ -31,7 +29,6 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
       attackSpeed: 0.05,
     },
     radius: 22,
-    canMoveWhileAttacking: true,
     projectileSpeed: 0,
     projectileRadius: 0,
   },
@@ -51,7 +48,6 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
       attackSpeed: 0.05,
     },
     radius: 18,
-    canMoveWhileAttacking: false,
     projectileSpeed: 600,
     projectileRadius: 4,
   },
@@ -71,7 +67,6 @@ export const HERO_DEFINITIONS: Record<HeroType, HeroDefinition> = {
       attackSpeed: 0.03,
     },
     radius: 20,
-    canMoveWhileAttacking: false,
     projectileSpeed: 400,
     projectileRadius: 5,
   },

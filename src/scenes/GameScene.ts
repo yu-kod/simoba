@@ -7,7 +7,6 @@ import {
   CAMERA_LERP,
 } from '@/domain/constants'
 import { type HeroState } from '@/domain/entities/Hero'
-import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import { isHero, isMinion, isTower } from '@/domain/entities/typeGuards'
 import { updateFacing } from '@/domain/systems/updateFacing'
 import { findClickTarget } from '@/domain/systems/findClickTarget'
@@ -286,8 +285,6 @@ export class GameScene extends Phaser.Scene {
     const localHeroId = this.entityManager.localHeroId
     const localHero = this.entityManager.getEntity(localHeroId) as HeroState
     const input = this.inputHandler.read(localHero.position)
-    const isMoving = input.movement.x !== 0 || input.movement.y !== 0
-
     const localDead = localHero.dead
 
     // --- Local hero actions (skip if dead) ---
@@ -296,7 +293,7 @@ export class GameScene extends Phaser.Scene {
       ? { ...input, attack: false, targeting: { phase: 'idle' as const } }
       : input
     if (!localDead) {
-      this.updateOnlineInput(deltaSeconds, effectiveInput, isMoving)
+      this.updateOnlineInput(deltaSeconds, effectiveInput)
     } else {
       // Dead: free camera movement with WASD
       this.updateFreeCamera(input.movement, deltaSeconds)
@@ -365,8 +362,7 @@ export class GameScene extends Phaser.Scene {
   /** Send input to server + apply local facing/target updates. */
   private updateOnlineInput(
     _deltaSeconds: number,
-    input: { movement: { x: number; y: number }; attack: boolean; aimWorldPosition: Position },
-    isMoving: boolean
+    input: { movement: { x: number; y: number }; attack: boolean; aimWorldPosition: Position }
   ): void {
     if (!this.entitySync.inputBuffer) return
 
@@ -385,11 +381,8 @@ export class GameScene extends Phaser.Scene {
       attackTargetId = target?.id ?? null
     }
 
-    // Clear target on move if hero can't move while attacking
-    if (isMoving && attackTargetId !== null
-      && !HERO_DEFINITIONS[localHero.type].canMoveWhileAttacking) {
-      attackTargetId = null
-    }
+    // Ranged heroes: server handles the brief attack pause via attackPauseTimer.
+    // Client always sends both moveDir and attackTargetId; no client-side clearing needed.
 
     // Facing
     const attackTarget = attackTargetId !== null
