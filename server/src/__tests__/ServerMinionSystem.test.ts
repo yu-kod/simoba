@@ -495,7 +495,7 @@ describe('processMinionDeaths', () => {
     const events2 = processMinionDeaths(ctx, minions, heroes, 0.01)
 
     // Second call should not emit another death event
-    expect(events2.filter((e) => e.event.type === 'death')).toHaveLength(0)
+    expect(events2.filter((e) => e.kind === 'death')).toHaveLength(0)
   })
 
   it('should remove minion from map after cleanup delay expires', () => {

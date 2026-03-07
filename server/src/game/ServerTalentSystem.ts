@@ -139,7 +139,7 @@ export function recalculateEffectiveStats(
       }
     } else {
       // HeroSchema field names match StatBlock keys
-      ;(hero as Record<string, number>)[stat] = value
+      ;(hero as unknown as Record<string, number>)[stat] = value
     }
   }
 }

@@ -13,6 +13,11 @@ RUN npm ci
 
 COPY server/src/ ./src/
 COPY server/tsconfig.json ./
+
+# shared/ imports bare specifiers (e.g. @logtape/logtape) which tsc resolves
+# from the file's directory. Symlink so ../node_modules finds server's deps.
+RUN ln -s /app/server/node_modules /app/node_modules
+
 RUN npm run build
 
 # --- Production stage ---
