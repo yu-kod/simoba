@@ -23,6 +23,7 @@ import {
   createMinionSystemContext,
 } from '../game/ServerMinionSystem.js'
 import { generateBotInputs } from '../game/ServerBotSystem.js'
+import { spendBotTalents } from '../game/ServerBotTalentSystem.js'
 import { acquireTalent } from '../game/ServerTalentSystem.js'
 import {
   assignSkillSlot,
@@ -402,6 +403,9 @@ export class GameRoom extends Room<GameRoomState> {
     // 5. Minion death + XP distribution
     const minionDeathEvents = processMinionDeaths(this.minionCtx, minions, heroes, deltaTime)
     events.push(...minionDeathEvents)
+
+    // 5.5. Bot auto-spend talent points
+    spendBotTalents(heroes, TALENT_TREES)
 
     // 6. Hero death detection and respawn
     const deathEvents = processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
