@@ -422,7 +422,7 @@ export const AURA_TALENT_TREE: TalentTreeDefinition = {
       name: 'Eternal Bond',
       description: 'Attack Speed +20%',
       cost: 2,
-      prerequisites: ['aura-convergence', 'aura-devotion'],
+      prerequisites: ['aura-unbreakable', 'aura-martyr'],
       effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 20, mode: 'percent' }],
     },
     {
