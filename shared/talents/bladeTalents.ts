@@ -400,7 +400,7 @@ export const BLADE_TALENT_TREE: TalentTreeDefinition = {
       description: 'Cheat death once per fight',
       cost: 2,
       prerequisites: ['blade-colossus'],
-      effects: [{ type: 'unlock_passive', passiveId: 'blade-last-stand' }],
+      effects: [{ type: 'unlock_passive', passiveId: 'blade-immortal' }],
     },
     {
       id: 'blade-blitz',
@@ -428,6 +428,8 @@ export const BLADE_TALENT_TREE: TalentTreeDefinition = {
         { type: 'stat_modifier', stat: 'maxHp', value: 5, mode: 'percent' },
         { type: 'stat_modifier', stat: 'attackDamage', value: 5, mode: 'percent' },
         { type: 'stat_modifier', stat: 'attackSpeed', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'speed', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'attackRange', value: 5, mode: 'percent' },
       ],
     },
     {

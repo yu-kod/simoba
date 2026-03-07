@@ -393,6 +393,8 @@ export const AURA_TALENT_TREE: TalentTreeDefinition = {
         { type: 'stat_modifier', stat: 'maxHp', value: 5, mode: 'percent' },
         { type: 'stat_modifier', stat: 'attackDamage', value: 5, mode: 'percent' },
         { type: 'stat_modifier', stat: 'attackSpeed', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'speed', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'attackRange', value: 5, mode: 'percent' },
       ],
     },
 
@@ -436,7 +438,7 @@ export const AURA_TALENT_TREE: TalentTreeDefinition = {
       name: 'Transcendence',
       description: 'Max HP +20%, Dmg +10%',
       cost: 3,
-      prerequisites: ['aura-divine-grace'],
+      prerequisites: ['aura-revive', 'aura-renewal'],
       effects: [
         { type: 'stat_modifier', stat: 'maxHp', value: 20, mode: 'percent' },
         { type: 'stat_modifier', stat: 'attackDamage', value: 10, mode: 'percent' },
@@ -447,7 +449,7 @@ export const AURA_TALENT_TREE: TalentTreeDefinition = {
       name: 'Ascension',
       description: 'Speed +15%, Range +10%',
       cost: 3,
-      prerequisites: ['aura-sanctuary'],
+      prerequisites: ['aura-nova', 'aura-tempest'],
       effects: [
         { type: 'stat_modifier', stat: 'speed', value: 15, mode: 'percent' },
         { type: 'stat_modifier', stat: 'attackRange', value: 10, mode: 'percent' },
