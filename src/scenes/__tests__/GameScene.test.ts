@@ -59,7 +59,9 @@ vi.mock('@/test/e2eTestApi', () => ({
 import { GameScene } from '@/scenes/GameScene'
 import { EntityManager } from '@/scenes/EntityManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
+import { ServerEntitySync } from '@/scenes/ServerEntitySync'
 import { InputBuffer } from '@/network/InputBuffer'
+import { InterpolationBuffer } from '@/network/InterpolationBuffer'
 import type { GameMode, ServerHeroState, ServerTowerState } from '@/network/GameMode'
 import type { HeroState } from '@/domain/entities/Hero'
 import { createTowerState } from '@/domain/entities/Tower'
@@ -116,25 +118,36 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
   const bridge = new NetworkBridge(gm)
 
   const mockMeleeSwing = { play: vi.fn(), update: vi.fn() }
-  const inputBuffer = new InputBuffer()
 
   // Assign private fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s = scene as any as Record<string, unknown>
   s.entityManager = em
   s.networkBridge = bridge
-  s.entityRenderers = new Map()
   s.meleeSwing = mockMeleeSwing
-  s.inputBuffer = inputBuffer
-  s.cameraFollowing = true
   s.cameras = { main: { stopFollow: vi.fn(), startFollow: vi.fn() } }
   s.localTeam = 'blue'
+
+  const entityRenderers = new Map<string, ReturnType<typeof createMockRenderer>>()
+  s.entityRenderers = entityRenderers
+
+  // Create entity sync (extracted from GameScene)
+  const interpolationBuffers = new Map<string, InterpolationBuffer>()
+  const entitySync = new ServerEntitySync(
+    scene as unknown as Phaser.Scene,
+    em,
+    entityRenderers as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    interpolationBuffers,
+    'blue',
+  )
+  entitySync.inputBuffer = new InputBuffer()
+  s.entitySync = entitySync
 
   // Create renderers for existing entities
   const localRenderer = createMockRenderer()
   const enemyRenderer = createMockRenderer()
-  ;(s.entityRenderers as Map<string, unknown>).set(localSessionId, localRenderer)
-  ;(s.entityRenderers as Map<string, unknown>).set('enemy-1', enemyRenderer)
+  entityRenderers.set(localSessionId, localRenderer)
+  entityRenderers.set('enemy-1', enemyRenderer)
 
   return {
     scene,
@@ -142,12 +155,13 @@ function setupSceneForServerUpdate(options?: { localSessionId?: string }) {
     gm,
     bridge,
     mockMeleeSwing,
-    inputBuffer,
+    entitySync,
+    inputBuffer: entitySync.inputBuffer!,
     localRenderer,
     enemyRenderer,
-    getRenderer: (id: string) => (s.entityRenderers as Map<string, ReturnType<typeof createMockRenderer>>).get(id),
+    getRenderer: (id: string) => entityRenderers.get(id),
     setRenderer: (id: string, r: ReturnType<typeof createMockRenderer>) =>
-      (s.entityRenderers as Map<string, unknown>).set(id, r),
+      entityRenderers.set(id, r),
   }
 }
 
@@ -224,9 +238,8 @@ describe('GameScene', () => {
 
   describe('handleServerHeroUpdate — state-diff removal verification', () => {
     it('does NOT trigger flash when hero HP decreases (now event-based)', () => {
-      const { scene, localRenderer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, localRenderer } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
 
       call(makeServerHeroState({ hp: 650 }))
       localRenderer.flash.mockClear()
@@ -237,9 +250,8 @@ describe('GameScene', () => {
     })
 
     it('does NOT trigger meleeSwing when attackCooldown increases (now event-based)', () => {
-      const { scene, mockMeleeSwing } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, mockMeleeSwing } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
 
       call(makeServerHeroState({ attackCooldown: 0 }))
       mockMeleeSwing.play.mockClear()
@@ -315,9 +327,8 @@ describe('GameScene', () => {
 
   describe('handleServerHeroUpdate — death/respawn input buffer reset', () => {
     it('clears input buffer on death (false→true)', () => {
-      const { scene, inputBuffer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, inputBuffer } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
       const clearSpy = vi.spyOn(inputBuffer, 'clear')
 
       // Alive state
@@ -330,9 +341,8 @@ describe('GameScene', () => {
     })
 
     it('does not clear input buffer on respawn (true→false)', () => {
-      const { scene, inputBuffer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, inputBuffer } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
       const clearSpy = vi.spyOn(inputBuffer, 'clear')
 
       // Set dead state
@@ -345,9 +355,8 @@ describe('GameScene', () => {
     })
 
     it('does not clear input buffer when dead state unchanged', () => {
-      const { scene, inputBuffer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, inputBuffer } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
       const clearSpy = vi.spyOn(inputBuffer, 'clear')
 
       call(makeServerHeroState({ dead: false }))
@@ -361,9 +370,8 @@ describe('GameScene', () => {
 
   describe('handleServerHeroUpdate — heroType sync', () => {
     it('updates local hero type from server state', () => {
-      const { scene, em } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, em } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
 
       // Initial state: BLADE
       call(makeServerHeroState({ heroType: 'BLADE' }))
@@ -377,9 +385,8 @@ describe('GameScene', () => {
     })
 
     it('updates remote hero type from server state', () => {
-      const { scene, em } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, em } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
 
       // Create remote hero as BLADE first
       call(makeServerHeroState({ sessionId: 'remote-1', heroType: 'BLADE', team: 'red' }))
@@ -394,9 +401,8 @@ describe('GameScene', () => {
     })
 
     it('preserves hero type when server sends the same type', () => {
-      const { scene, em } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerHeroUpdate.bind(scene)
+      const { entitySync, em } = setupSceneForServerUpdate()
+      const call = (state: ServerHeroState) => entitySync.handleServerHeroUpdate(state, 'local-session')
 
       call(makeServerHeroState({ heroType: 'AURA' }))
       call(makeServerHeroState({ heroType: 'AURA' }))
@@ -407,9 +413,8 @@ describe('GameScene', () => {
 
   describe('handleServerTowerUpdate — state-diff removal verification', () => {
     it('does NOT trigger flash when tower HP decreases (now event-based)', () => {
-      const { scene, em, setRenderer } = setupSceneForServerUpdate()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const call = (scene as any).handleServerTowerUpdate.bind(scene)
+      const { entitySync, em, setRenderer } = setupSceneForServerUpdate()
+      const call = (state: ServerTowerState) => entitySync.handleServerTowerUpdate(state)
 
       const tower = createTowerState({
         id: 'tower-blue',
