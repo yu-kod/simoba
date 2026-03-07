@@ -2,12 +2,15 @@ import Phaser from 'phaser'
 import { createText } from '@/scenes/ui/createText'
 import type { UiScale } from '@/scenes/ui/uiScale'
 import type { HeroState } from '@shared/entities/Hero'
-import { DESIGN_WIDTH } from './uiConstants'
-const PANEL_Y = 510
+
+// Right-side panel layout
+const PANEL_CENTER_X = 1090
+const PANEL_TOP_Y = 120
 const SLOT_SIZE = 54
-const SLOT_SPACING = 80
+const SLOT_SPACING = 70
 const SKILL_ICON_SIZE = 44
 const SKILL_ICON_GAP = 12
+const SKILLS_PER_ROW = 4
 
 const COLORS = {
   slotEmpty: 0x1a1a2e,
@@ -49,8 +52,9 @@ export class SkillSlotPanel {
 
   // Cached layout positions (shared between rendering and hit-testing)
   private slotStartX = 0
+  private slotY = PANEL_TOP_Y + 30
   private ownedStartX = 0
-  private ownedStartY = PANEL_Y + SLOT_SIZE + 34
+  private ownedStartY = 0
 
   constructor(
     scene: Phaser.Scene,
@@ -72,7 +76,7 @@ export class SkillSlotPanel {
     if (this.slotPanelBuilt) return
     this.slotPanelBuilt = true
 
-    const label = this.createOverlayText(DESIGN_WIDTH / 2, PANEL_Y - 28, 'SKILL SLOTS', {
+    const label = this.createOverlayText(PANEL_CENTER_X, PANEL_TOP_Y, 'SKILL SLOTS', {
       fontSize: this.scale.fontSize(24),
       color: '#888888',
     })
@@ -80,12 +84,12 @@ export class SkillSlotPanel {
     this.container.add(label)
 
     const slots = ['Q', 'E', 'R'] as const
-    this.slotStartX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
+    this.slotStartX = PANEL_CENTER_X - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
 
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]!
       const sx = this.slotStartX + i * SLOT_SPACING
-      const el = this.scene.add.container(sx, PANEL_Y)
+      const el = this.scene.add.container(sx, this.slotY)
 
       const gfx = this.scene.add.graphics()
       el.add(gfx)
@@ -111,7 +115,8 @@ export class SkillSlotPanel {
       this.slotLabelMap.set(slot, skillLabel)
     }
 
-    const ownedLabel = this.createOverlayText(DESIGN_WIDTH / 2, PANEL_Y + SLOT_SIZE + 18, 'Owned Skills', {
+    this.ownedStartY = this.slotY + SLOT_SIZE + 40
+    const ownedLabel = this.createOverlayText(PANEL_CENTER_X, this.ownedStartY - 20, 'Owned Skills', {
       fontSize: this.scale.fontSize(22),
       color: '#888888',
     })
@@ -132,7 +137,7 @@ export class SkillSlotPanel {
       const slots = ['Q', 'E', 'R'] as const
       for (let i = 0; i < slots.length; i++) {
         const sx = this.slotStartX + i * SLOT_SPACING
-        if (localX >= sx && localX <= sx + SLOT_SIZE && localY >= PANEL_Y && localY <= PANEL_Y + SLOT_SIZE) {
+        if (localX >= sx && localX <= sx + SLOT_SIZE && localY >= this.slotY && localY <= this.slotY + SLOT_SIZE) {
           this.onSlotClick(slots[i]!)
           return true
         }
@@ -143,8 +148,11 @@ export class SkillSlotPanel {
     if (this.lastHeroState && this.lastHeroState.ownedSkills.length > 0) {
       const skills = this.lastHeroState.ownedSkills
       for (let i = 0; i < skills.length; i++) {
-        const sx = this.ownedStartX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
-        if (localX >= sx && localX <= sx + SKILL_ICON_SIZE && localY >= this.ownedStartY && localY <= this.ownedStartY + SKILL_ICON_SIZE) {
+        const col = i % SKILLS_PER_ROW
+        const row = Math.floor(i / SKILLS_PER_ROW)
+        const sx = this.ownedStartX + col * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
+        const sy = this.ownedStartY + row * (SKILL_ICON_SIZE + SKILL_ICON_GAP + 16)
+        if (localX >= sx && localX <= sx + SKILL_ICON_SIZE && localY >= sy && localY <= sy + SKILL_ICON_SIZE) {
           this.onOwnedSkillClick(skills[i]!)
           return true
         }
@@ -222,12 +230,17 @@ export class SkillSlotPanel {
     this.ownedSkillElements = []
     if (skills.length === 0) return
 
-    this.ownedStartX = DESIGN_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
+    // Grid layout: SKILLS_PER_ROW icons per row
+    const rowWidth = Math.min(skills.length, SKILLS_PER_ROW) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) - SKILL_ICON_GAP
+    this.ownedStartX = PANEL_CENTER_X - rowWidth / 2
 
     for (let i = 0; i < skills.length; i++) {
       const skillId = skills[i]!
-      const sx = this.ownedStartX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
-      const el = this.scene.add.container(sx, this.ownedStartY)
+      const col = i % SKILLS_PER_ROW
+      const row = Math.floor(i / SKILLS_PER_ROW)
+      const sx = this.ownedStartX + col * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
+      const sy = this.ownedStartY + row * (SKILL_ICON_SIZE + SKILL_ICON_GAP + 16)
+      const el = this.scene.add.container(sx, sy)
 
       const gfx = this.scene.add.graphics()
       gfx.fillStyle(COLORS.ownedBg, 0.85)
@@ -250,7 +263,7 @@ export class SkillSlotPanel {
       el.add(gfx)
 
       const nameText = this.createOverlayText(cx, SKILL_ICON_SIZE + 4, this.shortName(skillId), {
-        fontSize: this.scale.fontSize(18),
+        fontSize: this.scale.fontSize(14),
         color: '#AAAAAA',
         align: 'center',
       })
@@ -320,7 +333,7 @@ export class SkillSlotPanel {
       const idx = ['Q', 'E', 'R'].indexOf(slot)
       this.selectionGfx.setPosition(
         this.slotStartX + idx * SLOT_SPACING + SLOT_SIZE / 2,
-        PANEL_Y + SLOT_SIZE / 2,
+        this.slotY + SLOT_SIZE / 2,
       )
     }
   }

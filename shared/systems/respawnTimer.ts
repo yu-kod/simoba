@@ -6,5 +6,5 @@ import { MAX_LEVEL, RESPAWN_TIMES } from '@shared/constants'
  */
 export function computeRespawnTime(level: number): number {
   const clamped = Math.max(0, Math.min(level, MAX_LEVEL))
-  return RESPAWN_TIMES[clamped]
+  return RESPAWN_TIMES[clamped]!
 }

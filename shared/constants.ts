@@ -3,9 +3,17 @@ export const WORLD_WIDTH = 3200
 export const WORLD_HEIGHT = 720
 
 // Progression
-export const MAX_LEVEL = 5
-/** XP thresholds per level (cumulative). Level 0→1 needs 50, 1→2 needs 100, etc. */
-export const XP_THRESHOLDS = [50, 150, 350, 650, 1050] as const
+export const MAX_LEVEL = 30
+/** XP thresholds per level (cumulative). Index i = XP needed to reach level i+1.
+ *  Segmented curve: early (Lv1-8) fast, mid (Lv9-20) linear, late (Lv21-30) steep. */
+export const XP_THRESHOLDS = [
+  // Early (Lv 1-8): increments 30-80
+  30, 70, 120, 180, 250, 330, 420, 520,
+  // Mid (Lv 9-20): increments 100-250
+  620, 740, 880, 1040, 1220, 1420, 1640, 1880, 2140, 2420, 2720, 3040,
+  // Late (Lv 21-30): increments 300-500
+  3340, 3690, 4090, 4540, 5040, 5540, 6090, 6690, 7340, 8040,
+] as const
 export const ULTIMATE_UNLOCK_LEVEL = 3
 export const ULTIMATE_ENHANCE_LEVEL = 5
 
@@ -14,8 +22,13 @@ export const DODGE_COOLDOWN = 10 // seconds
 
 // Respawn
 export const DEFAULT_RESPAWN_TIME = 5 // seconds (legacy fallback)
-/** Respawn time per level (seconds). Index = level. Lv0=0s (instant), Lv1=3s … Lv5=15s. */
-export const RESPAWN_TIMES = [0, 3, 5, 8, 12, 15] as const
+/** Respawn time per level (seconds). Index = level. Lv0=0s, Lv30=25s. */
+export const RESPAWN_TIMES = [
+  0,                                          // Lv0
+  2, 2, 3, 3, 4, 4, 5, 5,                    // Lv1-8
+  6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 16, // Lv9-20
+  17, 18, 19, 20, 21, 22, 23, 24, 24, 25,    // Lv21-30
+] as const
 
 // Map layout — base areas (the colored rectangles at each end)
 export const BASE_WIDTH = 120

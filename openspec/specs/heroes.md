@@ -62,14 +62,12 @@ No passives. Simplicity over depth.
 
 ---
 
-## Talent System (Level Up Choices)
+## Talent System
 
-At each level up, player chooses between two upgrades:
-
-Example structure (per hero):
-- **Lv2:** Skill Q upgrade A vs Skill Q upgrade B
-- **Lv3:** Ultimate unlocked (no choice)
-- **Lv4:** Skill E upgrade A vs Skill E upgrade B
-- **Lv5:** Ultimate enhanced (no choice)
-
-Exact talent options TBD during implementation.
+- **Max level:** 30. Each level-up grants 1 talent point.
+- **Talent tree:** Each hero has a unique tree with 45-55 nodes in a fan shape (roots at bottom, branches expand upward).
+- **Variable cost:** Nodes cost 1, 2, or 3 talent points. Cost 1 = stat tweaks, Cost 2 = skill upgrades, Cost 3 = game-changers.
+- **Build diversity:** With 30 points available, players can acquire only 30-40% of all nodes, ensuring different builds each match.
+- **XP curve:** Segmented (early fast, mid linear, late steep). Typical match reaches Lv15-25.
+- **Lv3:** Ultimate unlocked.
+- **Lv5:** Ultimate enhanced.

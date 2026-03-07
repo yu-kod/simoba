@@ -3,6 +3,9 @@ import type { TalentTreeDefinition } from './types'
 export const BLADE_TALENT_TREE: TalentTreeDefinition = {
   heroType: 'BLADE',
   nodes: [
+    // =========================================================================
+    // Depth 0 — Roots (2 nodes)
+    // =========================================================================
     {
       id: 'blade-toughness',
       name: 'Toughness',
@@ -18,6 +21,18 @@ export const BLADE_TALENT_TREE: TalentTreeDefinition = {
       cost: 1,
       prerequisites: [],
       effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 12, mode: 'flat' }],
+    },
+
+    // =========================================================================
+    // Depth 1 — Early branches (4 nodes)
+    // =========================================================================
+    {
+      id: 'blade-thick-skin',
+      name: 'Thick Skin',
+      description: 'Max HP +60',
+      cost: 1,
+      prerequisites: ['blade-toughness'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 60, mode: 'flat' }],
     },
     {
       id: 'blade-charge',
@@ -36,12 +51,394 @@ export const BLADE_TALENT_TREE: TalentTreeDefinition = {
       effects: [{ type: 'grant_skill', skillId: 'blade-cleave' }],
     },
     {
+      id: 'blade-keen-strikes',
+      name: 'Keen Strikes',
+      description: 'Attack Damage +8',
+      cost: 1,
+      prerequisites: ['blade-sharp-edge'],
+      effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 8, mode: 'flat' }],
+    },
+
+    // =========================================================================
+    // Depth 2 — Expanding (6 nodes)
+    // =========================================================================
+    {
+      id: 'blade-vitality',
+      name: 'Vitality',
+      description: 'Max HP +10%',
+      cost: 2,
+      prerequisites: ['blade-thick-skin'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 10, mode: 'percent' }],
+    },
+    {
+      id: 'blade-iron-will',
+      name: 'Iron Will',
+      description: 'Max HP +50',
+      cost: 1,
+      prerequisites: ['blade-thick-skin'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 50, mode: 'flat' }],
+    },
+    {
+      id: 'blade-rush',
+      name: 'Rush',
+      description: 'Movement Speed +12',
+      cost: 1,
+      prerequisites: ['blade-charge'],
+      effects: [{ type: 'stat_modifier', stat: 'speed', value: 12, mode: 'flat' }],
+    },
+    {
       id: 'blade-berserker',
       name: 'Berserker',
       description: 'Attack Speed +20%',
       cost: 1,
       prerequisites: ['blade-charge', 'blade-cleave'],
       effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 20, mode: 'percent' }],
+    },
+    {
+      id: 'blade-wide-arc',
+      name: 'Wide Arc',
+      description: 'Attack Range +10%',
+      cost: 1,
+      prerequisites: ['blade-cleave'],
+      effects: [{ type: 'stat_modifier', stat: 'attackRange', value: 10, mode: 'percent' }],
+    },
+    {
+      id: 'blade-ferocity',
+      name: 'Ferocity',
+      description: 'Attack Speed +10%',
+      cost: 1,
+      prerequisites: ['blade-keen-strikes'],
+      effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 10, mode: 'percent' }],
+    },
+
+    // =========================================================================
+    // Depth 3 — Fanning out (8 nodes)
+    // =========================================================================
+    {
+      id: 'blade-fortify',
+      name: 'Fortify',
+      description: 'Max HP +120',
+      cost: 2,
+      prerequisites: ['blade-vitality'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 120, mode: 'flat' }],
+    },
+    {
+      id: 'blade-thorns',
+      name: 'Thorns',
+      description: 'Reflect damage on hit',
+      cost: 2,
+      prerequisites: ['blade-iron-will'],
+      effects: [{ type: 'unlock_passive', passiveId: 'blade-thorns' }],
+    },
+    {
+      id: 'blade-dodge',
+      name: 'Dodge Roll',
+      description: 'Unlock Dodge skill — evade',
+      cost: 2,
+      prerequisites: ['blade-rush'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-dodge' }],
+    },
+    {
+      id: 'blade-slam',
+      name: 'Slam',
+      description: 'Unlock Slam skill — ground pound',
+      cost: 2,
+      prerequisites: ['blade-berserker'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-slam' }],
+    },
+    {
+      id: 'blade-whirlwind',
+      name: 'Whirlwind',
+      description: 'Unlock Whirlwind — spin AoE',
+      cost: 2,
+      prerequisites: ['blade-berserker'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-whirlwind' }],
+    },
+    {
+      id: 'blade-savage-blows',
+      name: 'Savage Blows',
+      description: 'Attack Damage +15%',
+      cost: 2,
+      prerequisites: ['blade-wide-arc'],
+      effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 15, mode: 'percent' }],
+    },
+    {
+      id: 'blade-frenzy',
+      name: 'Frenzy',
+      description: 'Attack Speed +15%',
+      cost: 1,
+      prerequisites: ['blade-ferocity'],
+      effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 15, mode: 'percent' }],
+    },
+    {
+      id: 'blade-heavy-hand',
+      name: 'Heavy Hand',
+      description: 'Attack Damage +10',
+      cost: 1,
+      prerequisites: ['blade-ferocity'],
+      effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 10, mode: 'flat' }],
+    },
+
+    // =========================================================================
+    // Depth 4 — Wide fan (9 nodes)
+    // =========================================================================
+    {
+      id: 'blade-bulwark',
+      name: 'Bulwark',
+      description: 'Max HP +15%',
+      cost: 2,
+      prerequisites: ['blade-fortify'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 15, mode: 'percent' }],
+    },
+    {
+      id: 'blade-tenacity',
+      name: 'Tenacity',
+      description: 'Reduce crowd control',
+      cost: 2,
+      prerequisites: ['blade-thorns'],
+      effects: [{ type: 'unlock_passive', passiveId: 'blade-tenacity' }],
+    },
+    {
+      id: 'blade-momentum',
+      name: 'Momentum',
+      description: 'Movement Speed +10%',
+      cost: 1,
+      prerequisites: ['blade-dodge'],
+      effects: [{ type: 'stat_modifier', stat: 'speed', value: 10, mode: 'percent' }],
+    },
+    {
+      id: 'blade-impact',
+      name: 'Impact',
+      description: 'Slam slows enemies',
+      cost: 1,
+      prerequisites: ['blade-slam'],
+      effects: [{ type: 'modify_basic_attack', property: 'slamSlow', value: true }],
+    },
+    {
+      id: 'blade-rally',
+      name: 'Rally',
+      description: 'Unlock Rally — buff allies',
+      cost: 2,
+      prerequisites: ['blade-slam', 'blade-whirlwind'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-rally' }],
+    },
+    {
+      id: 'blade-cyclone',
+      name: 'Cyclone',
+      description: 'Whirlwind range +20%',
+      cost: 1,
+      prerequisites: ['blade-whirlwind'],
+      effects: [{ type: 'stat_modifier', stat: 'attackRange', value: 20, mode: 'percent' }],
+    },
+    {
+      id: 'blade-rend',
+      name: 'Rend',
+      description: 'Attacks apply bleed',
+      cost: 2,
+      prerequisites: ['blade-savage-blows'],
+      effects: [{ type: 'modify_basic_attack', property: 'bleed', value: true }],
+    },
+    {
+      id: 'blade-bloodlust',
+      name: 'Bloodlust',
+      description: 'Attack Speed +10%',
+      cost: 1,
+      prerequisites: ['blade-frenzy'],
+      effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 10, mode: 'percent' }],
+    },
+    {
+      id: 'blade-brutality',
+      name: 'Brutality',
+      description: 'Attack Damage +10%',
+      cost: 1,
+      prerequisites: ['blade-heavy-hand'],
+      effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 10, mode: 'percent' }],
+    },
+
+    // =========================================================================
+    // Depth 5 — Wide fan (9 nodes)
+    // =========================================================================
+    {
+      id: 'blade-last-stand',
+      name: 'Last Stand',
+      description: 'Bonus damage when low HP',
+      cost: 3,
+      prerequisites: ['blade-bulwark'],
+      effects: [{ type: 'unlock_passive', passiveId: 'blade-last-stand' }],
+    },
+    {
+      id: 'blade-resilience',
+      name: 'Resilience',
+      description: 'Max HP +80',
+      cost: 1,
+      prerequisites: ['blade-tenacity'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 80, mode: 'flat' }],
+    },
+    {
+      id: 'blade-evasion',
+      name: 'Evasion',
+      description: 'Movement Speed +8',
+      cost: 1,
+      prerequisites: ['blade-momentum'],
+      effects: [{ type: 'stat_modifier', stat: 'speed', value: 8, mode: 'flat' }],
+    },
+    {
+      id: 'blade-shockwave',
+      name: 'Shockwave',
+      description: 'Slam deals +20% damage',
+      cost: 1,
+      prerequisites: ['blade-impact'],
+      effects: [{ type: 'modify_basic_attack', property: 'slamDamageBonus', value: 20 }],
+    },
+    {
+      id: 'blade-warcry',
+      name: 'War Cry',
+      description: 'Rally also boosts speed',
+      cost: 1,
+      prerequisites: ['blade-rally'],
+      effects: [{ type: 'modify_basic_attack', property: 'rallySpeedBuff', value: true }],
+    },
+    {
+      id: 'blade-tempest',
+      name: 'Tempest',
+      description: 'Whirlwind damage +25%',
+      cost: 2,
+      prerequisites: ['blade-cyclone'],
+      effects: [{ type: 'modify_basic_attack', property: 'whirlwindDamageBonus', value: 25 }],
+    },
+    {
+      id: 'blade-lifesteal',
+      name: 'Lifesteal',
+      description: 'Heal on attack',
+      cost: 3,
+      prerequisites: ['blade-rend'],
+      effects: [{ type: 'unlock_passive', passiveId: 'blade-lifesteal' }],
+    },
+    {
+      id: 'blade-rampage',
+      name: 'Rampage',
+      description: 'Attack Speed +20%',
+      cost: 2,
+      prerequisites: ['blade-bloodlust'],
+      effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 20, mode: 'percent' }],
+    },
+    {
+      id: 'blade-executioner',
+      name: 'Executioner',
+      description: 'Bonus damage vs low HP',
+      cost: 2,
+      prerequisites: ['blade-brutality'],
+      effects: [{ type: 'modify_basic_attack', property: 'executeDamage', value: 30 }],
+    },
+
+    // =========================================================================
+    // Depth 6 — Converging toward capstones (7 nodes)
+    // =========================================================================
+    {
+      id: 'blade-colossus',
+      name: 'Colossus',
+      description: 'Max HP +200',
+      cost: 3,
+      prerequisites: ['blade-last-stand', 'blade-resilience'],
+      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 200, mode: 'flat' }],
+    },
+    {
+      id: 'blade-pursuit',
+      name: 'Pursuit',
+      description: 'Movement Speed +15%',
+      cost: 1,
+      prerequisites: ['blade-evasion'],
+      effects: [{ type: 'stat_modifier', stat: 'speed', value: 15, mode: 'percent' }],
+    },
+    {
+      id: 'blade-devastation',
+      name: 'Devastation',
+      description: 'Slam resets on kill',
+      cost: 2,
+      prerequisites: ['blade-shockwave', 'blade-warcry'],
+      effects: [{ type: 'modify_basic_attack', property: 'slamResetOnKill', value: true }],
+    },
+    {
+      id: 'blade-fury',
+      name: 'Fury',
+      description: 'Unlock Fury — burst attack',
+      cost: 3,
+      prerequisites: ['blade-tempest'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-fury' }],
+    },
+    {
+      id: 'blade-carnage',
+      name: 'Carnage',
+      description: 'Attack Damage +20%',
+      cost: 3,
+      prerequisites: ['blade-lifesteal', 'blade-rampage'],
+      effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 20, mode: 'percent' }],
+    },
+    {
+      id: 'blade-onslaught',
+      name: 'Onslaught',
+      description: 'Attack Speed +25%',
+      cost: 2,
+      prerequisites: ['blade-rampage'],
+      effects: [{ type: 'stat_modifier', stat: 'attackSpeed', value: 25, mode: 'percent' }],
+    },
+    {
+      id: 'blade-lethality',
+      name: 'Lethality',
+      description: 'Attack Damage +15',
+      cost: 1,
+      prerequisites: ['blade-executioner'],
+      effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 15, mode: 'flat' }],
+    },
+
+    // =========================================================================
+    // Depth 7 — Capstones (5 nodes)
+    // =========================================================================
+    {
+      id: 'blade-immortal',
+      name: 'Immortal',
+      description: 'Cheat death once per fight',
+      cost: 2,
+      prerequisites: ['blade-colossus'],
+      effects: [{ type: 'unlock_passive', passiveId: 'blade-immortal' }],
+    },
+    {
+      id: 'blade-blitz',
+      name: 'Blitz',
+      description: 'Dodge resets on kill',
+      cost: 1,
+      prerequisites: ['blade-pursuit', 'blade-devastation'],
+      effects: [{ type: 'modify_basic_attack', property: 'dodgeResetOnKill', value: true }],
+    },
+    {
+      id: 'blade-execute',
+      name: 'Execute',
+      description: 'Unlock Execute — finish blow',
+      cost: 3,
+      prerequisites: ['blade-fury', 'blade-carnage'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-execute' }],
+    },
+    {
+      id: 'blade-warlord',
+      name: 'Warlord',
+      description: 'All stats +5%',
+      cost: 3,
+      prerequisites: ['blade-carnage', 'blade-onslaught'],
+      effects: [
+        { type: 'stat_modifier', stat: 'maxHp', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'attackDamage', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'attackSpeed', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'speed', value: 5, mode: 'percent' },
+        { type: 'stat_modifier', stat: 'attackRange', value: 5, mode: 'percent' },
+      ],
+    },
+    {
+      id: 'blade-annihilator',
+      name: 'Annihilator',
+      description: 'Attacks hit twice',
+      cost: 2,
+      prerequisites: ['blade-onslaught', 'blade-lethality'],
+      effects: [{ type: 'modify_basic_attack', property: 'doubleStrike', value: true }],
     },
   ],
 }

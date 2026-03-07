@@ -37,11 +37,14 @@ export type TalentEffect =
 // Talent Node & Tree
 // ---------------------------------------------------------------------------
 
+/** Valid talent node costs: 1 (minor), 2 (moderate), 3 (major). */
+export type TalentNodeCost = 1 | 2 | 3
+
 export interface TalentNode {
   readonly id: string
   readonly name: string
   readonly description: string
-  readonly cost: number
+  readonly cost: TalentNodeCost
   readonly prerequisites: readonly string[]
   readonly effects: readonly TalentEffect[]
 }

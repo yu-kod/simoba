@@ -10,11 +10,23 @@ import { SkillSlotPanel, type SkillSlotCallbacks } from './SkillSlotPanel'
 import { DESIGN_WIDTH, DESIGN_HEIGHT } from './uiConstants'
 const OVERLAY_DEPTH = 1500
 
-// Tree layout
-const TREE_START_Y = 110
-const ROW_GAP = 120
-const COL_GAP = 180
-const NODE_RADIUS = 32
+// Hero body colors (match HeroRenderer)
+const HERO_COLORS: Record<HeroType, number> = {
+  BLADE: 0xe74c3c,
+  BOLT: 0x3498db,
+  AURA: 0x2ecc71,
+} as const
+const DIAMOND_ASPECT_RATIO = 0.6
+
+// Tree layout — fan shape (start marker at bottom, branches expand upward)
+// Tree occupies left portion (0–900px), skill panel occupies right (920–1280px)
+const TREE_CENTER_X = 450
+const TREE_BOTTOM_Y = 480
+const ROW_GAP = 52
+const COL_GAP = 80
+const NODE_RADIUS = 20
+const START_MARKER_RADIUS = 14
+const START_MARKER_Y = TREE_BOTTOM_Y + ROW_GAP
 
 // Colors
 const COLORS = {
@@ -29,6 +41,8 @@ const COLORS = {
   lineAcquired: 0x27ae60,
   tooltipBg: 0x1a1a2e,
   tooltipBorder: 0x888888,
+  startMarker: 0x3498db,
+  startMarkerBorder: 0x5dade2,
 } as const
 
 type NodeState = 'acquired' | 'available' | 'locked'
@@ -52,6 +66,7 @@ export class TalentTreeOverlay {
   private readonly skillSlotPanel: SkillSlotPanel
 
   private visible = false
+  private heroType: HeroType | null = null
   private treeDef: TalentTreeDefinition | null = null
   private nodeLayouts: NodeLayout[] = []
   private lastHeroState: HeroState | null = null
@@ -60,6 +75,7 @@ export class TalentTreeOverlay {
   private readonly lineGfx: Phaser.GameObjects.Graphics
   private nodeGfxMap = new Map<string, Phaser.GameObjects.Graphics>()
   private nodeElementMap = new Map<string, Phaser.GameObjects.Container>()
+  private startMarkerContainer: Phaser.GameObjects.Container | null = null
   private pointsText: Phaser.GameObjects.Text
 
   // Tooltip
@@ -99,7 +115,7 @@ export class TalentTreeOverlay {
     this.container.add(this.lineGfx)
 
     // Title
-    const title = this.createOverlayText(DESIGN_WIDTH / 2, 24, 'TALENT TREE', {
+    const title = this.createOverlayText(TREE_CENTER_X, 24, 'TALENT TREE', {
       fontSize: scale.fontSize(52),
       color: '#FFD700',
       fontStyle: 'bold',
@@ -110,7 +126,7 @@ export class TalentTreeOverlay {
     this.container.add(title)
 
     // Talent points display
-    this.pointsText = this.createOverlayText(DESIGN_WIDTH / 2, 72, 'Points: 0', {
+    this.pointsText = this.createOverlayText(TREE_CENTER_X, 72, 'Points: 0', {
       fontSize: scale.fontSize(32),
       color: '#FFFFFF',
     })
@@ -129,7 +145,7 @@ export class TalentTreeOverlay {
     })
 
     // Close hint
-    const hint = this.createOverlayText(DESIGN_WIDTH / 2, DESIGN_HEIGHT - 18, 'TAB to close', {
+    const hint = this.createOverlayText(TREE_CENTER_X, DESIGN_HEIGHT - 18, 'TAB to close', {
       fontSize: scale.fontSize(22),
       color: '#666666',
     })
@@ -169,6 +185,7 @@ export class TalentTreeOverlay {
   setHeroType(heroType: HeroType): void {
     const treeDef = TALENT_TREES[heroType]
     if (!treeDef || treeDef === this.treeDef) return
+    this.heroType = heroType
     this.treeDef = treeDef
     this.rebuildTree()
     this.skillSlotPanel.build()
@@ -229,6 +246,10 @@ export class TalentTreeOverlay {
     for (const c of this.nodeElementMap.values()) c.destroy()
     this.nodeElementMap.clear()
     this.nodeGfxMap.clear()
+    if (this.startMarkerContainer) {
+      this.startMarkerContainer.destroy()
+      this.startMarkerContainer = null
+    }
 
     if (!this.treeDef) return
     this.nodeLayouts = this.computeLayout(this.treeDef)
@@ -236,6 +257,8 @@ export class TalentTreeOverlay {
     for (const layout of this.nodeLayouts) {
       this.createNode(layout)
     }
+
+    this.createStartMarker()
   }
 
   private computeLayout(tree: TalentTreeDefinition): NodeLayout[] {
@@ -260,7 +283,7 @@ export class TalentTreeOverlay {
       groups.get(d)!.push(n)
     }
 
-    const cx = DESIGN_WIDTH / 2
+    const cx = TREE_CENTER_X
     const result: NodeLayout[] = []
     for (const [depth, nodes] of groups) {
       const w = (nodes.length - 1) * COL_GAP
@@ -268,7 +291,7 @@ export class TalentTreeOverlay {
         result.push({
           node: nodes[i]!,
           x: cx - w / 2 + i * COL_GAP,
-          y: TREE_START_Y + depth * ROW_GAP,
+          y: TREE_BOTTOM_Y - depth * ROW_GAP,
         })
       }
     }
@@ -283,8 +306,17 @@ export class TalentTreeOverlay {
     el.add(gfx)
     this.drawHexNode(gfx, 'locked')
 
-    const name = this.createOverlayText(0, NODE_RADIUS + 8, node.name, {
-      fontSize: this.scale.fontSize(22),
+    // Cost display inside the hex
+    const costLabel = this.createOverlayText(0, 0, `${node.cost}`, {
+      fontSize: this.scale.fontSize(20),
+      color: '#FFFFFF',
+      fontStyle: 'bold',
+    })
+    costLabel.setOrigin(0.5)
+    el.add(costLabel)
+
+    const name = this.createOverlayText(0, NODE_RADIUS + 4, node.name, {
+      fontSize: this.scale.fontSize(16),
       color: '#CCCCCC',
       align: 'center',
     })
@@ -311,11 +343,67 @@ export class TalentTreeOverlay {
     gfx.strokePath()
   }
 
+  private createStartMarker(): void {
+    const el = this.scene.add.container(TREE_CENTER_X, START_MARKER_Y)
+    const r = START_MARKER_RADIUS
+    const color = this.heroType ? HERO_COLORS[this.heroType] : COLORS.startMarker
+
+    // Circle base (matches hero body)
+    const gfx = this.scene.add.graphics()
+    gfx.fillStyle(color, 0.3)
+    gfx.fillCircle(0, 0, r)
+    gfx.lineStyle(2, color, 1)
+    gfx.strokeCircle(0, 0, r)
+
+    // Type-specific indicator overlay
+    const indicatorSize = r * 0.6
+    gfx.fillStyle(color, 0.8)
+    if (this.heroType === 'BLADE') {
+      const h = indicatorSize * Math.sqrt(3) / 2
+      gfx.fillTriangle(0, -h * 2 / 3, -indicatorSize / 2, h / 3, indicatorSize / 2, h / 3)
+    } else if (this.heroType === 'BOLT') {
+      gfx.beginPath()
+      gfx.moveTo(0, -indicatorSize)
+      gfx.lineTo(indicatorSize * DIAMOND_ASPECT_RATIO, 0)
+      gfx.lineTo(0, indicatorSize)
+      gfx.lineTo(-indicatorSize * DIAMOND_ASPECT_RATIO, 0)
+      gfx.closePath()
+      gfx.fillPath()
+    } else {
+      drawHexPath(gfx, 0, 0, indicatorSize)
+      gfx.fillPath()
+    }
+    el.add(gfx)
+
+    const label = this.createOverlayText(0, r + 4, 'START', {
+      fontSize: this.scale.fontSize(14),
+      color: '#CCCCCC',
+      fontStyle: 'bold',
+    })
+    label.setOrigin(0.5, 0)
+    el.add(label)
+
+    this.container.add(el)
+    this.startMarkerContainer = el
+  }
+
   private drawConnections(acquired: readonly string[]): void {
     this.lineGfx.clear()
     const layoutMap = new Map(this.nodeLayouts.map(l => [l.node.id, l]))
     const acqSet = new Set(acquired)
 
+    // Lines from START marker to root nodes
+    for (const layout of this.nodeLayouts) {
+      if (layout.node.prerequisites.length === 0) {
+        this.lineGfx.lineStyle(2, COLORS.startMarker, 0.6)
+        this.lineGfx.beginPath()
+        this.lineGfx.moveTo(TREE_CENTER_X, START_MARKER_Y)
+        this.lineGfx.lineTo(layout.x, layout.y)
+        this.lineGfx.strokePath()
+      }
+    }
+
+    // Lines between nodes
     for (const layout of this.nodeLayouts) {
       for (const pid of layout.node.prerequisites) {
         const parent = layoutMap.get(pid)
