@@ -325,6 +325,7 @@ function fireAttack(
     proj.y = minion.y
     proj.targetX = target.x
     proj.targetY = target.y
+    proj.targetId = target.id
     proj.speed = minion.projectileSpeed
     proj.damage = minion.attackDamage
     proj.ownerId = minionId

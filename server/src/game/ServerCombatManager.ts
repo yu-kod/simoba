@@ -1,6 +1,7 @@
 import { MapSchema } from '@colyseus/schema'
 import { isInAttackRange } from '@shared/combat'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
+import { RANGED_ATTACK_PAUSE_DURATION } from '@shared/constants'
 import type { HeroType } from '@shared/types'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
@@ -151,11 +152,15 @@ export function processHeroCombat(
       proj.y = hero.y
       proj.targetX = target.x
       proj.targetY = target.y
+      proj.targetId = hero.attackTargetId
       proj.speed = def.projectileSpeed
       proj.damage = hero.attackDamage
       proj.ownerId = heroId
       proj.team = hero.team
       projectiles.set(proj.id, proj)
+
+      // Brief movement pause when firing while moving
+      hero.attackPauseTimer = RANGED_ATTACK_PAUSE_DURATION
 
       events.push({
         kind: 'attack',

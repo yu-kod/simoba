@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
+import { MinionSchema } from '../schema/MinionSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
 
@@ -12,6 +13,7 @@ function createProjectile(overrides: Partial<Record<keyof ProjectileSchema, unkn
   proj.y = 100
   proj.targetX = 300
   proj.targetY = 100
+  proj.targetId = 'enemy'
   proj.speed = 400
   proj.damage = 60
   proj.ownerId = 'attacker'
@@ -45,33 +47,81 @@ describe('ServerProjectileSystem', () => {
     projectiles = new MapSchema<ProjectileSchema>()
   })
 
-  describe('processProjectiles', () => {
-    it('should move projectile toward target', () => {
-      const proj = createProjectile({ x: 100, y: 100, targetX: 300, targetY: 100, speed: 400 })
+  describe('processProjectiles — homing', () => {
+    it('should move projectile toward target entity position', () => {
+      const target = createHero('enemy', { x: 300, y: 100, team: 'red' })
+      heroes.set('enemy', target)
+
+      const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy', speed: 400 })
       projectiles.set(proj.id, proj)
 
       processProjectiles(projectiles, heroes, towers, 0.25)
 
       expect(proj.x).toBeCloseTo(200, 0) // 100 + 400 * 0.25
       expect(proj.y).toBeCloseTo(100, 0)
-      expect(projectiles.size).toBe(1) // Still alive
+      expect(projectiles.size).toBe(1)
     })
 
-    it('should remove projectile when it arrives at target position', () => {
-      const proj = createProjectile({ x: 290, y: 100, targetX: 300, targetY: 100, speed: 400 })
+    it('should home toward moving target', () => {
+      const target = createHero('enemy', { x: 300, y: 100, team: 'red' })
+      heroes.set('enemy', target)
+
+      const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy', speed: 400 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 1) // Overshoots
+      // First tick: target at (300, 100)
+      processProjectiles(projectiles, heroes, towers, 0.1)
+      const x1 = proj.x
 
-      expect(projectiles.size).toBe(0) // Removed
+      // Target moves up
+      target.y = 200
+
+      // Second tick: projectile should now home toward (300, 200)
+      processProjectiles(projectiles, heroes, towers, 0.1)
+
+      // Projectile should have a y component now (moving toward new target position)
+      expect(proj.y).toBeGreaterThan(100)
+      expect(proj.x).toBeGreaterThan(x1)
     })
 
-    it('should apply damage on collision with enemy hero', () => {
+    it('should update targetX/targetY for client interpolation', () => {
+      const target = createHero('enemy', { x: 300, y: 100, team: 'red' })
+      heroes.set('enemy', target)
+
+      const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy' })
+      projectiles.set(proj.id, proj)
+
+      // Move target
+      target.x = 400
+      target.y = 200
+
+      processProjectiles(projectiles, heroes, towers, 0.1)
+
+      expect(proj.targetX).toBe(400)
+      expect(proj.targetY).toBe(200)
+    })
+
+    it('should only damage designated target, not other enemies on path', () => {
+      const bystander = createHero('bystander', { x: 150, y: 100, team: 'red', radius: 22, hp: 650 })
+      const target = createHero('enemy', { x: 300, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('bystander', bystander)
+      heroes.set('enemy', target)
+
+      // Projectile flies through bystander toward enemy
+      const proj = createProjectile({ x: 145, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.01)
+
+      expect(bystander.hp).toBe(650) // No damage to bystander
+      expect(projectiles.size).toBe(1) // Projectile not consumed
+    })
+
+    it('should apply damage when reaching designated target', () => {
       const target = createHero('enemy', { x: 200, y: 100, team: 'red', radius: 22, hp: 650 })
       heroes.set('enemy', target)
 
-      // Place projectile very close to target
-      const proj = createProjectile({ x: 195, y: 100, targetX: 300, targetY: 100, team: 'blue', damage: 60 })
+      const proj = createProjectile({ x: 195, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
       projectiles.set(proj.id, proj)
 
       processProjectiles(projectiles, heroes, towers, 0.01)
@@ -80,57 +130,63 @@ describe('ServerProjectileSystem', () => {
       expect(projectiles.size).toBe(0) // Removed after hit
     })
 
-    it('should not damage same-team entities', () => {
-      const ally = createHero('ally', { x: 200, y: 100, team: 'blue', radius: 22, hp: 650 })
-      heroes.set('ally', ally)
-
-      const proj = createProjectile({ x: 195, y: 100, targetX: 300, targetY: 100, team: 'blue', damage: 60 })
-      projectiles.set(proj.id, proj)
-
-      processProjectiles(projectiles, heroes, towers, 0.01)
-
-      expect(ally.hp).toBe(650) // No damage to ally
-      expect(projectiles.size).toBe(1) // Not consumed
-    })
-
-    it('should not damage dead entities', () => {
-      const target = createHero('enemy', { x: 200, y: 100, team: 'red', radius: 22, hp: 0, dead: true })
+    it('should remove projectile if target dies', () => {
+      const target = createHero('enemy', { x: 300, y: 100, team: 'red', hp: 0, dead: true })
       heroes.set('enemy', target)
 
-      const proj = createProjectile({ x: 195, y: 100, targetX: 300, targetY: 100, team: 'blue', damage: 60 })
+      const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy' })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.01)
+      processProjectiles(projectiles, heroes, towers, 0.1)
 
-      expect(target.hp).toBe(0)
-    })
-
-    it('should apply damage to towers', () => {
-      const tower = new TowerSchema()
-      tower.id = 'tower-red'
-      tower.x = 200
-      tower.y = 100
-      tower.hp = 1500
-      tower.maxHp = 1500
-      tower.dead = false
-      tower.team = 'red'
-      tower.radius = 24
-      towers.set('tower-red', tower)
-
-      const proj = createProjectile({ x: 195, y: 100, targetX: 300, targetY: 100, team: 'blue', damage: 45 })
-      projectiles.set(proj.id, proj)
-
-      processProjectiles(projectiles, heroes, towers, 0.01)
-
-      expect(tower.hp).toBe(1455) // 1500 - 45
       expect(projectiles.size).toBe(0)
     })
 
-    it('should return DamageEvent on collision', () => {
+    it('should remove projectile if target entity disappears', () => {
+      // No target entity in the map
+      const proj = createProjectile({ x: 100, y: 100, targetId: 'nonexistent' })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.1)
+
+      expect(projectiles.size).toBe(0)
+    })
+
+    it('should not damage same-team entities even if designated', () => {
+      const ally = createHero('ally', { x: 200, y: 100, team: 'blue', radius: 22, hp: 650 })
+      heroes.set('ally', ally)
+
+      // Edge case: targetId points to an ally (shouldn't happen normally)
+      const proj = createProjectile({ x: 195, y: 100, targetId: 'ally', team: 'blue', damage: 60 })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.01)
+
+      // Friendly fire guard: no damage applied, projectile removed
+      expect(ally.hp).toBe(650)
+      expect(projectiles.size).toBe(0)
+    })
+
+    it('should apply damage when projectile is exactly at target position', () => {
       const target = createHero('enemy', { x: 200, y: 100, team: 'red', radius: 22, hp: 650 })
       heroes.set('enemy', target)
 
-      const proj = createProjectile({ x: 195, y: 100, targetX: 300, targetY: 100, team: 'blue', damage: 60, ownerId: 'shooter' })
+      // Projectile spawned exactly at target position (distToTarget === 0)
+      const proj = createProjectile({ x: 200, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
+      projectiles.set(proj.id, proj)
+
+      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+
+      expect(target.hp).toBe(590)
+      expect(projectiles.size).toBe(0)
+      expect(events).toHaveLength(1)
+    })
+
+    it('should return DamageEvent on hit', () => {
+      const target = createHero('enemy', { x: 200, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('enemy', target)
+
+      const proj = createProjectile({ x: 195, y: 100, targetId: 'enemy', team: 'blue', damage: 60, ownerId: 'shooter' })
       projectiles.set(proj.id, proj)
 
       const events = processProjectiles(projectiles, heroes, towers, 0.01)
@@ -143,27 +199,75 @@ describe('ServerProjectileSystem', () => {
     })
 
     it('should return empty events when no collision', () => {
-      const proj = createProjectile({ x: 100, y: 100, targetX: 300, targetY: 100 })
+      const target = createHero('enemy', { x: 500, y: 100, team: 'red' })
+      heroes.set('enemy', target)
+
+      const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy' })
       projectiles.set(proj.id, proj)
 
       const events = processProjectiles(projectiles, heroes, towers, 0.01)
       expect(events).toHaveLength(0)
     })
 
-    it('should handle multiple projectiles', () => {
-      const target = createHero('enemy', { x: 300, y: 100, team: 'red', radius: 22, hp: 650 })
-      heroes.set('enemy', target)
+    it('should handle multiple projectiles with different targets', () => {
+      const enemy1 = createHero('enemy1', { x: 200, y: 100, team: 'red', radius: 22, hp: 650 })
+      const enemy2 = createHero('enemy2', { x: 400, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('enemy1', enemy1)
+      heroes.set('enemy2', enemy2)
 
-      const proj1 = createProjectile({ id: 'proj-1', x: 295, y: 100, targetX: 400, targetY: 100, damage: 30 })
-      const proj2 = createProjectile({ id: 'proj-2', x: 100, y: 100, targetX: 400, targetY: 100, damage: 30 })
+      const proj1 = createProjectile({ id: 'proj-1', x: 195, y: 100, targetId: 'enemy1', damage: 30 })
+      const proj2 = createProjectile({ id: 'proj-2', x: 100, y: 100, targetId: 'enemy2', damage: 30 })
       projectiles.set(proj1.id, proj1)
       projectiles.set(proj2.id, proj2)
 
       processProjectiles(projectiles, heroes, towers, 0.01)
 
-      // proj1 should hit, proj2 still alive
-      expect(target.hp).toBe(620) // 650 - 30
-      expect(projectiles.size).toBe(1)
+      expect(enemy1.hp).toBe(620) // hit by proj1
+      expect(enemy2.hp).toBe(650) // proj2 still in flight
+      expect(projectiles.size).toBe(1) // proj2 still alive
+    })
+
+    it('should apply damage to towers when targeted', () => {
+      const tower = new TowerSchema()
+      tower.id = 'tower-red'
+      tower.x = 200
+      tower.y = 100
+      tower.hp = 1500
+      tower.maxHp = 1500
+      tower.dead = false
+      tower.team = 'red'
+      tower.radius = 24
+      towers.set('tower-red', tower)
+
+      const proj = createProjectile({ x: 195, y: 100, targetId: 'tower-red', team: 'blue', damage: 45 })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.01)
+
+      expect(tower.hp).toBe(1455)
+      expect(projectiles.size).toBe(0)
+    })
+
+    it('should home toward minion target', () => {
+      const minions = new MapSchema<MinionSchema>()
+      const minion = new MinionSchema()
+      minion.id = 'minion-1'
+      minion.x = 300
+      minion.y = 100
+      minion.hp = 100
+      minion.maxHp = 100
+      minion.dead = false
+      minion.team = 'red'
+      minion.radius = 12
+      minions.set('minion-1', minion)
+
+      const proj = createProjectile({ x: 295, y: 100, targetId: 'minion-1', damage: 50 })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.01, minions)
+
+      expect(minion.hp).toBe(50)
+      expect(projectiles.size).toBe(0)
     })
   })
 })

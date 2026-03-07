@@ -5,18 +5,32 @@ import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
+import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 
-interface DamageTarget {
-  id: string
-  x: number
-  y: number
-  hp: number
-  dead: boolean
-  radius: number
-  team: string
+interface TargetPosition {
+  readonly x: number
+  readonly y: number
+  readonly radius: number
+  readonly dead: boolean
+  readonly team: string
 }
 
-import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
+function findTargetPosition(
+  targetId: string,
+  heroes: MapSchema<HeroSchema>,
+  towers: MapSchema<TowerSchema>,
+  minions?: MapSchema<MinionSchema>,
+): TargetPosition | null {
+  const hero = heroes.get(targetId)
+  if (hero) return { x: hero.x, y: hero.y, radius: hero.radius, dead: hero.dead, team: hero.team }
+  const tower = towers.get(targetId)
+  if (tower) return { x: tower.x, y: tower.y, radius: tower.radius, dead: tower.dead, team: tower.team }
+  if (minions) {
+    const minion = minions.get(targetId)
+    if (minion) return { x: minion.x, y: minion.y, radius: minion.radius, dead: minion.dead, team: minion.team }
+  }
+  return null
+}
 
 function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1
@@ -24,31 +38,11 @@ function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
   return dx * dx + dy * dy
 }
 
-function getAllDamageTargets(
-  heroes: MapSchema<HeroSchema>,
-  towers: MapSchema<TowerSchema>,
-  minions?: MapSchema<MinionSchema>,
-): DamageTarget[] {
-  const targets: DamageTarget[] = []
-  heroes.forEach((h, id) => {
-    targets.push({ id, x: h.x, y: h.y, hp: h.hp, dead: h.dead, radius: h.radius, team: h.team })
-  })
-  towers.forEach((t, id) => {
-    targets.push({ id, x: t.x, y: t.y, hp: t.hp, dead: t.dead, radius: t.radius, team: t.team })
-  })
-  if (minions) {
-    minions.forEach((m, id) => {
-      targets.push({ id, x: m.x, y: m.y, hp: m.hp, dead: m.dead, radius: m.radius, team: m.team })
-    })
-  }
-  return targets
-}
-
 /**
  * Process all projectiles for one tick.
- * Moves each projectile toward its target position, checks collision against
- * enemy entities, applies damage on hit, and removes arrived/hit projectiles.
- * Returns DamageEvent for each hit.
+ * Each projectile homes toward its designated target entity.
+ * Damage is only applied to the designated target (not any entity on the path).
+ * Projectiles are removed when they reach the target, the target dies, or the target disappears.
  */
 export function processProjectiles(
   projectiles: MapSchema<ProjectileSchema>,
@@ -59,15 +53,37 @@ export function processProjectiles(
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
   const toRemove: string[] = []
-  const targets = getAllDamageTargets(heroes, towers, minions)
 
   projectiles.forEach((proj, projId) => {
-    // Move toward target position
-    const dx = proj.targetX - proj.x
-    const dy = proj.targetY - proj.y
+    // Look up current target position
+    const target = findTargetPosition(proj.targetId, heroes, towers, minions)
+
+    // Remove projectile if target is gone, dead, or same team (friendly fire guard)
+    if (!target || target.dead || target.team === proj.team) {
+      toRemove.push(projId)
+      return
+    }
+
+    // Update homing direction — always fly toward current target position
+    const dx = target.x - proj.x
+    const dy = target.y - proj.y
     const distToTarget = Math.sqrt(dx * dx + dy * dy)
 
+    // Also update targetX/targetY for client-side interpolation
+    proj.targetX = target.x
+    proj.targetY = target.y
+
+    // Already at target position — apply damage immediately
     if (distToTarget === 0) {
+      applyDamageToTarget(proj.targetId, proj.damage, heroes, towers, minions, proj.ownerId)
+      events.push({
+        kind: 'damage',
+        event: {
+          targetId: proj.targetId,
+          amount: proj.damage,
+          sourceId: proj.ownerId,
+        },
+      })
       toRemove.push(projId)
       return
     }
@@ -77,43 +93,25 @@ export function processProjectiles(
     const ny = dy / distToTarget
 
     if (moveDistance >= distToTarget) {
-      // Arrived at target position
-      proj.x = proj.targetX
-      proj.y = proj.targetY
+      proj.x = target.x
+      proj.y = target.y
     } else {
       proj.x = proj.x + nx * moveDistance
       proj.y = proj.y + ny * moveDistance
     }
 
-    // Check collision against enemy entities
-    let hit = false
-    for (const target of targets) {
-      if (target.dead) continue
-      if (target.team === proj.team) continue
-
-      const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
-      if (distanceSq(proj.x, proj.y, target.x, target.y) <= collisionDist * collisionDist) {
-        applyDamageToTarget(target.id, proj.damage, heroes, towers, minions, proj.ownerId)
-        events.push({
-          kind: 'damage',
-          event: {
-            targetId: target.id,
-            amount: proj.damage,
-            sourceId: proj.ownerId,
-          },
-        })
-        hit = true
-        break
-      }
-    }
-
-    if (hit) {
-      toRemove.push(projId)
-      return
-    }
-
-    // Remove if arrived at destination without hitting
-    if (moveDistance >= distToTarget) {
+    // Check collision with designated target only
+    const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
+    if (distanceSq(proj.x, proj.y, target.x, target.y) <= collisionDist * collisionDist) {
+      applyDamageToTarget(proj.targetId, proj.damage, heroes, towers, minions, proj.ownerId)
+      events.push({
+        kind: 'damage',
+        event: {
+          targetId: proj.targetId,
+          amount: proj.damage,
+          sourceId: proj.ownerId,
+        },
+      })
       toRemove.push(projId)
     }
   })

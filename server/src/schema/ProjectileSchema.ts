@@ -13,4 +13,6 @@ export class ProjectileSchema extends Schema {
   @type('int16') damage: number = 0
   @type('string') ownerId: string = ''
   @type('string') team: string = 'blue'
+  /** The entity this projectile homes toward. Damage only applies to this target. */
+  @type('string') targetId: string = ''
 }

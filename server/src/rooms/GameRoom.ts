@@ -339,18 +339,7 @@ export class GameRoom extends Room<GameRoomState> {
       MinionSchema,
     )
 
-    // 1. Apply movement from inputs
-    heroes.forEach((hero, sessionId) => {
-      const input = this.playerInputs.get(sessionId)
-      processMovement(hero, input, deltaTime)
-
-      // Update lastProcessedSeq
-      if (input) {
-        hero.lastProcessedSeq = input.seq
-      }
-    })
-
-    // 2. Process hero combat (attacks)
+    // 1. Process hero combat first (sets attackPauseTimer for ranged attacks)
     heroes.forEach((hero, heroId) => {
       const input = this.playerInputs.get(heroId)
       const heroEvents = processHeroCombat(
@@ -365,6 +354,17 @@ export class GameRoom extends Room<GameRoomState> {
         minions,
       )
       events.push(...heroEvents)
+    })
+
+    // 2. Apply movement from inputs (respects attackPauseTimer set above)
+    heroes.forEach((hero, sessionId) => {
+      const input = this.playerInputs.get(sessionId)
+      processMovement(hero, input, deltaTime)
+
+      // Update lastProcessedSeq
+      if (input) {
+        hero.lastProcessedSeq = input.seq
+      }
     })
 
     // 2.5. Process minion behavior (march / chase / attack)

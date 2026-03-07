@@ -48,6 +48,9 @@ export const DEFAULT_ENTITY_RADIUS = 20
 // Projectile
 export const DEFAULT_PROJECTILE_RADIUS = 5
 
+// Ranged attack pause — brief stop when firing a ranged attack while moving
+export const RANGED_ATTACK_PAUSE_DURATION = 0.15 // seconds
+
 // Hero kill
 export const HERO_KILL_XP_REWARD = 150 // XP granted to killer on hero kill
 

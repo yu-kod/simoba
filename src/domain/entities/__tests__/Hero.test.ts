@@ -3,16 +3,13 @@ import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import type { HeroType } from '@/domain/types'
 
 describe('HeroDefinition', () => {
-  it('should set canMoveWhileAttacking to true for BLADE', () => {
-    expect(HERO_DEFINITIONS.BLADE.canMoveWhileAttacking).toBe(true)
+  it('melee hero (BLADE) has projectileSpeed 0', () => {
+    expect(HERO_DEFINITIONS.BLADE.projectileSpeed).toBe(0)
   })
 
-  it('should set canMoveWhileAttacking to false for BOLT', () => {
-    expect(HERO_DEFINITIONS.BOLT.canMoveWhileAttacking).toBe(false)
-  })
-
-  it('should set canMoveWhileAttacking to false for AURA', () => {
-    expect(HERO_DEFINITIONS.AURA.canMoveWhileAttacking).toBe(false)
+  it('ranged heroes have projectileSpeed > 0', () => {
+    expect(HERO_DEFINITIONS.BOLT.projectileSpeed).toBeGreaterThan(0)
+    expect(HERO_DEFINITIONS.AURA.projectileSpeed).toBeGreaterThan(0)
   })
 })
 

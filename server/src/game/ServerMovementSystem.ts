@@ -5,6 +5,7 @@ import type { InputMessage } from '@shared/messages'
 /**
  * Server-side movement system.
  * Applies moveDir input to hero position with map boundary clamping.
+ * Movement is suppressed during the brief attack pause after firing a ranged attack.
  */
 export function processMovement(
   hero: HeroSchema,
@@ -16,6 +17,12 @@ export function processMovement(
 
   // Always apply facing from input (attack facing must sync even when stationary)
   hero.facing = input.facing
+
+  // Tick down attack pause timer
+  if (hero.attackPauseTimer > 0) {
+    hero.attackPauseTimer = Math.max(0, hero.attackPauseTimer - deltaTime)
+    return // Suppress movement during ranged attack pause
+  }
 
   const { moveDir } = input
 
