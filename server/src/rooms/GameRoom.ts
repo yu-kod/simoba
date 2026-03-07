@@ -5,7 +5,7 @@ import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
-import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL, BASES } from '@shared/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL } from '@shared/constants'
 import type { HeroType } from '@shared/types'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
@@ -13,6 +13,7 @@ import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerComba
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
+import { isHeroInBase, processBaseRegen } from '../game/ServerBaseRegenSystem.js'
 import { checkTowerDestroyed, endMatch } from '../game/ServerMatchSystem.js'
 import { MinionSchema } from '../schema/MinionSchema.js'
 import {
@@ -91,15 +92,6 @@ function isValidUnequipSlotMessage(msg: unknown): msg is { slot: SkillSlot } {
   return VALID_SLOTS.has((msg as Record<string, unknown>).slot as string)
 }
 
-function isHeroInBase(hero: HeroSchema): boolean {
-  const base = hero.team === 'blue' ? BASES.blue : BASES.red
-  return (
-    hero.x >= base.x &&
-    hero.x <= base.x + base.width &&
-    hero.y >= base.y &&
-    hero.y <= base.y + base.height
-  )
-}
 
 export class GameRoom extends Room<GameRoomState> {
   maxClients = MAX_PLAYERS
@@ -406,6 +398,9 @@ export class GameRoom extends Room<GameRoomState> {
 
     // 5.5. Bot auto-spend talent points
     spendBotTalents(heroes, TALENT_TREES)
+
+    // 5.6. Base HP regeneration
+    processBaseRegen(heroes, deltaTime)
 
     // 6. Hero death detection and respawn
     const deathEvents = processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)

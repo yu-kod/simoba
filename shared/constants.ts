@@ -48,6 +48,9 @@ export const DEFAULT_ENTITY_RADIUS = 20
 // Projectile
 export const DEFAULT_PROJECTILE_RADIUS = 5
 
+// Base HP regeneration
+export const BASE_HP_REGEN_PER_SEC = 200 // HP recovered per second while inside own base
+
 // Ranged attack pause — brief stop when firing a ranged attack while moving
 export const RANGED_ATTACK_PAUSE_DURATION = 0.15 // seconds
 
