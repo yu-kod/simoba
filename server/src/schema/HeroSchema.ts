@@ -28,4 +28,6 @@ export class HeroSchema extends CombatEntitySchema {
   @type('boolean') isBot: boolean = false
   // Server-only: not synced to clients (no @type decorator)
   lastAttackerSessionId: string = ''
+  /** Brief movement pause after firing a ranged attack (seconds remaining) */
+  attackPauseTimer: number = 0
 }

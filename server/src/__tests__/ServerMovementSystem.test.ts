@@ -97,5 +97,37 @@ describe('ServerMovementSystem', () => {
 
       expect(hero.facing).toBe(1.5)
     })
+
+    it('should suppress movement during attack pause', () => {
+      const hero = createHero({ attackPauseTimer: 0.15 })
+      const input = createInput({ moveDir: { x: 1, y: 0 } })
+      processMovement(hero, input, 0.05)
+
+      expect(hero.x).toBe(100) // Did not move
+      expect(hero.attackPauseTimer).toBeCloseTo(0.1, 2)
+    })
+
+    it('should resume movement after attack pause expires', () => {
+      const hero = createHero({ attackPauseTimer: 0.05 })
+      const input = createInput({ moveDir: { x: 1, y: 0 } })
+
+      // First tick: pause still active, consume remaining timer
+      processMovement(hero, input, 0.05)
+      expect(hero.x).toBe(100) // Still paused
+      expect(hero.attackPauseTimer).toBe(0)
+
+      // Second tick: pause expired, movement resumes
+      processMovement(hero, input, 0.5)
+      expect(hero.x).toBe(200) // 100 + 200 * 0.5
+    })
+
+    it('should still update facing during attack pause', () => {
+      const hero = createHero({ attackPauseTimer: 0.15 })
+      const input = createInput({ facing: 2.5, moveDir: { x: 1, y: 0 } })
+      processMovement(hero, input, 0.05)
+
+      expect(hero.facing).toBe(2.5) // Facing updated even during pause
+      expect(hero.x).toBe(100) // But position unchanged
+    })
   })
 })

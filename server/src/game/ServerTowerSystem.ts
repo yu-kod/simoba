@@ -139,6 +139,7 @@ export function processTowerCombat(
     proj.y = tower.y
     proj.targetX = target.x
     proj.targetY = target.y
+    proj.targetId = target.id
     proj.speed = tower.projectileSpeed
     proj.damage = tower.attackDamage
     proj.ownerId = towerId
