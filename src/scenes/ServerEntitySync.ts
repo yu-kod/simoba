@@ -43,8 +43,7 @@ export class ServerEntitySync {
   private readonly interpolationBuffers: Map<string, InterpolationBuffer>
   private readonly localTeam: Team
 
-  // Mutable camera state — managed on behalf of GameScene
-  cameraFollowing = true
+  private cameraFollowing = true
   inputBuffer: InputBuffer | null = null
 
   constructor(

@@ -31,6 +31,7 @@ import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
 import { registerTestApi } from '@/test/e2eTestApi'
 import { GameHud } from '@/scenes/ui/GameHud'
 import { TalentTreeOverlay } from '@/scenes/ui/TalentTreeOverlay'
+import { DESIGN_WIDTH } from '@/scenes/ui/uiConstants'
 import { createClientLogger } from '@shared/logging'
 
 const logger = createClientLogger('scene')
@@ -88,7 +89,6 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
-    const DESIGN_WIDTH = 1280
     const CAMERA_ZOOM = GAME_WIDTH / DESIGN_WIDTH
     this.cameras.main.setZoom(CAMERA_ZOOM)
 

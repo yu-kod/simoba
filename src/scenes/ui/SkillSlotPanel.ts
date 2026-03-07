@@ -2,9 +2,7 @@ import Phaser from 'phaser'
 import { createText } from '@/scenes/ui/createText'
 import type { UiScale } from '@/scenes/ui/uiScale'
 import type { HeroState } from '@shared/entities/Hero'
-
-// Layout
-const DESIGN_WIDTH = 1280
+import { DESIGN_WIDTH } from './uiConstants'
 const PANEL_Y = 510
 const SLOT_SIZE = 54
 const SLOT_SPACING = 80
@@ -49,6 +47,11 @@ export class SkillSlotPanel {
 
   private lastHeroState: HeroState | null = null
 
+  // Cached layout positions (shared between rendering and hit-testing)
+  private slotStartX = 0
+  private ownedStartX = 0
+  private ownedStartY = PANEL_Y + SLOT_SIZE + 34
+
   constructor(
     scene: Phaser.Scene,
     scale: UiScale,
@@ -77,11 +80,11 @@ export class SkillSlotPanel {
     this.container.add(label)
 
     const slots = ['Q', 'E', 'R'] as const
-    const startX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
+    this.slotStartX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
 
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]!
-      const sx = startX + i * SLOT_SPACING
+      const sx = this.slotStartX + i * SLOT_SPACING
       const el = this.scene.add.container(sx, PANEL_Y)
 
       const gfx = this.scene.add.graphics()
@@ -127,9 +130,8 @@ export class SkillSlotPanel {
     // Check slot hits (rect test)
     if (this.slotPanelBuilt) {
       const slots = ['Q', 'E', 'R'] as const
-      const slotStartX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
       for (let i = 0; i < slots.length; i++) {
-        const sx = slotStartX + i * SLOT_SPACING
+        const sx = this.slotStartX + i * SLOT_SPACING
         if (localX >= sx && localX <= sx + SLOT_SIZE && localY >= PANEL_Y && localY <= PANEL_Y + SLOT_SIZE) {
           this.onSlotClick(slots[i]!)
           return true
@@ -140,11 +142,9 @@ export class SkillSlotPanel {
     // Check owned skill hits
     if (this.lastHeroState && this.lastHeroState.ownedSkills.length > 0) {
       const skills = this.lastHeroState.ownedSkills
-      const ownedStartX = DESIGN_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
-      const ownedStartY = PANEL_Y + SLOT_SIZE + 34
       for (let i = 0; i < skills.length; i++) {
-        const sx = ownedStartX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
-        if (localX >= sx && localX <= sx + SKILL_ICON_SIZE && localY >= ownedStartY && localY <= ownedStartY + SKILL_ICON_SIZE) {
+        const sx = this.ownedStartX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
+        if (localX >= sx && localX <= sx + SKILL_ICON_SIZE && localY >= this.ownedStartY && localY <= this.ownedStartY + SKILL_ICON_SIZE) {
           this.onOwnedSkillClick(skills[i]!)
           return true
         }
@@ -222,13 +222,12 @@ export class SkillSlotPanel {
     this.ownedSkillElements = []
     if (skills.length === 0) return
 
-    const startX = DESIGN_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
-    const startY = PANEL_Y + SLOT_SIZE + 34
+    this.ownedStartX = DESIGN_WIDTH / 2 - (skills.length - 1) * (SKILL_ICON_SIZE + SKILL_ICON_GAP) / 2 - SKILL_ICON_SIZE / 2
 
     for (let i = 0; i < skills.length; i++) {
       const skillId = skills[i]!
-      const sx = startX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
-      const el = this.scene.add.container(sx, startY)
+      const sx = this.ownedStartX + i * (SKILL_ICON_SIZE + SKILL_ICON_GAP)
+      const el = this.scene.add.container(sx, this.ownedStartY)
 
       const gfx = this.scene.add.graphics()
       gfx.fillStyle(COLORS.ownedBg, 0.85)

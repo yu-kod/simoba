@@ -1,16 +1,13 @@
 import Phaser from 'phaser'
 import { createText } from '@/scenes/ui/createText'
-import { createUiScale } from '@/scenes/ui/uiScale'
+import { createUiScale, type UiScale } from '@/scenes/ui/uiScale'
 import type { TalentTreeDefinition, TalentNode } from '@shared/talents/types'
 import type { HeroType } from '@shared/types'
 import type { HeroState } from '@shared/entities/Hero'
 import { TALENT_TREES } from '@shared/talents/index'
 import { drawHexPath } from './drawHexPath'
 import { SkillSlotPanel, type SkillSlotCallbacks } from './SkillSlotPanel'
-
-// Design space (pre-zoom)
-const DESIGN_WIDTH = 1280
-const DESIGN_HEIGHT = 720
+import { DESIGN_WIDTH, DESIGN_HEIGHT } from './uiConstants'
 const OVERLAY_DEPTH = 1500
 
 // Tree layout
@@ -49,6 +46,7 @@ export interface TalentTreeCallbacks extends SkillSlotCallbacks {
 export class TalentTreeOverlay {
   private readonly container: Phaser.GameObjects.Container
   private readonly scene: Phaser.Scene
+  private readonly scale: UiScale
   private readonly cameraZoom: number
   private readonly callbacks: TalentTreeCallbacks
   private readonly skillSlotPanel: SkillSlotPanel
@@ -77,9 +75,10 @@ export class TalentTreeOverlay {
     callbacks: TalentTreeCallbacks,
   ) {
     this.scene = scene
+    this.scale = createUiScale(cameraZoom)
     this.cameraZoom = cameraZoom
     this.callbacks = callbacks
-    const scale = createUiScale(cameraZoom)
+    const scale = this.scale
 
     // Fixed overlay — scrollFactor(0) + offset for stable, jitter-free rendering
     const offsetX = DESIGN_WIDTH * (cameraZoom - 1) / 2
@@ -285,7 +284,7 @@ export class TalentTreeOverlay {
     this.drawHexNode(gfx, 'locked')
 
     const name = this.createOverlayText(0, NODE_RADIUS + 8, node.name, {
-      fontSize: createUiScale(this.cameraZoom).fontSize(22),
+      fontSize: this.scale.fontSize(22),
       color: '#CCCCCC',
       align: 'center',
     })
