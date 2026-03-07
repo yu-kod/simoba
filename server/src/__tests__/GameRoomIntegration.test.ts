@@ -264,6 +264,7 @@ describe('GameRoom integration', () => {
     it('should mark hero as dead when hp reaches 0', () => {
       const p2 = heroes.get('p2')!
       p2.hp = 1
+      p2.level = 1 // Ensure non-instant respawn so dead=true is observable
 
       const p1 = heroes.get('p1')!
       p2.x = p1.x + 30

@@ -42,14 +42,22 @@ describe('ServerDeathSystem', () => {
   })
 
   describe('processDeathAndRespawn', () => {
-    it('should set respawn timer for newly dead hero based on level', () => {
-      const hero = createLethalHero('hero-1')
+    it('should instantly respawn level 0 hero (respawn time = 0)', () => {
+      const hero = createLethalHero('hero-1', { level: 0, team: 'blue' })
       heroes.set('hero-1', hero)
 
-      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+      const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
-      expect(hero.dead).toBe(true)
-      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[0]) // Level 0 = 0s (instant)
+      // Level 0 has instant respawn — hero should be alive in the same tick
+      expect(hero.dead).toBe(false)
+      expect(hero.respawnTimer).toBe(0)
+      expect(hero.hp).toBe(hero.maxHp)
+      expect(hero.x).toBe(BLUE_SPAWN.x)
+      expect(hero.y).toBe(BLUE_SPAWN.y)
+      // Should emit both death and respawn events
+      expect(events).toHaveLength(2)
+      expect(events[0]?.event).toMatchObject({ type: 'death' })
+      expect(events[1]?.event).toMatchObject({ type: 'respawn' })
     })
 
     it('should clear attack state on death', () => {
@@ -119,7 +127,7 @@ describe('ServerDeathSystem', () => {
     })
 
     it('should return DeathEvent(death) when hero dies', () => {
-      const hero = createLethalHero('hero-1', { x: 500, y: 300 })
+      const hero = createLethalHero('hero-1', { x: 500, y: 300, level: 1 })
       heroes.set('hero-1', hero)
 
       const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
@@ -163,19 +171,24 @@ describe('ServerDeathSystem', () => {
       processDeathAndRespawn(heroes, getSpawnPosition, 1.0)
 
       expect(alive.dead).toBe(false)
-      expect(dying.dead).toBe(true)
-      expect(dying.respawnTimer).toBe(RESPAWN_TIMES[0]) // Level 0 = 0s
+      expect(dying.dead).toBe(false) // Level 0 = instant respawn
+      expect(dying.respawnTimer).toBe(0)
       expect(dead.dead).toBe(true)
       expect(dead.respawnTimer).toBeCloseTo(2.0, 2)
     })
 
-    it('should use level-dependent respawn time for level 0 hero', () => {
-      const hero = createLethalHero('hero-1', { level: 0 })
+    it('should instantly respawn level 0 hero across multiple ticks', () => {
+      const hero = createLethalHero('hero-1', { level: 0, team: 'blue' })
       heroes.set('hero-1', hero)
 
+      // Tick 1: death + instant respawn
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+      expect(hero.dead).toBe(false)
 
-      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[0]) // 0s
+      // Tick 2: should remain alive (no re-death loop)
+      const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+      expect(hero.dead).toBe(false)
+      expect(events).toHaveLength(0)
     })
 
     it('should use level-dependent respawn time for level 1 hero', () => {
@@ -255,11 +268,12 @@ describe('ServerDeathSystem', () => {
       const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'disconnected-player' })
       heroes.set('victim', victim)
 
-      // Should not throw
+      // Should not throw. Level 0 victim gets death + instant respawn = 2 events
       const events = processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
-      expect(events).toHaveLength(1)
+      expect(events).toHaveLength(2)
       expect(events[0]?.event).toMatchObject({ type: 'death' })
+      expect(events[1]?.event).toMatchObject({ type: 'respawn' })
     })
 
     it('should grant XP even if killer is also dead', () => {

@@ -28,7 +28,7 @@ export function processDeathAndRespawn(
     // Death detection — applyDamage() already sets dead=true when hp reaches 0,
     // so we detect newly dead heroes by dead=true with no respawn timer yet.
     if (hero.dead && hero.respawnTimer <= 0 && hero.hp <= 0) {
-      hero.respawnTimer = computeRespawnTime(hero.level)
+      const respawnTime = computeRespawnTime(hero.level)
       hero.attackTargetId = ''
       hero.attackCooldown = 0
 
@@ -48,6 +48,30 @@ export function processDeathAndRespawn(
           position: { x: hero.x, y: hero.y },
         },
       })
+
+      // Instant respawn when timer is 0 (e.g. level 0)
+      if (respawnTime <= 0) {
+        const spawn = getSpawnPosition(hero.team)
+        hero.dead = false
+        hero.respawnTimer = 0
+        hero.hp = hero.maxHp
+        hero.x = spawn.x
+        hero.y = spawn.y
+        hero.attackTargetId = ''
+        hero.attackCooldown = 0
+        hero.lastAttackerSessionId = ''
+
+        events.push({
+          kind: 'death',
+          event: {
+            entityId: sessionId,
+            type: 'respawn',
+            position: { x: spawn.x, y: spawn.y },
+          },
+        })
+      } else {
+        hero.respawnTimer = respawnTime
+      }
       return
     }
 
