@@ -317,11 +317,9 @@ export class SkillSlotPanel {
         )
       }
     } else if (source === 'slot' && slot) {
-      const slots = ['Q', 'E', 'R']
-      const idx = slots.indexOf(slot)
-      const slotStartX = DESIGN_WIDTH / 2 - (slots.length - 1) * SLOT_SPACING / 2 - SLOT_SIZE / 2
+      const idx = ['Q', 'E', 'R'].indexOf(slot)
       this.selectionGfx.setPosition(
-        slotStartX + idx * SLOT_SPACING + SLOT_SIZE / 2,
+        this.slotStartX + idx * SLOT_SPACING + SLOT_SIZE / 2,
         PANEL_Y + SLOT_SIZE / 2,
       )
     }
