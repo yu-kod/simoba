@@ -10,11 +10,14 @@ export default mergeConfig(
       include: ['src/**/__tests__/**/*.test.ts', 'server/src/__tests__/**/*.test.ts', 'shared/**/__tests__/**/*.test.ts'],
       coverage: {
         provider: 'v8',
-        include: ['src/**/*.ts'],
+        include: ['src/**/*.ts', 'server/src/**/*.ts', 'shared/**/*.ts'],
         exclude: [
           'src/**/__tests__/**',
+          'server/src/__tests__/**',
+          'shared/**/__tests__/**',
           'src/vite-env.d.ts',
-          'src/main.ts'
+          'src/main.ts',
+          'server/src/index.ts',
         ],
         reporter: ['text', 'html']
       }
