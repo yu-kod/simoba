@@ -10,8 +10,8 @@ export const SUDDEN_DEATH_TIME = 300 // seconds (5:00)
 
 // Progression
 export const MAX_LEVEL = 5
-/** XP thresholds per level (cumulative). Level 1→2 needs 100, 2→3 needs 200, etc. */
-export const XP_THRESHOLDS = [0, 100, 300, 600, 1000] as const
+/** XP thresholds per level (cumulative). Level 0→1 needs 50, 1→2 needs 100, etc. */
+export const XP_THRESHOLDS = [50, 150, 350, 650, 1050] as const
 export const ULTIMATE_UNLOCK_LEVEL = 3
 export const ULTIMATE_ENHANCE_LEVEL = 5
 
@@ -20,7 +20,7 @@ export const DODGE_COOLDOWN = 10 // seconds
 
 // Respawn
 export const DEFAULT_RESPAWN_TIME = 5 // seconds (legacy fallback)
-/** Respawn time per level (seconds). Index = level. Lv1=3s … Lv5=15s. */
+/** Respawn time per level (seconds). Index = level. Lv0=0s (instant), Lv1=3s … Lv5=15s. */
 export const RESPAWN_TIMES = [0, 3, 5, 8, 12, 15] as const
 
 // Map layout — base areas (the colored rectangles at each end)

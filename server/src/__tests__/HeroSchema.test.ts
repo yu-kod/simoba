@@ -27,6 +27,11 @@ describe('HeroSchema — talent fields', () => {
     expect(hero.talentPoints).toBe(0)
   })
 
+  it('should initialize level as 0', () => {
+    const hero = new HeroSchema()
+    expect(hero.level).toBe(0)
+  })
+
   it('should allow pushing to acquiredTalents', () => {
     const hero = new HeroSchema()
     hero.acquiredTalents.push('blade-toughness')

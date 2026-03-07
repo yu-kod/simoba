@@ -49,7 +49,7 @@ describe('ServerDeathSystem', () => {
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
       expect(hero.dead).toBe(true)
-      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[1]) // Level 1 = 3s
+      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[0]) // Level 0 = 0s (instant)
     })
 
     it('should clear attack state on death', () => {
@@ -164,9 +164,18 @@ describe('ServerDeathSystem', () => {
 
       expect(alive.dead).toBe(false)
       expect(dying.dead).toBe(true)
-      expect(dying.respawnTimer).toBe(RESPAWN_TIMES[1]) // Level 1 = 3s
+      expect(dying.respawnTimer).toBe(RESPAWN_TIMES[0]) // Level 0 = 0s
       expect(dead.dead).toBe(true)
       expect(dead.respawnTimer).toBeCloseTo(2.0, 2)
+    })
+
+    it('should use level-dependent respawn time for level 0 hero', () => {
+      const hero = createLethalHero('hero-1', { level: 0 })
+      heroes.set('hero-1', hero)
+
+      processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
+
+      expect(hero.respawnTimer).toBe(RESPAWN_TIMES[0]) // 0s
     })
 
     it('should use level-dependent respawn time for level 1 hero', () => {
@@ -200,7 +209,7 @@ describe('ServerDeathSystem', () => {
   describe('hero kill XP', () => {
     it('should grant HERO_KILL_XP_REWARD to killer on hero death', () => {
       const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
-      const killer = createHero('killer', { team: 'blue', xp: 0, level: 1 })
+      const killer = createHero('killer', { team: 'blue', xp: 0, level: 0 })
       heroes.set('victim', victim)
       heroes.set('killer', killer)
 
@@ -214,7 +223,7 @@ describe('ServerDeathSystem', () => {
       const killer = createHero('killer', {
         team: 'blue',
         xp: 0,
-        level: 1,
+        level: 0,
         heroType: 'BLADE',
       })
       heroes.set('victim', victim)
@@ -222,10 +231,10 @@ describe('ServerDeathSystem', () => {
 
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
-      // HERO_KILL_XP_REWARD=150 > XP_THRESHOLDS[1]=100 → level 2
+      // HERO_KILL_XP_REWARD=150 >= XP_THRESHOLDS[1]=150 → level 2
       expect(killer.xp).toBe(HERO_KILL_XP_REWARD)
       expect(killer.level).toBe(2)
-      expect(killer.talentPoints).toBe(1)
+      expect(killer.talentPoints).toBe(2)
     })
 
     it('should not grant XP when lastAttackerSessionId is empty (tower/minion kill)', () => {
@@ -261,7 +270,7 @@ describe('ServerDeathSystem', () => {
         hp: 0,
         respawnTimer: 5.0,
         xp: 0,
-        level: 1,
+        level: 0,
       })
       heroes.set('victim', victim)
       heroes.set('killer', killer)
@@ -288,12 +297,12 @@ describe('ServerDeathSystem', () => {
 
     it('should handle multi-level jump from kill XP', () => {
       const victim = createLethalHero('victim', { team: 'red', lastAttackerSessionId: 'killer' })
-      // XP_THRESHOLDS = [0, 100, 300, 600, 1000]
-      // killer starts at xp=150, after +150 reward = 300 → exactly lv3
+      // XP_THRESHOLDS = [50, 150, 350, 650, 1050]
+      // killer starts at xp=200, after +150 reward = 350 → exactly lv3
       const killer = createHero('killer', {
         team: 'blue',
-        xp: XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD, // 300 - 150 = 150
-        level: 1,
+        xp: XP_THRESHOLDS[2] - HERO_KILL_XP_REWARD, // 350 - 150 = 200
+        level: 0,
         heroType: 'BLADE',
       })
       heroes.set('victim', victim)
@@ -301,9 +310,9 @@ describe('ServerDeathSystem', () => {
 
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
-      expect(killer.xp).toBe(XP_THRESHOLDS[2]) // 300
+      expect(killer.xp).toBe(XP_THRESHOLDS[2]) // 350
       expect(killer.level).toBe(3)
-      expect(killer.talentPoints).toBe(2) // 1→3 = +2
+      expect(killer.talentPoints).toBe(3) // 0→3 = +3
     })
   })
 })

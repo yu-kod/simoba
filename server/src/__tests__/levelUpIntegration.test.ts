@@ -27,7 +27,7 @@ function createTestHero(id: string, team: string, x: number): HeroSchema {
   hero.attackSpeed = def.base.attackSpeed
   hero.radius = def.radius
   hero.dead = false
-  hero.level = 1
+  hero.level = 0
   hero.xp = 0
   hero.talentPoints = 0
   return hero
@@ -58,8 +58,8 @@ describe('Level-up integration', () => {
 
   it('grants XP and levels up when threshold is reached', () => {
     const hero = createTestHero('h1', 'blue', 800)
-    // Set XP just below level 2 threshold
-    hero.xp = XP_THRESHOLDS[1] - MINION_XP_REWARD
+    // Set XP just below level 1 threshold (50)
+    hero.xp = XP_THRESHOLDS[0] - MINION_XP_REWARD
     heroes.set('h1', hero)
 
     const minion = createDeadMinion('m1', 'red', 800)
@@ -67,8 +67,8 @@ describe('Level-up integration', () => {
 
     processMinionDeaths(ctx, minions, heroes, 0.016)
 
-    expect(hero.xp).toBe(XP_THRESHOLDS[1])
-    expect(hero.level).toBe(2)
+    expect(hero.xp).toBe(XP_THRESHOLDS[0])
+    expect(hero.level).toBe(1)
     expect(hero.talentPoints).toBe(1)
   })
 
@@ -83,14 +83,16 @@ describe('Level-up integration', () => {
     processMinionDeaths(ctx, minions, heroes, 0.016)
 
     expect(hero.xp).toBe(MINION_XP_REWARD)
-    expect(hero.level).toBe(1)
+    expect(hero.level).toBe(0) // 20 XP < 50 threshold, stays level 0
     expect(hero.talentPoints).toBe(0)
   })
 
   it('applies stats growth on level up', () => {
     const hero = createTestHero('h1', 'blue', 800)
     const def = HERO_DEFINITIONS.BLADE
+    // Set XP just below level 2 threshold (150) so minion kill triggers level-up to 2
     hero.xp = XP_THRESHOLDS[1] - MINION_XP_REWARD
+    hero.level = 1
     heroes.set('h1', hero)
 
     const prevMaxHp = hero.maxHp
@@ -99,6 +101,7 @@ describe('Level-up integration', () => {
 
     processMinionDeaths(ctx, minions, heroes, 0.016)
 
+    // Level 2: base + growth * (2-1) = base + growth
     expect(hero.maxHp).toBe(def.base.maxHp + def.growth.maxHp)
     expect(hero.speed).toBe(def.base.speed + def.growth.speed)
     // HP should have increased by the maxHp growth
@@ -107,7 +110,7 @@ describe('Level-up integration', () => {
 
   it('handles multi-level jump and grants correct talent points', () => {
     const hero = createTestHero('h1', 'blue', 800)
-    // Set XP so that after reward, hero reaches level 3 threshold
+    // Set XP so that after reward, hero reaches level 3 threshold (350)
     hero.xp = XP_THRESHOLDS[2] - MINION_XP_REWARD
     heroes.set('h1', hero)
 
@@ -117,7 +120,7 @@ describe('Level-up integration', () => {
     processMinionDeaths(ctx, minions, heroes, 0.016)
 
     expect(hero.level).toBe(3)
-    expect(hero.talentPoints).toBe(2) // jumped 2 levels
+    expect(hero.talentPoints).toBe(3) // jumped 3 levels from 0
   })
 
   it('caps at MAX_LEVEL', () => {

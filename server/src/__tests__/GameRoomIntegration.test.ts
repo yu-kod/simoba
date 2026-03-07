@@ -282,7 +282,7 @@ describe('GameRoom integration', () => {
       }
 
       expect(p2.dead).toBe(true)
-      expect(p2.respawnTimer).toBeGreaterThan(0)
+      expect(p2.respawnTimer).toBeGreaterThanOrEqual(0)
     })
 
     it('should respawn hero after timer expires', () => {

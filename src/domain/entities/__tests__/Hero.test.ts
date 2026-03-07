@@ -30,7 +30,7 @@ describe('Hero', () => {
       expect(hero.type).toBe('BLADE')
       expect(hero.team).toBe('blue')
       expect(hero.position).toEqual({ x: 100, y: 200 })
-      expect(hero.level).toBe(1)
+      expect(hero.level).toBe(0)
       expect(hero.xp).toBe(0)
       expect(hero.facing).toBe(0)
       expect(hero.entityType).toBe('hero')
@@ -67,7 +67,7 @@ describe('Hero', () => {
       expect(hero.hp).toBe(hero.stats.maxHp)
     })
 
-    it('should start at level 1 with 0 XP', () => {
+    it('should start at level 0 with 0 XP', () => {
       const hero = createHeroState({
         id: 'hero-4',
         type: 'BLADE',
@@ -75,7 +75,7 @@ describe('Hero', () => {
         position: { x: 0, y: 0 },
       })
 
-      expect(hero.level).toBe(1)
+      expect(hero.level).toBe(0)
       expect(hero.xp).toBe(0)
     })
 
