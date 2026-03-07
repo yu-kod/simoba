@@ -12,6 +12,7 @@ interface TargetPosition {
   readonly y: number
   readonly radius: number
   readonly dead: boolean
+  readonly team: string
 }
 
 function findTargetPosition(
@@ -21,12 +22,12 @@ function findTargetPosition(
   minions?: MapSchema<MinionSchema>,
 ): TargetPosition | null {
   const hero = heroes.get(targetId)
-  if (hero) return { x: hero.x, y: hero.y, radius: hero.radius, dead: hero.dead }
+  if (hero) return { x: hero.x, y: hero.y, radius: hero.radius, dead: hero.dead, team: hero.team }
   const tower = towers.get(targetId)
-  if (tower) return { x: tower.x, y: tower.y, radius: tower.radius, dead: tower.dead }
+  if (tower) return { x: tower.x, y: tower.y, radius: tower.radius, dead: tower.dead, team: tower.team }
   if (minions) {
     const minion = minions.get(targetId)
-    if (minion) return { x: minion.x, y: minion.y, radius: minion.radius, dead: minion.dead }
+    if (minion) return { x: minion.x, y: minion.y, radius: minion.radius, dead: minion.dead, team: minion.team }
   }
   return null
 }
@@ -57,8 +58,8 @@ export function processProjectiles(
     // Look up current target position
     const target = findTargetPosition(proj.targetId, heroes, towers, minions)
 
-    // Remove projectile if target is gone or dead
-    if (!target || target.dead) {
+    // Remove projectile if target is gone, dead, or same team (friendly fire guard)
+    if (!target || target.dead || target.team === proj.team) {
       toRemove.push(projId)
       return
     }
@@ -72,7 +73,17 @@ export function processProjectiles(
     proj.targetX = target.x
     proj.targetY = target.y
 
+    // Already at target position — apply damage immediately
     if (distToTarget === 0) {
+      applyDamageToTarget(proj.targetId, proj.damage, heroes, towers, minions, proj.ownerId)
+      events.push({
+        kind: 'damage',
+        event: {
+          targetId: proj.targetId,
+          amount: proj.damage,
+          sourceId: proj.ownerId,
+        },
+      })
       toRemove.push(projId)
       return
     }

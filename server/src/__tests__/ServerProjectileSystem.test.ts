@@ -160,12 +160,26 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 195, y: 100, targetId: 'ally', team: 'blue', damage: 60 })
       projectiles.set(proj.id, proj)
 
-      // Target is found but dead check is false, so projectile still homes
-      // However applyDamageToTarget handles the damage application
       processProjectiles(projectiles, heroes, towers, 0.01)
 
-      // Projectile should still be consumed (it reached its target)
+      // Friendly fire guard: no damage applied, projectile removed
+      expect(ally.hp).toBe(650)
       expect(projectiles.size).toBe(0)
+    })
+
+    it('should apply damage when projectile is exactly at target position', () => {
+      const target = createHero('enemy', { x: 200, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('enemy', target)
+
+      // Projectile spawned exactly at target position (distToTarget === 0)
+      const proj = createProjectile({ x: 200, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
+      projectiles.set(proj.id, proj)
+
+      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+
+      expect(target.hp).toBe(590)
+      expect(projectiles.size).toBe(0)
+      expect(events).toHaveLength(1)
     })
 
     it('should return DamageEvent on hit', () => {
