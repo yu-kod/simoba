@@ -119,7 +119,7 @@ export function createHeroState(params: CreateHeroParams): HeroState {
     maxHp: stats.maxHp,
     dead: false,
     radius: definition.radius,
-    level: 1,
+    level: 0,
     xp: 0,
     talentPoints: 0,
     stats,

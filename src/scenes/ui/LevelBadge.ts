@@ -32,7 +32,7 @@ export class LevelBadge {
     this.graphics = scene.add.graphics()
     this.container.add(this.graphics)
 
-    this.levelText = createText(scene, 0, 0, '1', {
+    this.levelText = createText(scene, 0, 0, '0', {
       fontSize: scale.fontSize(22),
       color: '#ffffff',
       fontStyle: 'bold',
@@ -91,7 +91,7 @@ export class LevelBadge {
 function computeXpRatio(xp: number, level: number): number {
   if (level >= MAX_LEVEL) return 1
 
-  const currentThreshold = XP_THRESHOLDS[level - 1] ?? 0
+  const currentThreshold = level === 0 ? 0 : XP_THRESHOLDS[level - 1] ?? 0
   const nextThreshold = XP_THRESHOLDS[level] ?? currentThreshold + 100
   const needed = nextThreshold - currentThreshold
 

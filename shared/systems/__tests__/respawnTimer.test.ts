@@ -3,6 +3,10 @@ import { computeRespawnTime } from '../respawnTimer'
 import { RESPAWN_TIMES, MAX_LEVEL } from '@shared/constants'
 
 describe('computeRespawnTime', () => {
+  it('returns 0s for level 0 (instant respawn)', () => {
+    expect(computeRespawnTime(0)).toBe(0)
+  })
+
   it('returns 3s for level 1', () => {
     expect(computeRespawnTime(1)).toBe(3)
   })
@@ -23,12 +27,8 @@ describe('computeRespawnTime', () => {
     expect(computeRespawnTime(5)).toBe(15)
   })
 
-  it('clamps level 0 to level 1', () => {
-    expect(computeRespawnTime(0)).toBe(RESPAWN_TIMES[1])
-  })
-
-  it('clamps negative level to level 1', () => {
-    expect(computeRespawnTime(-5)).toBe(RESPAWN_TIMES[1])
+  it('clamps negative level to level 0', () => {
+    expect(computeRespawnTime(-5)).toBe(RESPAWN_TIMES[0])
   })
 
   it('clamps level above MAX_LEVEL to MAX_LEVEL', () => {
@@ -36,7 +36,7 @@ describe('computeRespawnTime', () => {
   })
 
   it('increases monotonically with level', () => {
-    for (let lvl = 2; lvl <= MAX_LEVEL; lvl++) {
+    for (let lvl = 1; lvl <= MAX_LEVEL; lvl++) {
       expect(computeRespawnTime(lvl)).toBeGreaterThan(computeRespawnTime(lvl - 1))
     }
   })
