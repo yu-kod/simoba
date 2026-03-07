@@ -48,6 +48,14 @@ describe('ServerBaseRegenSystem', () => {
       const heroEdge = createHero({ x: base.x + base.width, y: base.y + base.height, team: 'blue' })
       expect(isHeroInBase(heroEdge)).toBe(true)
     })
+
+    it('should return false just outside base boundary', () => {
+      const base = BASES.blue
+      expect(isHeroInBase(createHero({ x: base.x - 1, y: base.y, team: 'blue' }))).toBe(false)
+      expect(isHeroInBase(createHero({ x: base.x, y: base.y - 1, team: 'blue' }))).toBe(false)
+      expect(isHeroInBase(createHero({ x: base.x + base.width + 1, y: base.y, team: 'blue' }))).toBe(false)
+      expect(isHeroInBase(createHero({ x: base.x, y: base.y + base.height + 1, team: 'blue' }))).toBe(false)
+    })
   })
 
   describe('processBaseRegen', () => {
