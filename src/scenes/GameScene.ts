@@ -6,7 +6,7 @@ import {
   WORLD_HEIGHT,
   CAMERA_LERP,
 } from '@/domain/constants'
-import { createHeroState, type HeroState } from '@/domain/entities/Hero'
+import { type HeroState } from '@/domain/entities/Hero'
 import { HERO_DEFINITIONS } from '@/domain/entities/heroDefinitions'
 import { isHero, isMinion, isTower } from '@/domain/entities/typeGuards'
 import { updateFacing } from '@/domain/systems/updateFacing'
@@ -18,18 +18,16 @@ import { ProjectileRenderer } from '@/scenes/effects/ProjectileRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
 import { EntityManager } from '@/scenes/EntityManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
-import { InputBuffer } from '@/network/InputBuffer'
+import { ServerEntitySync, type EntityRenderer } from '@/scenes/ServerEntitySync'
 import { InterpolationBuffer } from '@/network/InterpolationBuffer'
 import type { HeroType, Team, Position, AttackerEntityState } from '@/domain/types'
-import type { TowerState } from '@/domain/entities/Tower'
-import type { GameMode, ServerHeroState, ServerTowerState, ServerMinionState, ServerProjectileState } from '@/network/GameMode'
+import type { GameMode, ServerProjectileState } from '@/network/GameMode'
 import type { AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
 import { createTowerState } from '@/domain/entities/Tower'
 import { DEFAULT_TOWER } from '@/domain/entities/towerDefinitions'
 import { MAP_LAYOUT } from '@/domain/mapLayout'
 import { TowerRenderer } from '@/scenes/effects/TowerRenderer'
 import { MinionRenderer } from '@/scenes/effects/MinionRenderer'
-import type { MinionState } from '@shared/entities/Minion'
 import { registerTestApi } from '@/test/e2eTestApi'
 import { GameHud } from '@/scenes/ui/GameHud'
 import { TalentTreeOverlay } from '@/scenes/ui/TalentTreeOverlay'
@@ -39,25 +37,11 @@ const logger = createClientLogger('scene')
 
 const FREE_CAMERA_SPEED = 400
 
-/** Assert that a server-provided heroType string is a valid HeroType key. */
-function assertHeroType(value: string): HeroType {
-  if (!(value in HERO_DEFINITIONS)) {
-    throw new Error(`Invalid heroType from server: "${value}"`)
-  }
-  return value as HeroType
-}
-
-interface EntityRenderer {
-  readonly gameObject: Phaser.GameObjects.Container
-  update(delta: number): void
-  flash(): void
-  destroy(): void
-}
-
 export class GameScene extends Phaser.Scene {
   private entityManager!: EntityManager
   private networkBridge!: NetworkBridge
   private inputHandler!: InputHandler
+  private entitySync!: ServerEntitySync
 
   private entityRenderers = new Map<string, EntityRenderer>()
   private meleeSwing!: MeleeSwingRenderer
@@ -65,7 +49,6 @@ export class GameScene extends Phaser.Scene {
   private respawnText!: Phaser.GameObjects.Text
   private gameHud!: GameHud
   private talentTreeOverlay!: TalentTreeOverlay
-  private cameraFollowing = true
   private gameMode!: GameMode
   private localTeam: Team = 'blue'
   private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
@@ -74,12 +57,10 @@ export class GameScene extends Phaser.Scene {
   // Match end state
   private matchEnded = false
 
-  // Input sending
-  private inputBuffer: InputBuffer | null = null
-  private serverProjectiles: readonly ServerProjectileState[] = []
   // Entity interpolation
   private interpolationBuffers = new Map<string, InterpolationBuffer>()
   private projectileInterpolationBuffers = new Map<string, InterpolationBuffer>()
+  private serverProjectiles: readonly ServerProjectileState[] = []
   // Projectiles removed by server but still rendering (interpolation catch-up)
   private retiredProjectiles = new Map<string, { state: ServerProjectileState; buffer: InterpolationBuffer; retiredAt: number }>()
 
@@ -107,8 +88,6 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
-    // Zoom camera so the viewport covers the same game area as the base 1280x720 design.
-    // The canvas buffer is 2560x1440 for sharp rendering; zoom keeps gameplay feel identical.
     const DESIGN_WIDTH = 1280
     const CAMERA_ZOOM = GAME_WIDTH / DESIGN_WIDTH
     this.cameras.main.setZoom(CAMERA_ZOOM)
@@ -150,6 +129,15 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(localRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
 
     this.inputHandler = new InputHandler(this)
+
+    // Server entity sync (heroes, towers, minions)
+    this.entitySync = new ServerEntitySync(
+      this,
+      this.entityManager,
+      this.entityRenderers,
+      this.interpolationBuffers,
+      this.localTeam,
+    )
 
     // Respawn timer UI (fixed to camera, centered)
     this.respawnText = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, '', {
@@ -225,16 +213,16 @@ export class GameScene extends Phaser.Scene {
         this.interpolationBuffers.delete(sessionId)
       },
       onServerHeroUpdated: (state) => {
-        this.handleServerHeroUpdate(state)
+        this.entitySync.handleServerHeroUpdate(state, this.networkBridge.localSessionId)
       },
       onServerTowerUpdated: (state) => {
-        this.handleServerTowerUpdate(state)
+        this.entitySync.handleServerTowerUpdate(state)
       },
       onServerMinionUpdated: (state) => {
-        this.handleServerMinionUpdate(state)
+        this.entitySync.handleServerMinionUpdate(state)
       },
       onServerMinionRemoved: (minionId) => {
-        this.handleServerMinionRemove(minionId)
+        this.entitySync.handleServerMinionRemove(minionId)
       },
       onServerProjectilesUpdated: (projectiles) => {
         const activeIds = new Set<string>()
@@ -248,7 +236,6 @@ export class GameScene extends Phaser.Scene {
           })
         }
         // Move destroyed projectiles to retired list (keeps rendering for catch-up)
-        // Use previous serverProjectiles to preserve team/radius info
         const prevById = new Map(this.serverProjectiles.map((p) => [p.id, p]))
         for (const id of this.projectileInterpolationBuffers.keys()) {
           if (!activeIds.has(id)) {
@@ -331,13 +318,11 @@ export class GameScene extends Phaser.Scene {
       if (!interpolated) continue
       if (!this.entityManager.getEntity(entityId)) continue
       if (entityId === localId) {
-        // Local hero: only interpolate position, keep locally-computed facing
         this.entityManager.updateEntity<HeroState>(entityId, (entity) => ({
           ...entity,
           position: { x: interpolated.x, y: interpolated.y },
         }))
       } else {
-        // Remote heroes + minions: interpolate both position and facing
         this.entityManager.updateEntity<AttackerEntityState>(entityId, (entity) => ({
           ...entity,
           position: { x: interpolated.x, y: interpolated.y },
@@ -383,7 +368,7 @@ export class GameScene extends Phaser.Scene {
     input: { movement: { x: number; y: number }; attack: boolean; aimWorldPosition: Position },
     isMoving: boolean
   ): void {
-    if (!this.inputBuffer) return
+    if (!this.entitySync.inputBuffer) return
 
     const localHeroId = this.entityManager.localHeroId
     const localHero = this.entityManager.getEntity(localHeroId) as HeroState
@@ -418,7 +403,7 @@ export class GameScene extends Phaser.Scene {
     )
 
     // Input message
-    const seq = this.inputBuffer.getNextSeq()
+    const seq = this.entitySync.inputBuffer.getNextSeq()
     const inputMsg = {
       seq,
       moveDir: input.movement,
@@ -427,7 +412,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Send input to server
-    this.inputBuffer.add(inputMsg)
+    this.entitySync.inputBuffer.add(inputMsg)
     this.networkBridge.sendInput(inputMsg)
 
     // Update local state for facing/target (position comes from server via interpolation)
@@ -443,196 +428,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Handle server hero state sync. */
-  private handleServerHeroUpdate(state: ServerHeroState): void {
-    const localSessionId = this.networkBridge.localSessionId
-    const isLocal = state.sessionId === localSessionId
-
-    // Track previous dead state for camera transitions
-    const prevDead = (this.entityManager.getEntity(state.sessionId) as HeroState | null)?.dead ?? state.dead
-
-    // Step 1: Ensure entity & renderer exist
-    this.ensureHeroEntityExists(state, isLocal)
-
-    // Step 2: Apply non-position fields (position/facing from InterpolationBuffer)
-    this.applyServerHeroNonPositionState(state)
-
-    // Push snapshot to interpolation buffer
-    if (!this.interpolationBuffers.has(state.sessionId)) {
-      this.interpolationBuffers.set(state.sessionId, new InterpolationBuffer())
-    }
-    this.interpolationBuffers.get(state.sessionId)!.pushSnapshot({
-      x: state.x,
-      y: state.y,
-      facing: state.facing,
-    })
-
-    // Step 3: Local-only overrides (camera, death/respawn)
-    if (isLocal) {
-      this.applyLocalHeroOverrides(state, prevDead)
-    }
-  }
-
-  /** Ensure hero entity and renderer exist for the given session. */
-  private ensureHeroEntityExists(state: ServerHeroState, isLocal: boolean): void {
-    // Local hero: remap placeholder ID to server sessionId (first time only)
-    if (isLocal && state.sessionId !== this.entityManager.localHeroId) {
-      this.remapLocalHeroToSession(state.sessionId)
-    }
-
-    // Remote hero: create entity if new
-    if (!isLocal && !this.entityManager.getEntity(state.sessionId)) {
-      const heroState = createHeroState({
-        id: state.sessionId,
-        type: assertHeroType(state.heroType),
-        team: (state.team as Team) ?? 'red',
-        position: { x: state.x, y: state.y },
-      })
-      this.entityManager.registerEntity(heroState)
-    }
-
-    // Create renderer if missing
-    if (!this.entityRenderers.has(state.sessionId)) {
-      const heroState = this.entityManager.getEntity(state.sessionId) as HeroState
-      const isAlly = (state.team as Team) === this.localTeam
-      this.entityRenderers.set(state.sessionId, new HeroRenderer(this, heroState, isAlly))
-    }
-  }
-
-  /** Apply non-position fields only (position/facing from InterpolationBuffer). */
-  private applyServerHeroNonPositionState(state: ServerHeroState): void {
-    this.entityManager.updateEntity<HeroState>(state.sessionId, (h) => ({
-      ...h,
-      type: assertHeroType(state.heroType),
-      radius: state.radius,
-      hp: state.hp,
-      maxHp: state.maxHp,
-      dead: state.dead,
-      attackTargetId: state.attackTargetId || null,
-      respawnTimer: state.respawnTimer,
-      xp: state.xp,
-      level: state.level,
-      talentPoints: state.talentPoints,
-      acquiredTalents: [...state.acquiredTalents],
-      ownedSkills: [...state.ownedSkills],
-      skillSlotQ: state.skillSlotQ,
-      skillSlotE: state.skillSlotE,
-      skillSlotR: state.skillSlotR,
-    }))
-  }
-
-  /** Local hero overrides — camera control and prediction reset. */
-  private applyLocalHeroOverrides(state: ServerHeroState, prevDead: boolean): void {
-    // Camera control for death/respawn
-    if (state.dead && this.cameraFollowing) {
-      this.cameras.main.stopFollow()
-      this.cameraFollowing = false
-    } else if (!state.dead && !this.cameraFollowing) {
-      const renderer = this.entityRenderers.get(state.sessionId)
-      if (renderer) {
-        this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
-      }
-      this.cameraFollowing = true
-    }
-
-    // Clear input buffer on death/respawn transitions
-    if (!prevDead && state.dead) {
-      this.inputBuffer?.clear()
-    }
-  }
-
-  /** Handle server tower state sync. */
-  private handleServerTowerUpdate(state: ServerTowerState): void {
-    const existing = this.entityManager.getEntity(state.id)
-
-    if (!existing) {
-      const towerState = createTowerState({
-        id: state.id,
-        team: (state.team as Team) ?? 'neutral',
-        position: { x: state.x, y: state.y },
-        definition: DEFAULT_TOWER,
-      })
-      this.entityManager.registerEntity(towerState)
-    }
-
-    if (!this.entityRenderers.has(state.id)) {
-      const towerEntity = this.entityManager.getEntity(state.id) as TowerState
-      const isAlly = state.team === this.localTeam
-      this.entityRenderers.set(state.id, new TowerRenderer(this, towerEntity, isAlly))
-    }
-
-    this.entityManager.updateEntity<TowerState>(state.id, (t) => ({
-      ...t,
-      hp: state.hp,
-      maxHp: state.maxHp,
-      dead: state.dead,
-    }))
-  }
-
-  private handleServerMinionUpdate(state: ServerMinionState): void {
-    const existing = this.entityManager.getEntity(state.id)
-
-    if (!existing) {
-      const minionState: MinionState = {
-        id: state.id,
-        entityType: 'minion',
-        team: state.team as Team,
-        position: { x: state.x, y: state.y },
-        hp: state.hp,
-        maxHp: state.maxHp,
-        dead: state.dead,
-        radius: state.radius,
-        minionType: state.minionType,
-        facing: state.facing,
-        attackTargetId: null,
-        attackCooldown: 0,
-        stats: {
-          maxHp: state.maxHp,
-          speed: state.speed,
-          attackDamage: state.attackDamage,
-          attackRange: state.attackRange,
-          attackSpeed: state.attackSpeed,
-        },
-        projectileSpeed: state.projectileSpeed,
-        projectileRadius: state.projectileRadius,
-      }
-      this.entityManager.registerEntity(minionState)
-    }
-
-    if (!this.entityRenderers.has(state.id)) {
-      const minionEntity = this.entityManager.getEntity(state.id) as MinionState
-      const isAlly = state.team === this.localTeam
-      this.entityRenderers.set(state.id, new MinionRenderer(this, minionEntity, isAlly))
-    }
-
-    // Push snapshot to interpolation buffer (same pattern as heroes)
-    if (!this.interpolationBuffers.has(state.id)) {
-      this.interpolationBuffers.set(state.id, new InterpolationBuffer())
-    }
-    this.interpolationBuffers.get(state.id)!.pushSnapshot({
-      x: state.x,
-      y: state.y,
-      facing: state.facing,
-    })
-
-    this.entityManager.updateEntity<MinionState>(state.id, (m) => ({
-      ...m,
-      hp: state.hp,
-      maxHp: state.maxHp,
-      dead: state.dead,
-    }))
-  }
-
-  private handleServerMinionRemove(minionId: string): void {
-    const renderer = this.entityRenderers.get(minionId)
-    if (renderer) {
-      renderer.destroy()
-      this.entityRenderers.delete(minionId)
-    }
-    this.interpolationBuffers.delete(minionId)
-    this.entityManager.removeEntity(minionId)
-  }
-
   private handleAttackEvent(event: AttackEvent): void {
     if (event.attackType !== 'melee') return
     this.meleeSwing.play({ position: event.position, facing: event.facing })
@@ -644,39 +439,6 @@ export class GameScene extends Phaser.Scene {
 
   private handleDeathEvent(_event: DeathEvent): void {
     // Future: death animation, respawn effect, etc.
-  }
-
-  /**
-   * Replace placeholder entities with server-assigned session ID.
-   * Called once on first server hero state for the local player.
-   */
-  private remapLocalHeroToSession(sessionId: string): void {
-    // Remove placeholder enemy
-    this.entityRenderers.get('enemy-1')?.destroy()
-    this.entityRenderers.delete('enemy-1')
-    this.entityManager.removeEntity('enemy-1')
-
-    // Remove placeholder towers (server provides them)
-    for (const towerId of ['tower-blue', 'tower-red']) {
-      this.entityRenderers.get(towerId)?.destroy()
-      this.entityRenderers.delete(towerId)
-      this.entityManager.removeEntity(towerId)
-    }
-
-    // Remap local hero renderer to sessionId
-    const oldId = this.entityManager.localHeroId
-    const renderer = this.entityRenderers.get(oldId)
-    if (renderer) {
-      this.entityRenderers.delete(oldId)
-      this.entityRenderers.set(sessionId, renderer)
-      this.cameras.main.startFollow(renderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
-    }
-
-    // Remap entity in EntityManager
-    this.entityManager.remapLocalHero(sessionId)
-
-    // Initialize input buffer
-    this.inputBuffer = new InputBuffer()
   }
 
   private updateFreeCamera(movement: { x: number; y: number }, deltaSeconds: number): void {
@@ -707,9 +469,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Show the VICTORY / DEFEAT overlay with a "Back to Lobby" button.
-   */
   private showMatchEndOverlay(winnerTeam: string): void {
     if (this.matchEnded) return
     this.matchEnded = true
@@ -718,14 +477,12 @@ export class GameScene extends Phaser.Scene {
     const resultText = isVictory ? 'VICTORY' : 'DEFEAT'
     const resultColor = isVictory ? '#FFD700' : '#FF4444'
 
-    // Semi-transparent overlay (fixed to camera)
     const overlay = this.add.graphics()
     overlay.setScrollFactor(0)
     overlay.setDepth(2000)
     overlay.fillStyle(0x000000, 0.6)
     overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
-    // Result text
     const text = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, resultText, {
       fontSize: '72px',
       color: resultColor,
@@ -738,7 +495,6 @@ export class GameScene extends Phaser.Scene {
     text.setScrollFactor(0)
     text.setDepth(2001)
 
-    // "Back to Lobby" button
     const buttonText = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'Back to Lobby', {
       fontSize: '32px',
       color: '#FFFFFF',
