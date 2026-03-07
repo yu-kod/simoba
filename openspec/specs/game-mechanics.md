@@ -30,14 +30,11 @@
 - **Lv5:** Ultimate enhanced.
 - Zero build knowledge required. Different builds possible each match.
 
-## Match Tempo
+## Match Flow
 
-| Time | Event | Effect |
-|------|-------|--------|
-| 0:00 | Match start | Standard minion waves |
-| 3:00 | Minion buff | Minions become stronger, game accelerates |
-| 4:00 | Boss spawn | Center of map. Killing team gains major advantage |
-| 5:00 | Sudden death | All structures lose HP/sec. Match guaranteed to end |
+- Match ends when a tower is destroyed (no time limit).
+- Target match length is ~5-10 minutes, but not enforced by a timer.
+- Future: tempo events (e.g. boss spawn, minion buffs) may be added via player-driven triggers, not time-based.
 
 ## Controls
 

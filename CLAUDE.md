@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-Browser-based casual MOBA x .io game. 2v2 micro arena, max 5 min per match, no account required.
+Browser-based casual MOBA x .io game. 2v2 micro arena, ~5-10 min per match, no account required.
 
 ## Specs
 
