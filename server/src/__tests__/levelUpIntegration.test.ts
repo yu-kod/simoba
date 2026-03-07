@@ -101,11 +101,11 @@ describe('Level-up integration', () => {
 
     processMinionDeaths(ctx, minions, heroes, 0.016)
 
-    // Level 2: base + growth * (2-1) = base + growth
-    expect(hero.maxHp).toBe(def.base.maxHp + def.growth.maxHp)
-    expect(hero.speed).toBe(def.base.speed + def.growth.speed)
-    // HP should have increased by the maxHp growth
-    expect(hero.hp).toBe(prevMaxHp + def.growth.maxHp)
+    // Level 2: base + growth * 2
+    expect(hero.maxHp).toBe(def.base.maxHp + def.growth.maxHp * 2)
+    expect(hero.speed).toBe(def.base.speed + def.growth.speed * 2)
+    // HP should have increased by the maxHp growth (level 0→2 = growth*2)
+    expect(hero.hp).toBe(prevMaxHp + def.growth.maxHp * 2)
   })
 
   it('handles multi-level jump and grants correct talent points', () => {
@@ -139,16 +139,16 @@ describe('Level-up integration', () => {
   })
 
   describe('applyStatsGrowth', () => {
-    it('recalculates stats from base + growth * (level - 1)', () => {
+    it('recalculates stats from base + growth * level', () => {
       const hero = createTestHero('h1', 'blue', 800)
       const def = HERO_DEFINITIONS.BLADE
 
       applyStatsGrowth(hero, 3)
 
-      expect(hero.maxHp).toBe(def.base.maxHp + def.growth.maxHp * 2)
-      expect(hero.speed).toBe(def.base.speed + def.growth.speed * 2)
-      expect(hero.attackDamage).toBe(Math.round(def.base.attackDamage + def.growth.attackDamage * 2))
-      expect(hero.attackSpeed).toBe(def.base.attackSpeed + def.growth.attackSpeed * 2)
+      expect(hero.maxHp).toBe(def.base.maxHp + def.growth.maxHp * 3)
+      expect(hero.speed).toBe(def.base.speed + def.growth.speed * 3)
+      expect(hero.attackDamage).toBe(Math.round(def.base.attackDamage + def.growth.attackDamage * 3))
+      expect(hero.attackSpeed).toBe(def.base.attackSpeed + def.growth.attackSpeed * 3)
     })
 
     it('increases hp when maxHp grows', () => {
@@ -158,7 +158,7 @@ describe('Level-up integration', () => {
 
       applyStatsGrowth(hero, 2)
 
-      const expectedMaxHp = def.base.maxHp + def.growth.maxHp
+      const expectedMaxHp = def.base.maxHp + def.growth.maxHp * 2
       expect(hero.maxHp).toBe(expectedMaxHp)
       expect(hero.hp).toBe(expectedMaxHp) // full HP stays full
     })
@@ -180,9 +180,9 @@ describe('Level-up integration', () => {
 
       applyStatsGrowth(hero, 2)
 
-      const expectedMaxHp = def.base.maxHp + def.growth.maxHp
+      const expectedMaxHp = def.base.maxHp + def.growth.maxHp * 2
       expect(hero.maxHp).toBe(expectedMaxHp)
-      expect(hero.hp).toBe(400 + def.growth.maxHp)
+      expect(hero.hp).toBe(400 + def.growth.maxHp * 2)
     })
   })
 })

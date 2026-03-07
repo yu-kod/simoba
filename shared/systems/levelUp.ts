@@ -17,7 +17,7 @@ export function computeLevelUp(currentLevel: number, xp: number): LevelUpResult 
   const clamped = Math.max(0, Math.min(currentLevel, MAX_LEVEL))
   let newLevel = clamped
   for (let i = clamped; i < MAX_LEVEL; i++) {
-    if (xp >= XP_THRESHOLDS[i]) {
+    if (xp >= XP_THRESHOLDS[i]!) {
       newLevel = i + 1
     } else {
       break

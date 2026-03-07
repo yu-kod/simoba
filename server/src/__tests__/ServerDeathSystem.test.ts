@@ -244,10 +244,10 @@ describe('ServerDeathSystem', () => {
 
       processDeathAndRespawn(heroes, getSpawnPosition, 0.1)
 
-      // HERO_KILL_XP_REWARD=150 >= XP_THRESHOLDS[1]=150 → level 2
+      // HERO_KILL_XP_REWARD=150 >= XP_THRESHOLDS[2]=120 → level 3
       expect(killer.xp).toBe(HERO_KILL_XP_REWARD)
-      expect(killer.level).toBe(2)
-      expect(killer.talentPoints).toBe(2)
+      expect(killer.level).toBe(3)
+      expect(killer.talentPoints).toBe(3)
     })
 
     it('should not grant XP when lastAttackerSessionId is empty (tower/minion kill)', () => {

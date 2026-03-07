@@ -86,7 +86,7 @@ function grantSkill(hero: HeroSchema, skillId: string): void {
 
 /**
  * Recalculate effective stats from base + growth + talent modifiers.
- * Formula: base + (growth × (level - 1)) + Σ flat + base × Σ percent
+ * Formula: base + (growth × level) + Σ flat + baseWithGrowth × Σ percent
  */
 export function recalculateEffectiveStats(
   hero: HeroSchema,
@@ -124,7 +124,7 @@ export function recalculateEffectiveStats(
   for (const stat of stats) {
     const base = def.base[stat]
     const growth = def.growth[stat]
-    const baseWithGrowth = base + growth * (level - 1)
+    const baseWithGrowth = base + growth * level
     const flat = flatMods[stat] ?? 0
     const percent = percentMods[stat] ?? 0
     const effective = baseWithGrowth + flat + baseWithGrowth * (percent / 100)

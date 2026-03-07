@@ -223,7 +223,7 @@ export class LobbyScene extends Phaser.Scene {
         ? { x: localHero.x as number, y: localHero.y as number }
         : undefined
 
-      this.scene.start('GameScene', { gameMode, localTeam, localPosition })
+      this.scene.start('GameScene', { gameMode, localTeam, localPosition, heroType: this.selectedHeroType })
     })
   }
 

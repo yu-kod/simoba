@@ -7,24 +7,16 @@ describe('computeRespawnTime', () => {
     expect(computeRespawnTime(0)).toBe(0)
   })
 
-  it('returns 3s for level 1', () => {
-    expect(computeRespawnTime(1)).toBe(3)
+  it('returns correct time for level 1', () => {
+    expect(computeRespawnTime(1)).toBe(RESPAWN_TIMES[1])
   })
 
-  it('returns 5s for level 2', () => {
-    expect(computeRespawnTime(2)).toBe(5)
+  it('returns correct time for mid level', () => {
+    expect(computeRespawnTime(15)).toBe(RESPAWN_TIMES[15])
   })
 
-  it('returns 8s for level 3', () => {
-    expect(computeRespawnTime(3)).toBe(8)
-  })
-
-  it('returns 12s for level 4', () => {
-    expect(computeRespawnTime(4)).toBe(12)
-  })
-
-  it('returns 15s for level 5 (MAX_LEVEL)', () => {
-    expect(computeRespawnTime(5)).toBe(15)
+  it('returns correct time for MAX_LEVEL', () => {
+    expect(computeRespawnTime(MAX_LEVEL)).toBe(RESPAWN_TIMES[MAX_LEVEL])
   })
 
   it('clamps negative level to level 0', () => {
@@ -32,12 +24,16 @@ describe('computeRespawnTime', () => {
   })
 
   it('clamps level above MAX_LEVEL to MAX_LEVEL', () => {
-    expect(computeRespawnTime(10)).toBe(RESPAWN_TIMES[MAX_LEVEL])
+    expect(computeRespawnTime(MAX_LEVEL + 10)).toBe(RESPAWN_TIMES[MAX_LEVEL])
   })
 
   it('increases monotonically with level', () => {
     for (let lvl = 1; lvl <= MAX_LEVEL; lvl++) {
-      expect(computeRespawnTime(lvl)).toBeGreaterThan(computeRespawnTime(lvl - 1))
+      expect(computeRespawnTime(lvl)).toBeGreaterThanOrEqual(computeRespawnTime(lvl - 1))
     }
+  })
+
+  it('RESPAWN_TIMES has MAX_LEVEL + 1 entries (Lv0 through Lv MAX_LEVEL)', () => {
+    expect(RESPAWN_TIMES.length).toBe(MAX_LEVEL + 1)
   })
 })

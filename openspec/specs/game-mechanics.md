@@ -24,8 +24,10 @@
 
 ## Growth System
 
-- **Max level:** 5. No items.
-- **Level up:** Binary talent choice appears on screen ("Skill A upgrade" OR "Skill B upgrade").
+- **Max level:** 30. No items.
+- **Level up:** Grants 1 talent point. Player spends points on a hero-specific talent tree (45-55 nodes per hero).
+- **Talent node costs:** 1, 2, or 3 points. ~30-40% of nodes acquirable per match.
+- **XP curve:** Segmented — early levels fast, mid linear, late steep. Typical match reaches Lv15-25.
 - **Lv3:** Ultimate unlocked.
 - **Lv5:** Ultimate enhanced.
 - Zero build knowledge required. Different builds possible each match.

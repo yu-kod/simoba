@@ -31,14 +31,14 @@ describe('computeHudLayout', () => {
 
   it('should space slots evenly with gap', () => {
     const layout = computeHudLayout(SCREEN_W, SCREEN_H, 3)
-    const gap01 = layout.slots[1].x - layout.slots[0].x
-    const gap12 = layout.slots[2].x - layout.slots[1].x
+    const gap01 = layout.slots[1]!.x - layout.slots[0]!.x
+    const gap12 = layout.slots[2]!.x - layout.slots[1]!.x
     expect(gap01).toBeCloseTo(gap12, 5)
   })
 
   it('should position HP bar below skill row', () => {
     const layout = computeHudLayout(SCREEN_W, SCREEN_H, 3)
-    const slotBottom = layout.slots[0].y + layout.slots[0].size
+    const slotBottom = layout.slots[0]!.y + layout.slots[0]!.size
     expect(layout.hpBarY).toBeGreaterThan(slotBottom)
   })
 

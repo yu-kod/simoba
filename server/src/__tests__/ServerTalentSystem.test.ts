@@ -77,9 +77,10 @@ describe('acquireTalent', () => {
 
   it('should apply stat_modifier effect on acquisition', () => {
     // blade-toughness: maxHp +80 flat
-    const prevMaxHp = hero.maxHp
+    // hero level=1, BLADE base maxHp=650, growth=80
+    // After acquire: baseWithGrowth = 650 + 80*1 = 730, + 80 flat = 810
     acquireTalent(hero, 'blade-toughness', BLADE_TALENT_TREE)
-    expect(hero.maxHp).toBe(prevMaxHp + 80)
+    expect(hero.maxHp).toBe(810)
   })
 })
 
@@ -89,8 +90,8 @@ describe('recalculateEffectiveStats', () => {
     // Acquire blade-toughness (+80 HP flat)
     hero.acquiredTalents.push('blade-toughness')
     recalculateEffectiveStats(hero, BLADE_TALENT_TREE)
-    // BLADE base maxHp=650, growth=80, level=3 → 650 + 80*(3-1) + 80 = 890
-    expect(hero.maxHp).toBe(890)
+    // BLADE base maxHp=650, growth=80, level=3 → 650 + 80*3 + 80 = 970
+    expect(hero.maxHp).toBe(970)
   })
 
   it('should calculate percent modifier correctly', () => {
@@ -98,8 +99,8 @@ describe('recalculateEffectiveStats', () => {
     // Acquire blade-berserker (+20% attackSpeed) — bypass prerequisites for test
     hero.acquiredTalents.push('blade-berserker')
     recalculateEffectiveStats(hero, BLADE_TALENT_TREE)
-    // BLADE base attackSpeed=0.8, level=1 → 0.8 + 0.8*0.20 = 0.96
-    expect(hero.attackSpeed).toBeCloseTo(0.96, 2)
+    // BLADE base attackSpeed=0.8, growth=0.05, level=1 → (0.8+0.05) + (0.8+0.05)*0.20 = 1.02
+    expect(hero.attackSpeed).toBeCloseTo(1.02, 2)
   })
 
   it('should handle both flat and percent modifiers combined', () => {
@@ -129,9 +130,9 @@ describe('recalculateEffectiveStats', () => {
     hero.acquiredTalents.push('test-flat')
     hero.acquiredTalents.push('test-percent')
     recalculateEffectiveStats(hero, testTree)
-    // base=60, growth=8, level=3 → baseWithGrowth = 60 + 8*2 = 76
-    // effective = 76 + 10 + 76 * 0.20 = 101.2 → rounded = 101
-    expect(hero.attackDamage).toBe(101)
+    // base=60, growth=8, level=3 → baseWithGrowth = 60 + 8*3 = 84
+    // effective = 84 + 10 + 84 * 0.20 = 110.8 → rounded = 111
+    expect(hero.attackDamage).toBe(111)
   })
 
   it('should scale current HP proportionally when maxHp changes', () => {
@@ -140,8 +141,8 @@ describe('recalculateEffectiveStats', () => {
     hero.hp = 325 // 50% HP
     hero.acquiredTalents.push('blade-toughness')
     recalculateEffectiveStats(hero, BLADE_TALENT_TREE)
-    // New maxHp = 650 + 80 = 730, HP should be 50% = 365
-    expect(hero.maxHp).toBe(730)
-    expect(hero.hp).toBe(365)
+    // New maxHp at level 1 = 650 + 80*1 + 80(talent) = 810, HP should be 50% = 405
+    expect(hero.maxHp).toBe(810)
+    expect(hero.hp).toBe(405)
   })
 })

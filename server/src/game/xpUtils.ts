@@ -7,11 +7,11 @@ import type { HeroSchema } from '../schema/HeroSchema.js'
 import { recalculateEffectiveStats } from './ServerTalentSystem.js'
 
 /**
- * Recalculate hero stats from base + growth * (level - 1).
+ * Recalculate hero stats from base + growth * level.
  * Mutates the HeroSchema directly (Colyseus convention).
  */
 export function applyStatsGrowth(hero: HeroSchema, newLevel: number): void {
-  if (newLevel < 1 || newLevel > MAX_LEVEL) {
+  if (newLevel < 0 || newLevel > MAX_LEVEL) {
     throw new Error(`applyStatsGrowth: newLevel ${newLevel} out of range`)
   }
   const def = HERO_DEFINITIONS[hero.heroType as HeroType]
@@ -20,11 +20,11 @@ export function applyStatsGrowth(hero: HeroSchema, newLevel: number): void {
   }
   const prevMaxHp = hero.maxHp
 
-  hero.maxHp = Math.round(def.base.maxHp + def.growth.maxHp * (newLevel - 1))
-  hero.speed = def.base.speed + def.growth.speed * (newLevel - 1)
-  hero.attackDamage = Math.round(def.base.attackDamage + def.growth.attackDamage * (newLevel - 1))
-  hero.attackRange = def.base.attackRange + def.growth.attackRange * (newLevel - 1)
-  hero.attackSpeed = def.base.attackSpeed + def.growth.attackSpeed * (newLevel - 1)
+  hero.maxHp = Math.round(def.base.maxHp + def.growth.maxHp * newLevel)
+  hero.speed = def.base.speed + def.growth.speed * newLevel
+  hero.attackDamage = Math.round(def.base.attackDamage + def.growth.attackDamage * newLevel)
+  hero.attackRange = def.base.attackRange + def.growth.attackRange * newLevel
+  hero.attackSpeed = def.base.attackSpeed + def.growth.attackSpeed * newLevel
 
   // Increase current HP by the same amount maxHp grew (prevent level-up death)
   const hpGain = hero.maxHp - prevMaxHp
