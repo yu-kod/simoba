@@ -49,7 +49,8 @@ export function spendBotTalents(
 
       const randomIndex = Math.floor(Math.random() * candidates.length)
       const talentId = candidates[randomIndex]
-      acquireTalent(hero, talentId, treeDef)
+      const acquired = acquireTalent(hero, talentId, treeDef)
+      if (!acquired) break
     }
   })
 }
