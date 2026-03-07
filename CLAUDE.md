@@ -69,6 +69,11 @@ All game/tech specs live in `openspec/specs/`:
 2. **Branch** — `git checkout -b feature/xxx develop`
 3. **OpenSpec** — `/opsx:new` → `/opsx:continue` (review each artifact) → `/opsx:apply` → `/opsx:verify`
    - Do NOT use `/opsx:ff` (skips user confirmation)
+   - **スキップ可能なケース:** 仕様変更を伴わないタスクは OpenSpec 不要。具体的には:
+     - テスト追加のみ（既存実装に対するテスト）
+     - バグ修正（仕様変更なし）
+     - chore（リファクタリング、依存更新、lint 修正等）
+     - ドキュメント更新
 4. **Test** — `npm run test:unit` + `npm run test:e2e` → all PASS
 5. **Self-review** — Run code-reviewer subagent, fix issues before presenting to user
 6. **PR** — `feature/*` → `develop`, include Summary + Test Plan
