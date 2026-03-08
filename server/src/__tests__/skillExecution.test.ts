@@ -10,7 +10,7 @@ beforeEach(() => {
   registerAllEffectHandlers()
 })
 
-function createHero(): HeroSchema {
+function createHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
   const hero = new HeroSchema()
   hero.x = 100
   hero.y = 200
@@ -24,6 +24,7 @@ function createHero(): HeroSchema {
   hero.cooldownQ = 0
   hero.cooldownE = 0
   hero.cooldownR = 0
+  Object.assign(hero, overrides)
   return hero
 }
 
@@ -116,32 +117,15 @@ describe('executeSkill', () => {
 })
 
 describe('executeSkill — bolt-dash', () => {
-  function createBoltHero(): HeroSchema {
-    const hero = new HeroSchema()
-    hero.x = 100
-    hero.y = 200
-    hero.hp = 500
-    hero.maxHp = 500
-    hero.dead = false
-    hero.heroType = 'BOLT'
-    hero.skillSlotQ = 'bolt-dash'
-    hero.skillSlotE = ''
-    hero.skillSlotR = ''
-    hero.cooldownQ = 0
-    hero.cooldownE = 0
-    hero.cooldownR = 0
-    return hero
-  }
-
   it('should return valid SkillEvent for bolt-dash', () => {
-    const hero = createBoltHero()
+    const hero = createHero({ hp: 500, maxHp: 500, heroType: 'BOLT', skillSlotQ: 'bolt-dash' })
     const event = executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
     expect(event).not.toBeNull()
     expect(event!.skillId).toBe('bolt-dash')
   })
 
   it('should set dash state with zero damage', () => {
-    const hero = createBoltHero()
+    const hero = createHero({ hp: 500, maxHp: 500, heroType: 'BOLT', skillSlotQ: 'bolt-dash' })
     executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
     expect(hero.dashTimer).toBeCloseTo(0.05)
     expect(hero.dashDirX).toBeCloseTo(1)
@@ -151,7 +135,7 @@ describe('executeSkill — bolt-dash', () => {
   })
 
   it('should set cooldown to 6 seconds', () => {
-    const hero = createBoltHero()
+    const hero = createHero({ hp: 500, maxHp: 500, heroType: 'BOLT', skillSlotQ: 'bolt-dash' })
     executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
     expect(hero.cooldownQ).toBe(6)
   })
