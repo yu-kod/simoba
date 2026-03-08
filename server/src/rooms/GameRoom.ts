@@ -31,8 +31,12 @@ import {
   swapSkillSlots,
   unequipSkillSlot,
 } from '../game/ServerSkillSlotSystem.js'
+import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.js'
+import { processDashDamage, cleanupDashHitSets } from '../game/ServerDashDamageSystem.js'
+import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { TALENT_TREES } from '@shared/talents/index'
 import type { SkillSlot } from '@shared/talents/types'
+import type { UseSkillMessage } from '@shared/messages'
 import { createServerLogger } from '@shared/logging'
 
 const logger = createServerLogger('room')
@@ -92,6 +96,16 @@ function isValidUnequipSlotMessage(msg: unknown): msg is { slot: SkillSlot } {
   return VALID_SLOTS.has((msg as Record<string, unknown>).slot as string)
 }
 
+function isValidUseSkillMessage(msg: unknown): msg is UseSkillMessage {
+  if (typeof msg !== 'object' || msg === null) return false
+  const m = msg as Record<string, unknown>
+  if (!VALID_SLOTS.has(m.slot as string)) return false
+  if (typeof m.target !== 'object' || m.target === null) return false
+  const t = m.target as Record<string, unknown>
+  return typeof t.x === 'number' && typeof t.y === 'number'
+    && Number.isFinite(t.x) && Number.isFinite(t.y)
+}
+
 
 export class GameRoom extends Room<GameRoomState> {
   maxClients = MAX_PLAYERS
@@ -99,8 +113,10 @@ export class GameRoom extends Room<GameRoomState> {
   private nextWaveTime = MINION_WAVE_INTERVAL
   private minionCtx = createMinionSystemContext()
   private isSoloMode = false
+  private dashHitSets = new Map<string, Set<string>>()
 
   onCreate(options?: Record<string, unknown>): void {
+    registerAllEffectHandlers()
     this.setState(new GameRoomState())
     logger.info('Room created', { roomId: this.roomId })
 
@@ -153,6 +169,18 @@ export class GameRoom extends Room<GameRoomState> {
       if (!hero) return
       const isInBase = isHeroInBase(hero)
       unequipSkillSlot(hero, message.slot, isInBase)
+    })
+
+    // Skill activation handler
+    this.onMessage('useSkill', (client, message: unknown) => {
+      if (this.state.matchPhase !== 'playing') return
+      if (!isValidUseSkillMessage(message)) return
+      const hero = this.state.heroes.get(client.sessionId)
+      if (!hero) return
+      const event = executeSkill(hero, client.sessionId, message.slot, message.target)
+      if (event) {
+        this.broadcast('skill', event)
+      }
     })
 
     // Start simulation loop
@@ -357,7 +385,12 @@ export class GameRoom extends Room<GameRoomState> {
       events.push(...heroEvents)
     })
 
-    // 2. Apply movement from inputs (respects attackPauseTimer set above)
+    // 1.5. Tick skill cooldowns
+    heroes.forEach((hero) => {
+      tickCooldowns(hero, deltaTime)
+    })
+
+    // 2. Apply movement from inputs (respects dashTimer and attackPauseTimer)
     heroes.forEach((hero, sessionId) => {
       const input = this.playerInputs.get(sessionId)
       processMovement(hero, input, deltaTime)
@@ -367,6 +400,13 @@ export class GameRoom extends Room<GameRoomState> {
         hero.lastProcessedSeq = input.seq
       }
     })
+
+    // 2.1. Dash contact damage
+    const dashDamageEvents = processDashDamage(heroes, minions, this.dashHitSets)
+    for (const dmgEvent of dashDamageEvents) {
+      events.push({ kind: 'damage', event: dmgEvent })
+    }
+    cleanupDashHitSets(heroes, this.dashHitSets)
 
     // 2.5. Process minion behavior (march / chase / attack)
     const minionEvents = processMinionBehavior(

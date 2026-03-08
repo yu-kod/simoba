@@ -304,6 +304,12 @@ export class GameScene extends Phaser.Scene {
     const effectiveInput = this.talentTreeOverlay.isOpen()
       ? { ...input, attack: false, targeting: { phase: 'idle' as const } }
       : input
+    // --- Skill activation (targeting fired) ---
+    if (!localDead && effectiveInput.targeting.phase === 'fired') {
+      const { skill, target } = effectiveInput.targeting
+      this.networkBridge.sendUseSkill(skill, target)
+    }
+
     if (!localDead) {
       this.updateOnlineInput(deltaSeconds, effectiveInput)
     } else {
@@ -315,7 +321,10 @@ export class GameScene extends Phaser.Scene {
     this.updateRespawnUI()
 
     // --- Game HUD ---
-    this.gameHud.update(delta, localHero)
+    const targetingSlot = effectiveInput.targeting.phase === 'targeting'
+      ? effectiveInput.targeting.skill
+      : null
+    this.gameHud.update(delta, localHero, targetingSlot)
 
     // --- Talent tree overlay ---
     this.talentTreeOverlay.update(localHero)

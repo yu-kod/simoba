@@ -258,6 +258,10 @@ export class ServerEntitySync {
       skillSlotQ: state.skillSlotQ,
       skillSlotE: state.skillSlotE,
       skillSlotR: state.skillSlotR,
+      cooldownQ: state.cooldownQ,
+      cooldownE: state.cooldownE,
+      cooldownR: state.cooldownR,
+      dashTimer: state.dashTimer,
     }))
   }
 

@@ -35,6 +35,24 @@ export interface DeathEvent {
   readonly position: { readonly x: number; readonly y: number }
 }
 
+// ─── Client → Server skill command ──────────────────────────────
+
+/** Sent when player activates a skill from a slot */
+export interface UseSkillMessage {
+  readonly slot: 'Q' | 'E' | 'R'
+  readonly target: { readonly x: number; readonly y: number }
+}
+
+// ─── Server → Client skill events ───────────────────────────────
+
+/** Broadcast when a skill is successfully activated */
+export interface SkillEvent {
+  readonly casterId: string
+  readonly skillId: string
+  readonly position: { readonly x: number; readonly y: number }
+  readonly direction: { readonly x: number; readonly y: number }
+}
+
 /** Union of all combat events (used as return type from server process functions) */
 export type CombatEventMessage =
   | { readonly kind: 'attack'; readonly event: AttackEvent }
