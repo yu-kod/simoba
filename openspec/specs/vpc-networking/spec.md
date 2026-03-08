@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+VPC Terraform モジュール（VPC、Publicサブネット、Internet Gateway、ルートテーブル）の仕様
+
+## Requirements
 
 ### Requirement: VPC Terraform モジュール
 `infrastructure/terraform/modules/vpc/` に VPC ネットワーク基盤の Terraform モジュールを提供しなければならない（SHALL）。VPC、Public subnets（2 AZ）、Internet Gateway、Route table を定義しなければならない（SHALL）。

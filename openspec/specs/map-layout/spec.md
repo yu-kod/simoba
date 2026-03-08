@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+マップレイアウト定数（レーン、ベース、タワー、ブッシュ、ボス地点の座標・サイズ）の定義仕様
+
+## Requirements
 
 ### Requirement: マップレイアウト定数の定義
 

@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+HeroRenderer によるヒーローのジオメトリック描画、状態同期、チーム色表現の仕様
+
+## Requirements
 
 ### Requirement: HeroRenderer による描画分離
 HeroRenderer クラスが Phaser.GameObjects.Container をラップし、HeroState を受けて描画を同期する。GameScene は描画の詳細を知らず、HeroRenderer に委譲する。

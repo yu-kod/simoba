@@ -1,3 +1,10 @@
+# Specification
+
+## Purpose
+Colyseus によるオンラインマルチプレイヤー（GameRoom、state同期、入力送信）の仕様
+
+## Requirements
+
 ### Requirement: ゲーム開始通知
 GameRoom は全プレイヤーが揃った時点で `GameRoomState.gameStarted` フラグを `true` に設定しなければならない（SHALL）。ゲーム開始の通知にはメッセージブロードキャスト（`broadcast('gameStart')`）を使用してはならない（SHALL NOT）。クライアントは `room.onStateChange` で `gameStarted` フラグを監視し、`true` になった時点でゲーム開始処理を行わなければならない（SHALL）。
 

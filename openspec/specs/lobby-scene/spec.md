@@ -1,3 +1,10 @@
+# Specification
+
+## Purpose
+ロビーシーンの表示、ゲームモード選択メニュー、オンラインバトル/ソロプレイ遷移の仕様
+
+## Requirements
+
 ### Requirement: ロビーシーンの表示
 BootScene の次に LobbyScene を表示しなければならない（SHALL）。LobbyScene はゲームモード選択メニューを提供しなければならない（SHALL）。
 

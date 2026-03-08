@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+StatBlock 共通型、CombatEntityState 共通層、ヒーロー別ベースステータス定義の仕様
+
+## Requirements
 
 ### Requirement: StatBlock 共通型
 戦闘ステータスの共通型 `StatBlock` を定義する。`maxHp`, `speed`, `attackDamage`, `attackRange`, `attackSpeed` のフィールドを持ち、ベース値・成長量・実効値で同じ型を共有する。全フィールドは `readonly` とする。

@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+ゲーム画面下部のHUDパネル（HP/XP/レベル/スキルスロット表示）のレイアウトと描画仕様
+
+## Requirements
 
 ### Requirement: HUDパネルの表示位置とレイアウト
 HUDパネルは画面下部中央に配置され、カメラスクロールに影響されない固定位置で表示される。半透明ダークパネル背景を持つ。

@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+LogTape によるロギング基盤（階層カテゴリ、サーバー/クライアント設定）の仕様
+
+## Requirements
 
 ### Requirement: LogTape dependency
 The project SHALL use `@logtape/logtape` v2.x as the logging library. The package SHALL be installed at the workspace root so both frontend (`src/`) and backend (`server/`) can import it.

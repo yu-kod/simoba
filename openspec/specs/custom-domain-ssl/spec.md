@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+ACM ワイルドカード証明書、Route 53 DNS レコード、カスタムドメインの SSL/TLS 設定仕様
+
 ## Requirements
 
 ### Requirement: ACM ワイルドカード証明書

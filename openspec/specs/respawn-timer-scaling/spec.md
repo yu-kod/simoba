@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+レベル別リスポーン時間テーブルとリスポーンタイマーのスケーリング仕様
+
+## Requirements
 
 ### Requirement: レベル別リスポーン時間テーブル
 

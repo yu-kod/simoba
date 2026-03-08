@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+GitHub Actions によるフロントエンドの手動デプロイワークフロー（S3 + CloudFront）の仕様
+
+## Requirements
 
 ### Requirement: Manual workflow trigger with branch selection
 ワークフローは `workflow_dispatch` で手動トリガーされ、GitHub UI のブランチセレクタで任意のブランチを選択できること。

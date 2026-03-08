@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+ロビーでのヒーロータイプ選択UI（BLADE/BOLT/AURA）とサーバーへの選択送信の仕様
+
+## Requirements
 
 ### Requirement: Hero selection UI in lobby
 ロビーの waiting 状態でプレイヤーがヒーロータイプを選択できる UI を表示する。利用可能な全ヒーロータイプ（BLADE, BOLT, AURA）をボタンとして表示し、選択状態を視覚的にハイライトする。デフォルト選択は BLADE とする。

@@ -1,4 +1,9 @@
-## MODIFIED Requirements
+# Specification
+
+## Purpose
+Bot ヒーローのタレントポイント自動消費（毎ティック acquireTalent 呼び出し）の仕様
+
+## Requirements
 
 ### Requirement: Bot タレント自動消費
 Bot ヒーロー（`isBot === true`）がタレントポイントを1以上保持している場合、サーバーは毎ティック自動的にタレントを取得しなければならない（SHALL）。タレント取得には既存の `acquireTalent()` 関数を使用しなければならない（SHALL）。

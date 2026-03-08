@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+Domain ディレクトリ構成（entities/systems/types）による MVC アーキテクチャの仕様
+
+## Requirements
 
 ### Requirement: Domain ディレクトリ構成
 

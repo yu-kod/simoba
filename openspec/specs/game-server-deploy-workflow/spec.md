@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+GitHub Actions によるゲームサーバーの手動デプロイワークフロー（Docker + ECS）の仕様
+
+## Requirements
 
 ### Requirement: ゲームサーバーデプロイワークフロー
 `.github/workflows/deploy-game-server.yml` に GitHub Actions ワークフローを提供しなければならない（SHALL）。`workflow_dispatch` で手動トリガーし、任意のブランチから実行可能でなければならない（SHALL）。

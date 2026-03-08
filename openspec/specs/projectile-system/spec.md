@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+プロジェクタイルの状態定義、追尾移動、衝突判定などの投射物システム全体の仕様
+
 ## Requirements
 
 ### Requirement: プロジェクタイル状態の定義

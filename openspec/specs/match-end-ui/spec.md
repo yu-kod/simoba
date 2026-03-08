@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+試合終了時の VICTORY/DEFEAT オーバーレイ表示とロビーへの遷移UIの仕様
+
+## Requirements
 
 ### Requirement: VICTORY / DEFEAT オーバーレイ
 `matchPhase` が `'finished'` に変更されたとき、クライアントはゲーム画面上にフルスクリーン半透明オーバーレイを表示しなければならない（SHALL）。ローカルプレイヤーのチームが `winnerTeam` と一致する場合は「VICTORY」、一致しない場合は「DEFEAT」と表示しなければならない（SHALL）。テキストはジオメトリックスタイルで画面中央に大きく表示しなければならない（SHALL）。

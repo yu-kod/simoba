@@ -3,14 +3,21 @@ schema: spec-driven
 context: |
   Project: MOBA.io — 2v2 Micro Arena
   Genre: Casual MOBA x .io browser game
-  Tech: Phaser.js (frontend), Colyseus (backend), AWS (infra)
-  Language: TypeScript
-  Max match duration: 5 minutes
+  Tech: Phaser.js 3.x (frontend), Vite 6.x (build), Colyseus 0.16 (backend), AWS (infra)
+  Language: TypeScript (strict mode)
+  Match duration: 5-10 minutes
   No account required, instant play
-  Phase 1: Online-first — Colyseus server + Phaser.js client
-  Visual style: Geometric (.io style), Canvas-only, no image assets
+  Current phase: Phase 1 Prototype — Online-first (Colyseus server + Phaser.js client)
+  Visual style: Geometric (.io style), Canvas shapes only, no image assets
+  Architecture: Server-authoritative, MVC on client
+  Heroes: BLADE (melee), BOLT (ranged), AURA (support) with talent trees
+  Systems: Attack, projectiles (homing), minions, towers, XP/level, death/respawn, base HP regen
 
 rules:
+  spec:
+    - Specs must start with `# Specification`, then `## Purpose` (50+ chars), then `## Requirements`
+    - Each requirement uses `### Requirement: <name>` with scenarios
+    - Balance values (damage, timers, HP, etc.) must reference shared/constants.ts
   proposal:
     - Keep proposals under 500 words
     - Always include a "Non-goals" section

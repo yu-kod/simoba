@@ -1,4 +1,9 @@
-## MODIFIED Requirements
+# Specification
+
+## Purpose
+タレント効果（flat/percent修正）の計算式と effectiveStats の再計算タイミングの仕様
+
+## Requirements
 
 ### Requirement: effectiveStats の計算式
 ヒーローの実効ステータスは `base + (growth × level) + Σ flat修正 + base × Σ percent修正` で計算されなければならない（SHALL）。再計算はタレント取得時およびレベルアップ時にのみ実行されなければならない（SHALL）。

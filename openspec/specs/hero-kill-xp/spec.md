@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+ヒーローキル時の XP 報酬定数定義と、キル発生時の XP 付与処理の仕様
+
+## Requirements
 
 ### Requirement: ヒーローキル XP 報酬定数
 

@@ -1,3 +1,10 @@
+# Specification
+
+## Purpose
+InterpolationBuffer によるサーバースナップショットの線形補間（lerp）とエンティティ位置の滑らか描画の仕様
+
+## Requirements
+
 ### Requirement: InterpolationBuffer によるエンティティ補間
 `InterpolationBuffer` クラスは、サーバースナップショットをリングバッファ（最大 10 件）に蓄積し、遅延レンダリング時刻（`now() - INTERPOLATION_DELAY`）における位置を線形補間（lerp）で算出しなければならない（SHALL）。`INTERPOLATION_DELAY` はデフォルト 100ms とする。時刻はクライアントローカル時刻（`performance.now()`）を使用しなければならない（SHALL）。
 

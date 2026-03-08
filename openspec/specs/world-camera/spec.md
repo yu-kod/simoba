@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+ワールド空間の定義（3200x720px）、カメラ設定、スクロール境界の仕様
+
+## Requirements
 
 ### Requirement: ワールド空間の定義
 

@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+タレントツリーの拡張（レベル上限30、セグメント型XPカーブ、新タレントノード追加）の仕様
+
+## Requirements
 
 ### Requirement: レベル上限30
 `MAX_LEVEL` は 30 でなければならない（SHALL）。

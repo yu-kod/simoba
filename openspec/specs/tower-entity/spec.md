@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+タワーエンティティの破壊判定、勝敗トリガー、Schema定義、描画の仕様
+
+## Requirements
 
 ### Requirement: タワー破壊による勝敗判定トリガー
 タワーの `dead` が `true` に変更されたとき、サーバーは勝敗判定処理をトリガーしなければならない（SHALL）。破壊されたタワーのチームの敵チームが勝者となる。この判定は `gameUpdate` ループ内で全戦闘処理が完了した後に実行されなければならない（SHALL）。

@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+ECS on EC2 Terraform モジュール、ALB/HTTPS リスナー、セキュリティグループなどのゲームサーバーインフラ仕様
+
 ## Requirements
 
 ### Requirement: ECS on EC2 Terraform モジュール

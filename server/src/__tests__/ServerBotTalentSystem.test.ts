@@ -97,11 +97,24 @@ describe('ServerBotTalentSystem', () => {
     expect(bot.acquiredTalents.length).toBe(3)
   })
 
-  it('should spend all 5 points to acquire entire talent tree', () => {
+  it('should spend all points on a cost-1-only tree', () => {
+    // Use a small deterministic tree where all nodes cost 1
+    const smallTree: TalentTreeDefinition = {
+      heroType: 'BLADE',
+      nodes: [
+        { id: 'a', name: 'A', description: 'A', cost: 1, prerequisites: [], effects: [] },
+        { id: 'b', name: 'B', description: 'B', cost: 1, prerequisites: [], effects: [] },
+        { id: 'c', name: 'C', description: 'C', cost: 1, prerequisites: ['a'], effects: [] },
+        { id: 'd', name: 'D', description: 'D', cost: 1, prerequisites: ['b'], effects: [] },
+        { id: 'e', name: 'E', description: 'E', cost: 1, prerequisites: ['c', 'd'], effects: [] },
+      ],
+    }
+    const trees: Partial<Record<HeroType, TalentTreeDefinition>> = { BLADE: smallTree }
+
     const bot = createHero({ isBot: true, talentPoints: 5 })
     heroes.set('bot-1', bot)
 
-    spendBotTalents(heroes, TALENT_TREES)
+    spendBotTalents(heroes, trees)
 
     expect(bot.talentPoints).toBe(0)
     expect(bot.acquiredTalents.length).toBe(5)

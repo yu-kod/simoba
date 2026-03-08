@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+レーンミニオンのスポーン、行動AI（移動・攻撃・チェイス）、試合終了時の停止処理の仕様
+
+## Requirements
 
 ### Requirement: 試合終了時のミニオン停止
 `matchPhase` が `'finished'` の間、ミニオンウェーブのスポーン、ミニオンの行動（移動・攻撃・チェイス）、ミニオンの死亡処理は実行されてはならない（SHALL NOT）。既存のミニオンはその場で停止しなければならない（SHALL）。
