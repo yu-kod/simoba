@@ -92,6 +92,14 @@ export interface HeroState extends AttackerEntityState {
   readonly skillSlotE: string
   /** Skill assigned to R slot (empty string = no skill) */
   readonly skillSlotR: string
+  /** Remaining cooldown for Q slot (seconds) */
+  readonly cooldownQ: number
+  /** Remaining cooldown for E slot (seconds) */
+  readonly cooldownE: number
+  /** Remaining cooldown for R slot (seconds) */
+  readonly cooldownR: number
+  /** Remaining dash time (seconds, >0 means currently dashing) */
+  readonly dashTimer: number
 }
 
 export interface CreateHeroParams {
@@ -128,5 +136,9 @@ export function createHeroState(params: CreateHeroParams): HeroState {
     skillSlotQ: '',
     skillSlotE: '',
     skillSlotR: '',
+    cooldownQ: 0,
+    cooldownE: 0,
+    cooldownR: 0,
+    dashTimer: 0,
   }
 }

@@ -10,6 +10,26 @@ interface SpawnPosition {
   readonly y: number
 }
 
+/** Reset hero state for respawn at the given spawn position. */
+function respawnHero(hero: HeroSchema, spawn: SpawnPosition): void {
+  hero.dead = false
+  hero.respawnTimer = 0
+  hero.hp = hero.maxHp
+  hero.x = spawn.x
+  hero.y = spawn.y
+  hero.attackTargetId = ''
+  hero.attackCooldown = 0
+  hero.lastAttackerSessionId = ''
+  hero.dashTimer = 0
+  hero.dashDirX = 0
+  hero.dashDirY = 0
+  hero.dashSpeed = 0
+  hero.dashDamage = 0
+  hero.cooldownQ = 0
+  hero.cooldownE = 0
+  hero.cooldownR = 0
+}
+
 /**
  * Process death detection and respawn for all heroes in one tick.
  * - If hp <= 0 and not yet dead, mark dead and start respawn timer.
@@ -52,14 +72,7 @@ export function processDeathAndRespawn(
       // Instant respawn when timer is 0 (e.g. level 0)
       if (respawnTime <= 0) {
         const spawn = getSpawnPosition(hero.team)
-        hero.dead = false
-        hero.respawnTimer = 0
-        hero.hp = hero.maxHp
-        hero.x = spawn.x
-        hero.y = spawn.y
-        hero.attackTargetId = ''
-        hero.attackCooldown = 0
-        hero.lastAttackerSessionId = ''
+        respawnHero(hero, spawn)
 
         events.push({
           kind: 'death',
@@ -81,14 +94,7 @@ export function processDeathAndRespawn(
 
       if (hero.respawnTimer <= 0) {
         const spawn = getSpawnPosition(hero.team)
-        hero.dead = false
-        hero.respawnTimer = 0
-        hero.hp = hero.maxHp
-        hero.x = spawn.x
-        hero.y = spawn.y
-        hero.attackTargetId = ''
-        hero.attackCooldown = 0
-        hero.lastAttackerSessionId = ''
+        respawnHero(hero, spawn)
 
         events.push({
           kind: 'death',

@@ -1,6 +1,6 @@
 import type { Room } from 'colyseus.js'
 import { getStateCallbacks } from 'colyseus.js'
-import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent, SkillEvent } from '@shared/messages'
 import type {
   GameMode,
   ServerHeroState,
@@ -50,6 +50,7 @@ export class OnlineGameMode implements GameMode {
   private attackEventCallbacks: ((event: AttackEvent) => void)[] = []
   private damageEventCallbacks: ((event: ServerDamageEvent) => void)[] = []
   private deathEventCallbacks: ((event: DeathEvent) => void)[] = []
+  private skillEventCallbacks: ((event: SkillEvent) => void)[] = []
 
   // Match lifecycle callbacks
   private matchEndCallbacks: ((winnerTeam: string, matchEndReason: string) => void)[] = []
@@ -103,6 +104,9 @@ export class OnlineGameMode implements GameMode {
     this.room.onMessage('death', (event: DeathEvent) => {
       for (const cb of this.deathEventCallbacks) cb(event)
     })
+    this.room.onMessage('skill', (event: SkillEvent) => {
+      for (const cb of this.skillEventCallbacks) cb(event)
+    })
 
     // --- Match phase listener ---
     $(this.room.state).listen('matchPhase', (value: unknown) => {
@@ -135,6 +139,10 @@ export class OnlineGameMode implements GameMode {
       $(hero).listen('skillSlotQ', schedule)
       $(hero).listen('skillSlotE', schedule)
       $(hero).listen('skillSlotR', schedule)
+      $(hero).listen('cooldownQ', schedule)
+      $(hero).listen('cooldownE', schedule)
+      $(hero).listen('cooldownR', schedule)
+      $(hero).listen('dashTimer', schedule)
 
       // Array fields — trigger hero update on add/remove
       const arrSchedule = () => this.scheduleHeroUpdate(sessionId, hero)
@@ -241,6 +249,10 @@ export class OnlineGameMode implements GameMode {
       skillSlotQ: (hero.skillSlotQ as string) ?? '',
       skillSlotE: (hero.skillSlotE as string) ?? '',
       skillSlotR: (hero.skillSlotR as string) ?? '',
+      cooldownQ: hero.cooldownQ as number,
+      cooldownE: hero.cooldownE as number,
+      cooldownR: hero.cooldownR as number,
+      dashTimer: hero.dashTimer as number,
     }
     for (const cb of this.serverHeroUpdateCallbacks) cb(state)
   }
@@ -326,6 +338,10 @@ export class OnlineGameMode implements GameMode {
     this.room?.send('unequipSkillSlot', { slot })
   }
 
+  sendUseSkill(slot: string, target: { x: number; y: number }): void {
+    this.room?.send('useSkill', { slot, target })
+  }
+
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void {
     this.serverHeroUpdateCallbacks = [...this.serverHeroUpdateCallbacks, callback]
   }
@@ -362,6 +378,10 @@ export class OnlineGameMode implements GameMode {
     this.deathEventCallbacks = [...this.deathEventCallbacks, callback]
   }
 
+  onSkillEvent(callback: (event: SkillEvent) => void): void {
+    this.skillEventCallbacks = [...this.skillEventCallbacks, callback]
+  }
+
   onMatchEnd(callback: (winnerTeam: string, matchEndReason: string) => void): void {
     this.matchEndCallbacks = [...this.matchEndCallbacks, callback]
   }
@@ -382,6 +402,7 @@ export class OnlineGameMode implements GameMode {
     this.attackEventCallbacks = []
     this.damageEventCallbacks = []
     this.deathEventCallbacks = []
+    this.skillEventCallbacks = []
     this.matchEndCallbacks = []
   }
 }

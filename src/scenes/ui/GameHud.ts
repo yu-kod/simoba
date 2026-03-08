@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import type { HeroState } from '@shared/entities/Hero'
+import type { SkillSlot } from '@/domain/input/InputState'
 import type { SkillSlotConfig } from '@/domain/ui/skillSlotConfig'
 import { computeHudLayout } from '@/domain/ui/hudLayout'
 import { createUiScale, type UiScale } from './uiScale'
@@ -164,15 +165,18 @@ export class GameHud {
     return this.container
   }
 
-  update(_delta: number, heroState: HeroState): void {
+  update(_delta: number, heroState: HeroState, targetingSlot: SkillSlot | null = null): void {
     this.levelBadge.update(heroState.level, heroState.xp)
     this.hpBar.update(heroState.hp, heroState.maxHp)
 
     // Update skill slot renderers if config changed
     this.updateSlotRenderers(heroState)
 
-    for (const renderer of this.slotRenderers) {
-      renderer.update(0, this.scale)
+    const slotKeys: SkillSlot[] = ['Q', 'E', 'R']
+    const cooldowns = [heroState.cooldownQ, heroState.cooldownE, heroState.cooldownR]
+    for (let i = 0; i < this.slotRenderers.length; i++) {
+      const isTargeting = targetingSlot === slotKeys[i]
+      this.slotRenderers[i]!.update(cooldowns[i] ?? 0, this.scale, isTargeting)
     }
 
     // Update talent badge

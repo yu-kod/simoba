@@ -25,6 +25,16 @@ export class HeroSchema extends CombatEntitySchema {
   @type('string') skillSlotQ: string = ''
   @type('string') skillSlotE: string = ''
   @type('string') skillSlotR: string = ''
+  @type('float32') cooldownQ: number = 0
+  @type('float32') cooldownE: number = 0
+  @type('float32') cooldownR: number = 0
+  @type('float32') dashTimer: number = 0
+  // Server-only dash state (not synced to clients — only dashTimer is needed client-side)
+  dashDirX: number = 0
+  dashDirY: number = 0
+  dashSpeed: number = 0
+  /** Contact damage dealt during this dash (set by effect handler, 0 = no damage) */
+  dashDamage: number = 0
   @type('boolean') isBot: boolean = false
   // Server-only: not synced to clients (no @type decorator)
   lastAttackerSessionId: string = ''

@@ -1,4 +1,4 @@
-import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent } from '@shared/messages'
+import type { InputMessage, AttackEvent, DamageEvent as ServerDamageEvent, DeathEvent, SkillEvent } from '@shared/messages'
 
 /** Server-synced hero state */
 export interface ServerHeroState {
@@ -24,6 +24,10 @@ export interface ServerHeroState {
   readonly skillSlotQ: string
   readonly skillSlotE: string
   readonly skillSlotR: string
+  readonly cooldownQ: number
+  readonly cooldownE: number
+  readonly cooldownR: number
+  readonly dashTimer: number
 }
 
 /** Server-synced projectile for rendering */
@@ -86,6 +90,9 @@ export interface GameMode {
   /** Send skill slot unequip */
   sendUnequipSkillSlot(slot: string): void
 
+  /** Send skill activation */
+  sendUseSkill(slot: string, target: { x: number; y: number }): void
+
   /** Register callback for server hero state sync */
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void
 
@@ -112,6 +119,9 @@ export interface GameMode {
 
   /** Register callback for server death/respawn event (server-authoritative) */
   onDeathEvent(callback: (event: DeathEvent) => void): void
+
+  /** Register callback for skill activation event */
+  onSkillEvent(callback: (event: SkillEvent) => void): void
 
   /** Register callback for match end (matchPhase becomes 'finished') */
   onMatchEnd(callback: (winnerTeam: string, matchEndReason: string) => void): void

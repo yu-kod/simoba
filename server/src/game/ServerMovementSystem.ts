@@ -5,7 +5,7 @@ import type { InputMessage } from '@shared/messages'
 /**
  * Server-side movement system.
  * Applies moveDir input to hero position with map boundary clamping.
- * Movement is suppressed during the brief attack pause after firing a ranged attack.
+ * Movement is suppressed during dash (dashTimer > 0) or ranged attack pause.
  */
 export function processMovement(
   hero: HeroSchema,
@@ -13,6 +13,13 @@ export function processMovement(
   deltaTime: number
 ): void {
   if (hero.dead) return
+
+  // Dash movement takes priority over all other movement
+  if (hero.dashTimer > 0) {
+    processDashMovement(hero, deltaTime)
+    return
+  }
+
   if (!input) return
 
   // Always apply facing from input (attack facing must sync even when stationary)
@@ -37,6 +44,24 @@ export function processMovement(
 
   hero.x = clamp(hero.x + nx * hero.speed * deltaTime, 0, WORLD_WIDTH)
   hero.y = clamp(hero.y + ny * hero.speed * deltaTime, 0, WORLD_HEIGHT)
+}
+
+/**
+ * Process dash movement: move hero along dash direction, decrement timer, clamp to world.
+ */
+function processDashMovement(hero: HeroSchema, deltaTime: number): void {
+  const dt = Math.min(deltaTime, hero.dashTimer)
+  hero.x = clamp(hero.x + hero.dashDirX * hero.dashSpeed * dt, 0, WORLD_WIDTH)
+  hero.y = clamp(hero.y + hero.dashDirY * hero.dashSpeed * dt, 0, WORLD_HEIGHT)
+  hero.dashTimer = Math.max(0, hero.dashTimer - deltaTime)
+
+  // Clean up dash state when dash ends
+  if (hero.dashTimer <= 0) {
+    hero.dashDirX = 0
+    hero.dashDirY = 0
+    hero.dashSpeed = 0
+    hero.dashDamage = 0
+  }
 }
 
 function clamp(value: number, min: number, max: number): number {

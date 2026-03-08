@@ -7,12 +7,14 @@ const COLOR_ACTIVE_BG = 0x2c3e50
 const COLOR_PASSIVE_BG = 0x34495e
 const COLOR_EMPTY_BG = 0x1a1a2e
 const COLOR_BORDER = 0x7f8c8d
+const COLOR_BORDER_TARGETING = 0x3498db
 const COLOR_COOLDOWN_OVERLAY = 0x000000
 const COLOR_ICON_ACTIVE = 0xe67e22
 const COLOR_ICON_PASSIVE = 0x9b59b6
 
 const COOLDOWN_OVERLAY_ALPHA = 0.6
 const BORDER_WIDTH = 1
+const BORDER_WIDTH_TARGETING = 2
 const ICON_RADIUS_RATIO = 0.25
 const PASSIVE_ICON_RADIUS_RATIO = 0.21
 
@@ -84,8 +86,8 @@ export class SkillSlotRenderer {
     return this.container
   }
 
-  update(remainingCd: number, _scale: UiScale): void {
-    this.drawSlot(remainingCd)
+  update(remainingCd: number, _scale: UiScale, targeting: boolean = false): void {
+    this.drawSlot(remainingCd, targeting)
 
     if (this.cooldownText && this.config.type === 'active') {
       if (remainingCd > 0) {
@@ -101,7 +103,7 @@ export class SkillSlotRenderer {
     this.container.destroy()
   }
 
-  private drawSlot(remainingCd: number): void {
+  private drawSlot(remainingCd: number, targeting: boolean = false): void {
     this.graphics.clear()
 
     const s = this.slotSize
@@ -121,7 +123,12 @@ export class SkillSlotRenderer {
       this.graphics.fillRect(0, 0, s, s)
     }
 
-    this.graphics.lineStyle(BORDER_WIDTH, COLOR_BORDER, 0.8)
+    // Targeting highlight: bright border when this slot is awaiting target selection
+    if (targeting) {
+      this.graphics.lineStyle(BORDER_WIDTH_TARGETING, COLOR_BORDER_TARGETING, 1)
+    } else {
+      this.graphics.lineStyle(BORDER_WIDTH, COLOR_BORDER, 0.8)
+    }
     this.graphics.strokeRect(0, 0, s, s)
   }
 

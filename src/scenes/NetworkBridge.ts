@@ -98,6 +98,10 @@ export class NetworkBridge {
     this.gameMode.sendUnequipSkillSlot(slot)
   }
 
+  sendUseSkill(slot: string, target: { x: number; y: number }): void {
+    this.gameMode.sendUseSkill(slot, target)
+  }
+
   dispose(): void {
     this.gameMode.dispose()
   }
