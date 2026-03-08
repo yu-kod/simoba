@@ -41,6 +41,17 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       damage: 80,
     },
   },
+  'bolt-dash': {
+    id: 'bolt-dash',
+    targeting: 'direction',
+    cooldown: 6,
+    effect: {
+      effectType: 'dash',
+      distance: 180,
+      duration: 0.05,
+      damage: 0,
+    },
+  },
 }
 
 export function getSkillDefinition(skillId: string): SkillDefinition | undefined {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
+import { getSkillDefinition } from '@shared/skills/skillDefinitions'
 
 // Register handlers once before tests run
 beforeEach(() => {
@@ -25,6 +26,30 @@ function createHero(): HeroSchema {
   hero.cooldownR = 0
   return hero
 }
+
+describe('getSkillDefinition', () => {
+  it('should return bolt-dash definition with correct params', () => {
+    const def = getSkillDefinition('bolt-dash')
+    expect(def).toBeDefined()
+    expect(def!.id).toBe('bolt-dash')
+    expect(def!.targeting).toBe('direction')
+    expect(def!.cooldown).toBe(6)
+    expect(def!.effect.effectType).toBe('dash')
+    expect(def!.effect.distance).toBe(180)
+    expect(def!.effect.duration).toBe(0.05)
+    expect(def!.effect.damage).toBe(0)
+  })
+
+  it('should return blade-charge definition', () => {
+    const def = getSkillDefinition('blade-charge')
+    expect(def).toBeDefined()
+    expect(def!.effect.damage).toBe(80)
+  })
+
+  it('should return undefined for unknown skill', () => {
+    expect(getSkillDefinition('nonexistent')).toBeUndefined()
+  })
+})
 
 describe('executeSkill', () => {
   it('should execute blade-charge and return SkillEvent', () => {
@@ -87,6 +112,48 @@ describe('executeSkill', () => {
     hero.dashTimer = 0.2
     const event = executeSkill(hero, 'player-1', 'Q', { x: 400, y: 200 })
     expect(event).toBeNull()
+  })
+})
+
+describe('executeSkill — bolt-dash', () => {
+  function createBoltHero(): HeroSchema {
+    const hero = new HeroSchema()
+    hero.x = 100
+    hero.y = 200
+    hero.hp = 500
+    hero.maxHp = 500
+    hero.dead = false
+    hero.heroType = 'BOLT'
+    hero.skillSlotQ = 'bolt-dash'
+    hero.skillSlotE = ''
+    hero.skillSlotR = ''
+    hero.cooldownQ = 0
+    hero.cooldownE = 0
+    hero.cooldownR = 0
+    return hero
+  }
+
+  it('should return valid SkillEvent for bolt-dash', () => {
+    const hero = createBoltHero()
+    const event = executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('bolt-dash')
+  })
+
+  it('should set dash state with zero damage', () => {
+    const hero = createBoltHero()
+    executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
+    expect(hero.dashTimer).toBeCloseTo(0.05)
+    expect(hero.dashDirX).toBeCloseTo(1)
+    expect(hero.dashDirY).toBeCloseTo(0)
+    expect(hero.dashSpeed).toBeCloseTo(180 / 0.05)
+    expect(hero.dashDamage).toBe(0)
+  })
+
+  it('should set cooldown to 6 seconds', () => {
+    const hero = createBoltHero()
+    executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
+    expect(hero.cooldownQ).toBe(6)
   })
 })
 
