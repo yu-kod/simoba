@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+Playwright による E2E テストの設定、ディレクトリ構成、npm スクリプトの仕様
+
 ## Requirements
 
 ### Requirement: Playwright configuration

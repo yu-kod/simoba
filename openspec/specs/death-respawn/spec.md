@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+ヒーローの死亡判定（HP 0以下）、リスポーンタイマー、復活処理の仕様
+
+## Requirements
 
 ### Requirement: Death on zero HP
 

@@ -1,4 +1,9 @@
-## MODIFIED Requirements
+# Specification
+
+## Purpose
+タレントノード構造（id/name/cost/prerequisites/effects）、タレントツリー定義、取得ロジックの仕様
+
+## Requirements
 
 ### Requirement: タレントノード構造
 各タレントノードは以下のフィールドを持たなければならない（SHALL）: `id`（一意な文字列）、`name`（表示名）、`description`（効果説明）、`cost`（必要ポイント、1〜3 の整数）、`prerequisites`（前提タレントIDの配列、空配列 = ルートノード）、`effects`（`TalentEffect` の配列）。`id` はツリー全体で一意でなければならない（SHALL）。`cost` は 1、2、または 3 のいずれかでなければならない（SHALL）。

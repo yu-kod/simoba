@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+EntityManager による全エンティティの単一コレクション管理と統一的なアクセスAPIの仕様
+
 ## Requirements
 
 ### Requirement: 単一エンティティコレクション

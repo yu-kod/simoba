@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+ESLint（flat config）および Prettier によるコード品質チェックとフォーマットの設定仕様
+
+## Requirements
 
 ### Requirement: ESLint 設定ファイル
 

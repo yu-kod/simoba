@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+Vitest によるユニットテストの設定、ディレクトリ構成、カバレッジレポートの仕様
+
 ## Requirements
 
 ### Requirement: Vitest configuration

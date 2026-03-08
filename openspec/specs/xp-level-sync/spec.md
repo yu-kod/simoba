@@ -1,4 +1,9 @@
-## MODIFIED Requirements
+# Specification
+
+## Purpose
+HeroSchema の level/talentPoints フィールド同期と XP/レベルアップ処理の仕様
+
+## Requirements
 
 ### Requirement: HeroSchema の level・talentPoints フィールド
 `HeroSchema` に `level: uint8`（初期値 0）と `talentPoints: uint8`（初期値 0）を追加しなければならない（SHALL）。Colyseus の state patch でクライアントに自動同期される。

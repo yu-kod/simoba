@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+エンティティ頭上の HP バー描画（色分け、サイズ、表示条件）の仕様
+
+## Requirements
 
 ### Requirement: HP バーの基本描画
 HP を持つエンティティの頭上に HP バーを描画しなければならない（SHALL）。HP バーはエンティティの中心上部（`-radius - offset` の Y 位置）に配置し、幅はエンティティの `radius * 2` を基準とする。高さは固定値（4-5px）とする。

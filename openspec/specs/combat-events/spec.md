@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+サーバーからクライアントへの攻撃イベント（AttackEvent）ブロードキャストと戦闘演出の仕様
+
+## Requirements
 
 ### Requirement: Server broadcasts AttackEvent on hero attack
 サーバーはヒーローが攻撃を発動したとき、AttackEvent を全クライアントに broadcast する。AttackEvent には攻撃者 ID、対象 ID、攻撃種別（melee/ranged）、攻撃者の位置・facing を含む。

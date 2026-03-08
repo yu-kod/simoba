@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+GitHub Actions による CI テストワークフロー（ユニットテスト・E2Eテストの自動実行）の設定仕様
+
 ## Requirements
 
 ### Requirement: CI test workflow

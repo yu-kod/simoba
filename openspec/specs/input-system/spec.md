@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+WASD 8方向移動入力、右クリック移動指示、マウス追従facingなどの入力システム仕様
+
+## Requirements
 
 ### Requirement: WASD 8方向移動入力
 入力システムは WASD キーの押下状態から正規化済み移動方向ベクトルを算出し `InputState.movement` として提供しなければならない（SHALL）。

@@ -1,3 +1,10 @@
+# Specification
+
+## Purpose
+Solo モードのルーム設定（maxClients=1）、Bot 配置、即時マッチ開始の仕様
+
+## Requirements
+
 ### Requirement: Solo モードのルーム設定
 GameRoom は `onCreate` の options に `mode: 'solo'` が指定された場合、`maxClients` を 1 に設定しなければならない（SHALL）。Solo モードでは、プレイヤーが `onJoin` した時点で即座に `matchPhase` を `'playing'` に遷移し、タワーを配置しなければならない（SHALL）。
 

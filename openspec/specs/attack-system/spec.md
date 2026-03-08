@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+ヒーローの右クリックターゲット指定、攻撃状態マシン、攻撃クールダウンなどの攻撃システム全体の仕様
+
 ## Requirements
 
 ### Requirement: 右クリックによるターゲット指定

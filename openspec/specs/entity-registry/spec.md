@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+エンティティ型階層（EntityState/CombatEntityState/AttackerEntityState）とentityTypeによる型判別の仕様
+
 ## Requirements
 
 ### Requirement: エンティティ型階層

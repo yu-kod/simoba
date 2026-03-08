@@ -1,3 +1,8 @@
+# Specification
+
+## Purpose
+デバッグ用の数字キー（1/2/3）によるヒーロータイプ即時切り替え機能の仕様
+
 ## Requirements
 
 ### Requirement: 数字キーによるヒーロータイプ切り替え

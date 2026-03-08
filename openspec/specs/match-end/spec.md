@@ -1,4 +1,9 @@
-## ADDED Requirements
+# Specification
+
+## Purpose
+試合フェーズ管理（waiting/playing/finished）、タワー破壊による勝敗判定の仕様
+
+## Requirements
 
 ### Requirement: 試合フェーズ管理
 `GameRoomState` は `matchPhase` フィールド（`'waiting' | 'playing' | 'finished'`）を持たなければならない（SHALL）。初期値は `'waiting'` でなければならない（SHALL）。`winnerTeam` フィールド（`'' | 'blue' | 'red'`）を持たなければならない（SHALL）。初期値は `''` でなければならない（SHALL）。両フィールドは Colyseus `@type` で全クライアントに同期されなければならない（SHALL）。
