@@ -31,6 +31,7 @@ import { registerTestApi } from '@/test/e2eTestApi'
 import { GameHud } from '@/scenes/ui/GameHud'
 import { TalentTreeOverlay } from '@/scenes/ui/TalentTreeOverlay'
 import { DESIGN_WIDTH } from '@/scenes/ui/uiConstants'
+import { getMatchEndDisplay } from '@/scenes/matchEndDisplay'
 import { createClientLogger } from '@shared/logging'
 
 const logger = createClientLogger('scene')
@@ -78,6 +79,14 @@ export class GameScene extends Phaser.Scene {
     this.localTeam = data.localTeam ?? 'blue'
     this.localSpawnPosition = data.localPosition ?? { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
     this.localHeroType = data.heroType ?? 'BLADE'
+
+    // Reset state from previous game (Phaser reuses scene instances — property initializers only run in constructor)
+    this.matchEnded = false
+    this.entityRenderers = new Map()
+    this.interpolationBuffers = new Map()
+    this.projectileInterpolationBuffers = new Map()
+    this.serverProjectiles = []
+    this.retiredProjectiles = new Map()
   }
 
   create(): void {
@@ -265,8 +274,8 @@ export class GameScene extends Phaser.Scene {
     this.networkBridge.setupCallbacks()
 
     // Match end callback
-    this.gameMode.onMatchEnd((winnerTeam) => {
-      this.showMatchEndOverlay(winnerTeam)
+    this.gameMode.onMatchEnd((winnerTeam, matchEndReason) => {
+      this.showMatchEndOverlay(winnerTeam, matchEndReason)
     })
 
     this.gameMode.onSceneCreate()
@@ -274,6 +283,9 @@ export class GameScene extends Phaser.Scene {
 
   shutdown(): void {
     logger.debug('Scene shutdown', { sceneKey: this.scene.key })
+    for (const renderer of this.entityRenderers.values()) {
+      renderer.destroy()
+    }
     this.gameHud.destroy()
     this.talentTreeOverlay.destroy()
   }
@@ -462,13 +474,12 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private showMatchEndOverlay(winnerTeam: string): void {
+  private showMatchEndOverlay(winnerTeam: string, matchEndReason: string): void {
     if (this.matchEnded) return
     this.matchEnded = true
 
-    const isVictory = winnerTeam === this.localTeam
-    const resultText = isVictory ? 'VICTORY' : 'DEFEAT'
-    const resultColor = isVictory ? '#FFD700' : '#FF4444'
+    const isWinner = winnerTeam === this.localTeam
+    const { resultText, resultColor, subText } = getMatchEndDisplay(isWinner, matchEndReason)
 
     const overlay = this.add.graphics()
     overlay.setScrollFactor(0)
@@ -476,7 +487,8 @@ export class GameScene extends Phaser.Scene {
     overlay.fillStyle(0x000000, 0.6)
     overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
-    const text = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, resultText, {
+    const mainTextY = subText ? GAME_HEIGHT / 2 - 60 : GAME_HEIGHT / 2 - 40
+    const text = createText(this, GAME_WIDTH / 2, mainTextY, resultText, {
       fontSize: '72px',
       color: resultColor,
       stroke: '#000000',
@@ -488,7 +500,21 @@ export class GameScene extends Phaser.Scene {
     text.setScrollFactor(0)
     text.setDepth(2001)
 
-    const buttonText = createText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 60, 'Back to Lobby', {
+    if (subText) {
+      const sub = createText(this, GAME_WIDTH / 2, mainTextY + 70, subText, {
+        fontSize: '24px',
+        color: '#CCCCCC',
+        stroke: '#000000',
+        strokeThickness: 2,
+        align: 'center',
+      })
+      sub.setOrigin(0.5)
+      sub.setScrollFactor(0)
+      sub.setDepth(2001)
+    }
+
+    const buttonY = subText ? GAME_HEIGHT / 2 + 80 : GAME_HEIGHT / 2 + 60
+    const buttonText = createText(this, GAME_WIDTH / 2, buttonY, 'Back to Lobby', {
       fontSize: '32px',
       color: '#FFFFFF',
       stroke: '#000000',

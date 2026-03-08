@@ -14,7 +14,7 @@ import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
 import { isHeroInBase, processBaseRegen } from '../game/ServerBaseRegenSystem.js'
-import { checkTowerDestroyed, endMatch } from '../game/ServerMatchSystem.js'
+import { checkTowerDestroyed, endMatch, endMatchByDisconnect } from '../game/ServerMatchSystem.js'
 import { MinionSchema } from '../schema/MinionSchema.js'
 import {
   spawnMinionWave,
@@ -176,9 +176,11 @@ export class GameRoom extends Room<GameRoomState> {
       const enemyTeam = playerTeam === 'blue' ? 'red' : 'blue'
       this.addBotHero(enemyTeam, 0)
       this.state.matchPhase = 'playing'
+      this.lock()
       this.setupTowers()
     } else if (this.state.heroes.size === this.maxClients) {
       this.state.matchPhase = 'playing'
+      this.lock()
       this.setupTowers()
     }
   }
@@ -252,6 +254,13 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   onLeave(client: Client): void {
+    const hero = this.state.heroes.get(client.sessionId)
+
+    // Trigger disconnect match end if playing and not solo mode
+    if (hero && this.state.matchPhase === 'playing' && !this.isSoloMode) {
+      endMatchByDisconnect(this.state, hero.team)
+    }
+
     this.state.heroes.delete(client.sessionId)
     this.playerInputs.delete(client.sessionId)
     logger.info('Player left', {

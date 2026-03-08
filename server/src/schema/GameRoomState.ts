@@ -27,6 +27,9 @@ export class GameRoomState extends Schema {
   @type('string')
   winnerTeam: string = ''
 
+  @type('string')
+  matchEndReason: string = ''
+
   @type('float32')
   matchTime = 0
 }
