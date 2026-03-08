@@ -114,7 +114,7 @@ export interface GameMode {
   onDeathEvent(callback: (event: DeathEvent) => void): void
 
   /** Register callback for match end (matchPhase becomes 'finished') */
-  onMatchEnd(callback: (winnerTeam: string) => void): void
+  onMatchEnd(callback: (winnerTeam: string, matchEndReason: string) => void): void
 
   /** Local player's session ID */
   readonly localSessionId: string

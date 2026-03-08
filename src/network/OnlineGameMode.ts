@@ -52,7 +52,7 @@ export class OnlineGameMode implements GameMode {
   private deathEventCallbacks: ((event: DeathEvent) => void)[] = []
 
   // Match lifecycle callbacks
-  private matchEndCallbacks: ((winnerTeam: string) => void)[] = []
+  private matchEndCallbacks: ((winnerTeam: string, matchEndReason: string) => void)[] = []
 
   // Batch per-property listen callbacks into one notification per entity per patch
   private pendingHeroUpdates = new Map<string, { hero: SchemaInstance }>()
@@ -108,7 +108,8 @@ export class OnlineGameMode implements GameMode {
     $(this.room.state).listen('matchPhase', (value: unknown) => {
       if (value === 'finished') {
         const winnerTeam = (this.room?.state as SchemaInstance).winnerTeam as string
-        for (const cb of this.matchEndCallbacks) cb(winnerTeam)
+        const matchEndReason = (this.room?.state as SchemaInstance).matchEndReason as string
+        for (const cb of this.matchEndCallbacks) cb(winnerTeam, matchEndReason)
       }
     })
 
@@ -361,7 +362,7 @@ export class OnlineGameMode implements GameMode {
     this.deathEventCallbacks = [...this.deathEventCallbacks, callback]
   }
 
-  onMatchEnd(callback: (winnerTeam: string) => void): void {
+  onMatchEnd(callback: (winnerTeam: string, matchEndReason: string) => void): void {
     this.matchEndCallbacks = [...this.matchEndCallbacks, callback]
   }
 

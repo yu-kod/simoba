@@ -26,4 +26,17 @@ export function endMatch(state: GameRoomState, winnerTeam: string): void {
   if (state.matchPhase === 'finished') return
   state.matchPhase = 'finished'
   state.winnerTeam = winnerTeam
+  state.matchEndReason = 'tower_destroyed'
+}
+
+/**
+ * End the match due to a player disconnect.
+ * The disconnected player's opposing team wins.
+ * Idempotent — subsequent calls are no-ops.
+ */
+export function endMatchByDisconnect(state: GameRoomState, disconnectedTeam: string): void {
+  if (state.matchPhase === 'finished') return
+  state.matchPhase = 'finished'
+  state.winnerTeam = disconnectedTeam === 'blue' ? 'red' : 'blue'
+  state.matchEndReason = 'player_disconnected'
 }

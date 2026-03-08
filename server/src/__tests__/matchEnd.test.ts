@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { GameRoomState } from '../schema/GameRoomState.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { HeroSchema } from '../schema/HeroSchema.js'
-import { checkTowerDestroyed, endMatch } from '../game/ServerMatchSystem.js'
+import { checkTowerDestroyed, endMatch, endMatchByDisconnect } from '../game/ServerMatchSystem.js'
 import { MAX_PLAYERS, BLUE_SPAWN, RED_SPAWN } from '../rooms/GameRoom.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
@@ -43,10 +43,11 @@ function createPlayingState(): GameRoomState {
 }
 
 describe('matchPhase state management', () => {
-  it('should default to waiting phase with empty winnerTeam', () => {
+  it('should default to waiting phase with empty winnerTeam and matchEndReason', () => {
     const state = new GameRoomState()
     expect(state.matchPhase).toBe('waiting')
     expect(state.winnerTeam).toBe('')
+    expect(state.matchEndReason).toBe('')
   })
 
   it('should transition to playing when match starts', () => {
@@ -57,11 +58,12 @@ describe('matchPhase state management', () => {
 })
 
 describe('endMatch', () => {
-  it('should set matchPhase to finished and winnerTeam', () => {
+  it('should set matchPhase to finished and winnerTeam with tower_destroyed reason', () => {
     const state = createPlayingState()
     endMatch(state, 'blue')
     expect(state.matchPhase).toBe('finished')
     expect(state.winnerTeam).toBe('blue')
+    expect(state.matchEndReason).toBe('tower_destroyed')
   })
 
   it('should be idempotent — second call does not change winnerTeam', () => {
@@ -70,6 +72,41 @@ describe('endMatch', () => {
     endMatch(state, 'red')
     expect(state.matchPhase).toBe('finished')
     expect(state.winnerTeam).toBe('blue')
+    expect(state.matchEndReason).toBe('tower_destroyed')
+  })
+})
+
+describe('endMatchByDisconnect', () => {
+  it('should set winner to opposing team with player_disconnected reason', () => {
+    const state = createPlayingState()
+    endMatchByDisconnect(state, 'blue')
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('red')
+    expect(state.matchEndReason).toBe('player_disconnected')
+  })
+
+  it('should set winner to blue when red disconnects', () => {
+    const state = createPlayingState()
+    endMatchByDisconnect(state, 'red')
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('blue')
+    expect(state.matchEndReason).toBe('player_disconnected')
+  })
+
+  it('should be idempotent — second call is no-op', () => {
+    const state = createPlayingState()
+    endMatchByDisconnect(state, 'blue')
+    endMatchByDisconnect(state, 'red')
+    expect(state.winnerTeam).toBe('red')
+    expect(state.matchEndReason).toBe('player_disconnected')
+  })
+
+  it('should not override tower_destroyed ending', () => {
+    const state = createPlayingState()
+    endMatch(state, 'blue')
+    endMatchByDisconnect(state, 'blue')
+    expect(state.winnerTeam).toBe('blue')
+    expect(state.matchEndReason).toBe('tower_destroyed')
   })
 })
 
@@ -81,6 +118,7 @@ describe('checkTowerDestroyed', () => {
     checkTowerDestroyed(state.towers, (winner) => endMatch(state, winner))
     expect(state.matchPhase).toBe('finished')
     expect(state.winnerTeam).toBe('red')
+    expect(state.matchEndReason).toBe('tower_destroyed')
   })
 
   it('should end match with blue as winner when red tower is destroyed', () => {
@@ -90,6 +128,7 @@ describe('checkTowerDestroyed', () => {
     checkTowerDestroyed(state.towers, (winner) => endMatch(state, winner))
     expect(state.matchPhase).toBe('finished')
     expect(state.winnerTeam).toBe('blue')
+    expect(state.matchEndReason).toBe('tower_destroyed')
   })
 
   it('should keep playing when both towers are alive', () => {
@@ -161,5 +200,53 @@ describe('match start via onJoin pattern', () => {
     const room = createMockRoom()
     room.onJoin({ sessionId: 'session-1' })
     expect(room.state.matchPhase).toBe('waiting')
+  })
+})
+
+describe('disconnect match end (onLeave pattern)', () => {
+  function createHeroWithTeam(sessionId: string, team: string): HeroSchema {
+    const hero = new HeroSchema()
+    hero.id = sessionId
+    hero.team = team
+    hero.hp = 650
+    hero.maxHp = 650
+    return hero
+  }
+
+  it('should end match when player disconnects during playing phase', () => {
+    const state = createPlayingState()
+    state.heroes.set('player-1', createHeroWithTeam('player-1', 'blue'))
+    state.heroes.set('player-2', createHeroWithTeam('player-2', 'red'))
+
+    // Simulate onLeave: player-1 (blue) disconnects
+    const hero = state.heroes.get('player-1')!
+    endMatchByDisconnect(state, hero.team)
+
+    expect(state.matchPhase).toBe('finished')
+    expect(state.winnerTeam).toBe('red')
+    expect(state.matchEndReason).toBe('player_disconnected')
+  })
+
+  it('should not end match when player leaves during waiting phase', () => {
+    const state = new GameRoomState()
+    state.heroes.set('player-1', createHeroWithTeam('player-1', 'blue'))
+
+    // During waiting, onLeave just removes the hero — no endMatchByDisconnect call
+    // (GameRoom checks matchPhase === 'playing' before calling)
+    expect(state.matchPhase).toBe('waiting')
+    state.heroes.delete('player-1')
+    expect(state.matchPhase).toBe('waiting')
+    expect(state.winnerTeam).toBe('')
+  })
+
+  it('should not override finished state when player leaves after match end', () => {
+    const state = createPlayingState()
+    endMatch(state, 'blue')
+
+    // Player leaves after match already finished
+    endMatchByDisconnect(state, 'red')
+
+    expect(state.winnerTeam).toBe('blue')
+    expect(state.matchEndReason).toBe('tower_destroyed')
   })
 })
