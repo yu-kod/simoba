@@ -7,14 +7,22 @@ export interface DashEffectParams {
   readonly damage: number         // contact damage during dash
 }
 
+export interface ProjectileEffectParams {
+  readonly effectType: 'projectile'
+  readonly damage: number           // hit damage per target
+  readonly speed: number            // px/sec
+  readonly range: number            // max travel distance (px)
+  readonly radius: number           // collision/render radius (px)
+  readonly pierceCount: number      // max enemies to pierce (0 = single hit)
+  readonly homing: boolean          // true = track target, false = straight line
+  readonly visualType: string       // key into PROJECTILE_VISUALS (e.g. 'circle', 'diamond')
+}
+
 // Future effect types:
-// export interface ProjectileEffectParams { effectType: 'projectile'; ... }
 // export interface AoeEffectParams { effectType: 'aoe'; ... }
 // export interface BuffEffectParams { effectType: 'buff'; ... }
 
-export type SkillEffectParams = DashEffectParams
-// Union expands as new effect types are added:
-// export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | AoeEffectParams | ...
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -50,6 +58,21 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       distance: 180,
       duration: 0.05,
       damage: 0,
+    },
+  },
+  'bolt-pierce-shot': {
+    id: 'bolt-pierce-shot',
+    targeting: 'direction',
+    cooldown: 5,
+    effect: {
+      effectType: 'projectile',
+      damage: 60,
+      speed: 800,
+      range: 600,
+      radius: 5,
+      pierceCount: 3,
+      homing: false,
+      visualType: 'diamond',
     },
   },
 }

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
+import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
@@ -49,6 +51,24 @@ describe('getSkillDefinition', () => {
 
   it('should return undefined for unknown skill', () => {
     expect(getSkillDefinition('nonexistent')).toBeUndefined()
+  })
+
+  it('should return bolt-pierce-shot definition with projectile params', () => {
+    const def = getSkillDefinition('bolt-pierce-shot')
+    expect(def).toBeDefined()
+    expect(def!.id).toBe('bolt-pierce-shot')
+    expect(def!.targeting).toBe('direction')
+    expect(def!.cooldown).toBe(5)
+    expect(def!.effect.effectType).toBe('projectile')
+    if (def!.effect.effectType === 'projectile') {
+      expect(def!.effect.damage).toBe(60)
+      expect(def!.effect.speed).toBe(800)
+      expect(def!.effect.range).toBe(600)
+      expect(def!.effect.radius).toBe(5)
+      expect(def!.effect.pierceCount).toBe(3)
+      expect(def!.effect.homing).toBe(false)
+      expect(def!.effect.visualType).toBe('diamond')
+    }
   })
 })
 
@@ -138,6 +158,56 @@ describe('executeSkill — bolt-dash', () => {
     const hero = createHero({ hp: 500, maxHp: 500, heroType: 'BOLT', skillSlotQ: 'bolt-dash' })
     executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 })
     expect(hero.cooldownQ).toBe(6)
+  })
+})
+
+describe('executeSkill — bolt-pierce-shot', () => {
+  it('should return valid SkillEvent and spawn projectile', () => {
+    const hero = createHero({ heroType: 'BOLT', skillSlotQ: 'bolt-pierce-shot' })
+    const projectiles = new MapSchema<ProjectileSchema>()
+    const event = executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 }, projectiles)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('bolt-pierce-shot')
+    expect(event!.direction.x).toBeCloseTo(1)
+    expect(event!.direction.y).toBeCloseTo(0)
+
+    // Projectile should be created in the map
+    expect(projectiles.size).toBe(1)
+    const proj = [...projectiles.values()][0]
+    expect(proj.mode).toBe('linear')
+    expect(proj.dirX).toBeCloseTo(1)
+    expect(proj.dirY).toBeCloseTo(0)
+    expect(proj.speed).toBe(800)
+    expect(proj.damage).toBe(60)
+    expect(proj.maxRange).toBe(600)
+    expect(proj.pierceRemaining).toBe(3)
+    expect(proj.team).toBe(hero.team)
+    expect(proj.ownerId).toBe('bolt-1')
+    expect(proj.radius).toBe(5)
+    expect(proj.visualType).toBe('diamond')
+  })
+
+  it('should set cooldown to 5 seconds', () => {
+    const hero = createHero({ heroType: 'BOLT', skillSlotQ: 'bolt-pierce-shot' })
+    const projectiles = new MapSchema<ProjectileSchema>()
+    executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 }, projectiles)
+    expect(hero.cooldownQ).toBe(5)
+  })
+
+  it('should reject when dead', () => {
+    const hero = createHero({ heroType: 'BOLT', skillSlotQ: 'bolt-pierce-shot', dead: true })
+    const projectiles = new MapSchema<ProjectileSchema>()
+    const event = executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 }, projectiles)
+    expect(event).toBeNull()
+    expect(projectiles.size).toBe(0)
+  })
+
+  it('should reject when cooldown is active', () => {
+    const hero = createHero({ heroType: 'BOLT', skillSlotQ: 'bolt-pierce-shot', cooldownQ: 3 })
+    const projectiles = new MapSchema<ProjectileSchema>()
+    const event = executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 }, projectiles)
+    expect(event).toBeNull()
+    expect(projectiles.size).toBe(0)
   })
 })
 

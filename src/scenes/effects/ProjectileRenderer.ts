@@ -2,6 +2,11 @@ import Phaser from 'phaser'
 import type { ProjectileState } from '@/domain/projectile/ProjectileState'
 import type { ServerProjectileState } from '@/network/GameMode'
 import type { Team } from '@/domain/types'
+import {
+  PROJECTILE_VISUALS,
+  type ProjectileVisualType,
+  type DiamondVisualDef,
+} from '@shared/projectile/projectileVisuals'
 
 const PROJECTILE_COLORS: Record<Team, number> = {
   blue: 0x3498db,
@@ -12,8 +17,9 @@ const PROJECTILE_COLORS: Record<Team, number> = {
 const PROJECTILE_DEPTH = 8
 
 /**
- * Renders all active projectiles as filled circles each frame.
- * Uses a single shared Graphics object — clears and redraws every update.
+ * Renders all active projectiles each frame.
+ * Visual style is determined by `visualType` (from PROJECTILE_VISUALS table),
+ * keeping rendering logic separate from flight mode.
  */
 export class ProjectileRenderer {
   private readonly graphics: Phaser.GameObjects.Graphics
@@ -39,9 +45,43 @@ export class ProjectileRenderer {
 
     for (const p of projectiles) {
       const color = PROJECTILE_COLORS[p.team as Team]
-      this.graphics.fillStyle(color, 1)
-      this.graphics.fillCircle(p.x, p.y, p.radius)
+      const visual = PROJECTILE_VISUALS[p.visualType as ProjectileVisualType]
+
+      if (!visual || visual.type === 'circle') {
+        this.graphics.fillStyle(color, 1)
+        this.graphics.fillCircle(p.x, p.y, p.radius)
+      } else if (visual.type === 'diamond') {
+        this.drawDiamond(p.x, p.y, p.dirX, p.dirY, color, visual)
+      }
     }
+  }
+
+  private drawDiamond(
+    x: number, y: number,
+    dirX: number, dirY: number,
+    color: number,
+    def: DiamondVisualDef,
+  ): void {
+    const perpX = -dirY
+    const perpY = dirX
+
+    const fx = x + dirX * def.halfLength
+    const fy = y + dirY * def.halfLength
+    const bx = x - dirX * def.halfLength
+    const by = y - dirY * def.halfLength
+    const rx = x + perpX * def.halfWidth
+    const ry = y + perpY * def.halfWidth
+    const lx = x - perpX * def.halfWidth
+    const ly = y - perpY * def.halfWidth
+
+    this.graphics.fillStyle(color, 1)
+    this.graphics.beginPath()
+    this.graphics.moveTo(fx, fy)
+    this.graphics.lineTo(rx, ry)
+    this.graphics.lineTo(bx, by)
+    this.graphics.lineTo(lx, ly)
+    this.graphics.closePath()
+    this.graphics.fillPath()
   }
 
   destroy(): void {

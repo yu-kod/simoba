@@ -312,7 +312,10 @@ export class OnlineGameMode implements GameMode {
         x: proj.x as number,
         y: proj.y as number,
         team: proj.team as string,
-        radius: DEFAULT_PROJECTILE_RADIUS,
+        radius: (proj.radius as number) ?? DEFAULT_PROJECTILE_RADIUS,
+        visualType: (proj.visualType as string) ?? 'circle',
+        dirX: (proj.dirX as number) ?? 0,
+        dirY: (proj.dirY as number) ?? 0,
       })
     })
     for (const cb of this.serverProjectileUpdateCallbacks) cb(projectiles)

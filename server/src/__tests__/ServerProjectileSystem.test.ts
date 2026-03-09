@@ -4,7 +4,7 @@ import { HeroSchema } from '../schema/HeroSchema.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { MinionSchema } from '../schema/MinionSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
-import { processProjectiles } from '../game/ServerProjectileSystem.js'
+import { processProjectiles, resetProjectileTracking } from '../game/ServerProjectileSystem.js'
 
 function createProjectile(overrides: Partial<Record<keyof ProjectileSchema, unknown>> = {}): ProjectileSchema {
   const proj = new ProjectileSchema()
@@ -45,6 +45,7 @@ describe('ServerProjectileSystem', () => {
     heroes = new MapSchema<HeroSchema>()
     towers = new MapSchema<TowerSchema>()
     projectiles = new MapSchema<ProjectileSchema>()
+    resetProjectileTracking()
   })
 
   describe('processProjectiles — homing', () => {
@@ -268,6 +269,174 @@ describe('ServerProjectileSystem', () => {
 
       expect(minion.hp).toBe(50)
       expect(projectiles.size).toBe(0)
+    })
+  })
+
+  describe('processProjectiles — linear', () => {
+    function createLinearProjectile(overrides: Partial<Record<string, unknown>> = {}): ProjectileSchema {
+      const proj = new ProjectileSchema()
+      proj.id = 'linear-1'
+      proj.x = 100
+      proj.y = 200
+      proj.speed = 800
+      proj.damage = 60
+      proj.ownerId = 'shooter'
+      proj.team = 'blue'
+      proj.mode = 'linear'
+      proj.dirX = 1
+      proj.dirY = 0
+      proj.maxRange = 600
+      proj.pierceRemaining = 3
+      Object.assign(proj, overrides)
+      return proj
+    }
+
+    it('should move in a straight line based on dirX/dirY', () => {
+      const proj = createLinearProjectile()
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.016)
+
+      expect(proj.x).toBeCloseTo(100 + 800 * 0.016) // 112.8
+      expect(proj.y).toBeCloseTo(200)
+      expect(projectiles.size).toBe(1)
+    })
+
+    it('should remove when maxRange exceeded', () => {
+      const proj = createLinearProjectile({ speed: 800, maxRange: 100 })
+      projectiles.set(proj.id, proj)
+
+      // One big tick that exceeds maxRange
+      processProjectiles(projectiles, heroes, towers, 0.2) // 800*0.2 = 160 > 100
+
+      expect(projectiles.size).toBe(0)
+    })
+
+    it('should continue within range', () => {
+      const proj = createLinearProjectile({ maxRange: 600 })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.1) // 80px traveled
+
+      expect(projectiles.size).toBe(1)
+    })
+
+    it('should hit enemy in path', () => {
+      const enemy = createHero('enemy-a', { x: 120, y: 200, team: 'red', radius: 22, hp: 500 })
+      heroes.set('enemy-a', enemy)
+
+      const proj = createLinearProjectile({ x: 100, y: 200 })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.016)
+
+      expect(enemy.hp).toBe(440) // 500 - 60
+      expect(proj.pierceRemaining).toBe(2)
+      expect(projectiles.size).toBe(1) // still alive (pierce)
+    })
+
+    it('should pierce through multiple enemies', () => {
+      // Place enemies far apart so projectile reaches each on separate ticks
+      const enemy1 = createHero('e1', { x: 200, y: 200, team: 'red', radius: 22, hp: 500 })
+      const enemy2 = createHero('e2', { x: 350, y: 200, team: 'red', radius: 22, hp: 500 })
+      heroes.set('e1', enemy1)
+      heroes.set('e2', enemy2)
+
+      const proj = createLinearProjectile({ x: 100, y: 200, pierceRemaining: 3 })
+      projectiles.set(proj.id, proj)
+
+      // Tick 1: proj moves to 180 — within 27px of enemy1 at 200? dist=20 < 27, hit!
+      processProjectiles(projectiles, heroes, towers, 0.1)
+      expect(enemy1.hp).toBe(440)
+      expect(proj.pierceRemaining).toBe(2)
+
+      // Tick 2-3: proj moves further, reaches enemy2
+      processProjectiles(projectiles, heroes, towers, 0.1) // x=260
+      processProjectiles(projectiles, heroes, towers, 0.1) // x=340, dist to enemy2=10 < 27, hit!
+      expect(enemy2.hp).toBe(440)
+      expect(proj.pierceRemaining).toBe(1)
+      expect(projectiles.size).toBe(1) // still alive
+    })
+
+    it('should remove after exhausting pierce count', () => {
+      const enemy1 = createHero('e1', { x: 200, y: 200, team: 'red', radius: 22, hp: 500 })
+      const enemy2 = createHero('e2', { x: 350, y: 200, team: 'red', radius: 22, hp: 500 })
+      heroes.set('e1', enemy1)
+      heroes.set('e2', enemy2)
+
+      // pierceRemaining=1 means remove after 1st hit
+      const proj = createLinearProjectile({ x: 100, y: 200, pierceRemaining: 1 })
+      projectiles.set(proj.id, proj)
+
+      // Tick: proj moves to 180 — hits enemy1, pierceRemaining becomes 0, removed
+      processProjectiles(projectiles, heroes, towers, 0.1)
+
+      expect(enemy1.hp).toBe(440)
+      expect(enemy2.hp).toBe(500) // not hit — projectile removed after 1st
+      expect(projectiles.size).toBe(0)
+    })
+
+    it('should not hit same enemy twice', () => {
+      const enemy = createHero('e1', { x: 115, y: 200, team: 'red', radius: 22, hp: 500 })
+      heroes.set('e1', enemy)
+
+      const proj = createLinearProjectile({ x: 100, y: 200, pierceRemaining: 3 })
+      projectiles.set(proj.id, proj)
+
+      // First tick — hits enemy
+      processProjectiles(projectiles, heroes, towers, 0.005)
+      expect(enemy.hp).toBe(440)
+
+      // Second tick — still overlapping, but should NOT hit again
+      processProjectiles(projectiles, heroes, towers, 0.005)
+      expect(enemy.hp).toBe(440) // unchanged
+    })
+
+    it('should not hit allies', () => {
+      const ally = createHero('ally', { x: 120, y: 200, team: 'blue', radius: 22, hp: 500 })
+      heroes.set('ally', ally)
+
+      const proj = createLinearProjectile({ x: 100, y: 200, team: 'blue' })
+      projectiles.set(proj.id, proj)
+
+      processProjectiles(projectiles, heroes, towers, 0.016)
+
+      expect(ally.hp).toBe(500)
+    })
+
+    it('should return damage events for each hit', () => {
+      const enemy = createHero('e1', { x: 115, y: 200, team: 'red', radius: 22, hp: 500 })
+      heroes.set('e1', enemy)
+
+      const proj = createLinearProjectile({ x: 100, y: 200, ownerId: 'shooter' })
+      projectiles.set(proj.id, proj)
+
+      const events = processProjectiles(projectiles, heroes, towers, 0.016)
+
+      expect(events).toHaveLength(1)
+      expect(events[0]).toEqual({
+        kind: 'damage',
+        event: { targetId: 'e1', amount: 60, sourceId: 'shooter' },
+      })
+    })
+
+    it('should not break existing homing projectiles', () => {
+      // Homing projectile alongside linear
+      const target = createHero('enemy', { x: 300, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('enemy', target)
+
+      const homing = createProjectile({ id: 'homing-1', x: 295, y: 100, targetId: 'enemy', team: 'blue', damage: 50 })
+      const linear = createLinearProjectile({ id: 'linear-1', x: 100, y: 500 }) // far from any enemy
+      projectiles.set(homing.id, homing)
+      projectiles.set(linear.id, linear)
+
+      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+
+      // Homing should hit its target
+      expect(target.hp).toBe(600)
+      expect(events).toHaveLength(1)
+      // Linear should still be flying
+      expect(projectiles.has('linear-1')).toBe(true)
     })
   })
 })
