@@ -23,15 +23,14 @@ export const projectileEffectHandler: SkillEffectHandler<ProjectileEffectParams>
     proj.team = hero.team
 
     if (params.homing) {
-      proj.mode = 'homing'
-      // For homing skill projectiles, targetId would need to be set separately
-      // (not used by pierce-shot, but ready for future homing skill projectiles)
+      throw new Error('Homing skill projectiles are not yet implemented — targetId resolution is required')
     } else {
       proj.mode = 'linear'
       proj.dirX = direction.x
       proj.dirY = direction.y
     }
 
+    proj.radius = params.radius
     proj.maxRange = params.range
     proj.pierceRemaining = params.pierceCount
     proj.visualType = params.visualType

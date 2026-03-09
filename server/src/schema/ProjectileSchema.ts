@@ -1,4 +1,5 @@
 import { Schema, type } from '@colyseus/schema'
+import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 
 /**
  * Colyseus state schema for a projectile entity.
@@ -15,6 +16,8 @@ export class ProjectileSchema extends Schema {
   @type('string') team: string = 'blue'
   /** The entity this projectile homes toward. Damage only applies to this target. */
   @type('string') targetId: string = ''
+  /** Collision & rendering radius (px) */
+  @type('float32') radius: number = DEFAULT_PROJECTILE_RADIUS
 
   // ── Linear / pierce fields ──────────────────────────────
   /** Flight mode: 'homing' = track targetId, 'linear' = straight line */

@@ -5,7 +5,6 @@ import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
-import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
 
 interface TargetPosition {
   readonly x: number
@@ -105,7 +104,7 @@ function processHomingProjectile(
     proj.y = proj.y + ny * moveDistance
   }
 
-  const collisionDist = target.radius + DEFAULT_PROJECTILE_RADIUS
+  const collisionDist = target.radius + proj.radius
   if (distanceSq(proj.x, proj.y, target.x, target.y) <= collisionDist * collisionDist) {
     applyDamageToTarget(proj.targetId, proj.damage, heroes, towers, minions, proj.ownerId)
     events.push({ kind: 'damage', event: { targetId: proj.targetId, amount: proj.damage, sourceId: proj.ownerId } })
@@ -183,7 +182,7 @@ function processLinearProjectile(
   for (const enemy of enemies) {
     if (hitSet.has(enemy.id)) continue
 
-    const collisionDist = enemy.radius + DEFAULT_PROJECTILE_RADIUS
+    const collisionDist = enemy.radius + proj.radius
     if (distanceSq(proj.x, proj.y, enemy.x, enemy.y) <= collisionDist * collisionDist) {
       // Hit!
       hitSet.add(enemy.id)

@@ -183,6 +183,7 @@ describe('executeSkill — bolt-pierce-shot', () => {
     expect(proj.pierceRemaining).toBe(3)
     expect(proj.team).toBe(hero.team)
     expect(proj.ownerId).toBe('bolt-1')
+    expect(proj.radius).toBe(5)
     expect(proj.visualType).toBe('diamond')
   })
 
