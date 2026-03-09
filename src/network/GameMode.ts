@@ -37,6 +37,9 @@ export interface ServerProjectileState {
   readonly y: number
   readonly team: string
   readonly radius: number
+  readonly visualType: string  // key into PROJECTILE_VISUALS
+  readonly dirX: number        // direction for directional visuals
+  readonly dirY: number
 }
 
 /** Server-synced minion state */
