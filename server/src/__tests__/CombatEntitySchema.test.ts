@@ -34,4 +34,16 @@ describe('CombatEntitySchema.applyHeal', () => {
     e.applyHeal(100)
     expect(e.hp).toBe(500)
   })
+
+  it('should do nothing when amount is zero', () => {
+    const e = createEntity(200, 500)
+    e.applyHeal(0)
+    expect(e.hp).toBe(200)
+  })
+
+  it('should do nothing when amount is negative', () => {
+    const e = createEntity(200, 500)
+    e.applyHeal(-50)
+    expect(e.hp).toBe(200)
+  })
 })
