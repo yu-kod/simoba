@@ -211,6 +211,136 @@ describe('executeSkill — bolt-pierce-shot', () => {
   })
 })
 
+describe('executeSkill — aura-heal', () => {
+  function createAuraHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'AURA',
+      team: 'blue',
+      hp: 300,
+      maxHp: 500,
+      skillSlotQ: 'aura-heal',
+      ...overrides,
+    })
+  }
+
+  it('should return valid SkillEvent for aura-heal definition', () => {
+    const def = getSkillDefinition('aura-heal')
+    expect(def).toBeDefined()
+    expect(def!.targeting).toBe('ally')
+    expect(def!.cooldown).toBe(10)
+    expect(def!.effect.effectType).toBe('heal')
+    if (def!.effect.effectType === 'heal') {
+      expect(def!.effect.healAmount).toBe(120)
+      expect(def!.effect.range).toBe(400)
+    }
+  })
+
+  it('should heal the nearest ally within range', () => {
+    const caster = createAuraHero({ x: 100, y: 100, hp: 500, maxHp: 500 })
+    const ally = createAuraHero({ x: 300, y: 100, hp: 200, maxHp: 500 })
+    ally.team = 'blue'
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    // Click near ally position (within range 400)
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 300, y: 100 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('aura-heal')
+    expect(ally.hp).toBe(320) // 200 + 120
+  })
+
+  it('should fall back to self-heal when no ally in range', () => {
+    const caster = createAuraHero({ x: 100, y: 100 })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    // No ally in heroes map
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 800, y: 800 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(caster.hp).toBe(420) // 300 + 120
+  })
+
+  it('should heal ally near click even when ally is far from caster', () => {
+    const caster = createAuraHero({ x: 100, y: 100 })
+    const ally = createAuraHero({ x: 600, y: 100, hp: 200, maxHp: 500 })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    // Click at ally position — distance from click to ally is 0, within range
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 600, y: 100 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(ally.hp).toBe(320)
+  })
+
+  it('should fall back to self-heal when ally is far from click', () => {
+    const caster = createAuraHero({ x: 100, y: 100 })
+    const ally = createAuraHero({ x: 100, y: 200, hp: 200, maxHp: 500 })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    // Click at (900, 900), ally at (100, 200) — distance ~922px > range 400
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 900, y: 900 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(ally.hp).toBe(200) // NOT healed
+    expect(caster.hp).toBe(420) // self-heal fallback
+  })
+
+  it('should clamp heal to maxHp', () => {
+    const caster = createAuraHero({ x: 100, y: 100, hp: 450, maxHp: 500 })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, undefined, heroes)
+    expect(caster.hp).toBe(500) // clamped to maxHp
+  })
+
+  it('should not heal dead allies', () => {
+    const caster = createAuraHero({ x: 100, y: 100, hp: 500, maxHp: 500 })
+    const ally = createAuraHero({ x: 200, y: 100, hp: 0, maxHp: 500, dead: true })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    // Click near dead ally — dead allies are excluded from target resolution
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 200, y: 100 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(ally.hp).toBe(0) // not healed
+    expect(caster.hp).toBe(500) // self-heal fallback, but already full
+  })
+
+  it('should not target enemies as ally', () => {
+    const caster = createAuraHero({ x: 100, y: 100 })
+    const enemy = createAuraHero({ x: 200, y: 100, hp: 200, maxHp: 500 })
+    enemy.team = 'red'
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 200, y: 100 }, undefined, heroes)
+    expect(enemy.hp).toBe(200) // not healed
+    expect(caster.hp).toBe(420) // self-heal fallback
+  })
+
+  it('should set cooldown to 10 seconds after heal', () => {
+    const caster = createAuraHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, undefined, heroes)
+    expect(caster.cooldownQ).toBe(10)
+  })
+})
+
 describe('tickCooldowns', () => {
   it('should decrement cooldowns by dt', () => {
     const hero = createHero()

@@ -26,4 +26,11 @@ export abstract class CombatEntitySchema extends Schema {
       this.dead = true
     }
   }
+
+  /** Restore HP, clamped to maxHp. Does nothing if dead or amount <= 0. */
+  applyHeal(amount: number): void {
+    if (this.dead) return
+    if (amount <= 0) return
+    this.hp = Math.min(this.maxHp, this.hp + amount)
+  }
 }

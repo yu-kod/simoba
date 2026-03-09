@@ -177,7 +177,7 @@ export class GameRoom extends Room<GameRoomState> {
       if (!isValidUseSkillMessage(message)) return
       const hero = this.state.heroes.get(client.sessionId)
       if (!hero) return
-      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles)
+      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes)
       if (event) {
         this.broadcast('skill', event)
       }
