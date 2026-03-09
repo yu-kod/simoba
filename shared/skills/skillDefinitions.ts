@@ -18,11 +18,17 @@ export interface ProjectileEffectParams {
   readonly visualType: string       // key into PROJECTILE_VISUALS (e.g. 'circle', 'diamond')
 }
 
+export interface HealEffectParams {
+  readonly effectType: 'heal'
+  readonly healAmount: number    // HP restored
+  readonly range: number         // ally selection range (px)
+}
+
 // Future effect types:
 // export interface AoeEffectParams { effectType: 'aoe'; ... }
 // export interface BuffEffectParams { effectType: 'buff'; ... }
 
-export type SkillEffectParams = DashEffectParams | ProjectileEffectParams
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -73,6 +79,16 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       pierceCount: 3,
       homing: false,
       visualType: 'diamond',
+    },
+  },
+  'aura-heal': {
+    id: 'aura-heal',
+    targeting: 'ally',
+    cooldown: 10,
+    effect: {
+      effectType: 'heal',
+      healAmount: 120,
+      range: 400,
     },
   },
 }

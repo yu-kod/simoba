@@ -2,7 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { SkillEvent } from '@shared/messages'
-import { getSkillDefinition } from '@shared/skills/skillDefinitions'
+import { getSkillDefinition, type SkillDefinition } from '@shared/skills/skillDefinitions'
 import { getEffectHandler } from './skills/skillEffectRegistry.js'
 import { createServerLogger } from '@shared/logging'
 
@@ -45,6 +45,48 @@ function normalizeDirection(
 }
 
 /**
+ * Resolve the target hero for ally-targeting skills.
+ * Finds the nearest same-team alive hero within range of the click position.
+ * Falls back to the caster if no ally is in range.
+ */
+function resolveAllyTarget(
+  hero: HeroSchema,
+  casterId: string,
+  target: { x: number; y: number },
+  heroes: MapSchema<HeroSchema>,
+  range: number,
+): HeroSchema {
+  let bestHero: HeroSchema | null = null
+  let bestDistSq = Infinity
+
+  heroes.forEach((candidate, sid) => {
+    if (sid === casterId) return
+    if (candidate.team !== hero.team) return
+    if (candidate.dead) return
+
+    const dx = candidate.x - target.x
+    const dy = candidate.y - target.y
+    const distSq = dx * dx + dy * dy
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq
+      bestHero = candidate
+    }
+  })
+
+  if (bestHero && bestDistSq <= range * range) {
+    return bestHero
+  }
+  return hero
+}
+
+/** Extract range from skill definition for ally targeting. */
+function getAllyRange(def: SkillDefinition): number {
+  if (def.effect.effectType === 'heal') return def.effect.range
+  logger.warn('getAllyRange: no range for ally-targeting effect', { effectType: def.effect.effectType })
+  return 0
+}
+
+/**
  * Execute a skill from a hero's slot.
  * Returns a SkillEvent on success, or null if validation fails.
  */
@@ -54,6 +96,7 @@ export function executeSkill(
   slot: SkillSlot,
   target: { x: number; y: number },
   projectiles?: MapSchema<ProjectileSchema>,
+  heroes?: MapSchema<HeroSchema>,
 ): SkillEvent | null {
   // Validation: hero must be alive
   if (hero.dead) return null
@@ -75,6 +118,12 @@ export function executeSkill(
   // Calculate direction from hero to target
   const direction = normalizeDirection(hero.x, hero.y, target.x, target.y)
 
+  // Resolve ally target if targeting type is 'ally'
+  let targetHero: HeroSchema | undefined
+  if (def.targeting === 'ally' && heroes) {
+    targetHero = resolveAllyTarget(hero, sessionId, target, heroes, getAllyRange(def))
+  }
+
   // Dispatch to registered effect handler by effectType
   const handler = getEffectHandler(def.effect.effectType)
   if (!handler) {
@@ -89,6 +138,8 @@ export function executeSkill(
       direction,
       targetPosition: target,
       projectiles: projectiles ?? new MapSchema(),
+      heroes: heroes ?? new MapSchema(),
+      targetHero,
     },
     def.effect,
   )

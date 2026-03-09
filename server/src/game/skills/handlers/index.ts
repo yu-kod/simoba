@@ -1,6 +1,7 @@
 import { registerEffectHandler, clearEffectRegistry } from '../skillEffectRegistry.js'
 import { dashEffectHandler } from './dashEffectHandler.js'
 import { projectileEffectHandler } from './projectileEffectHandler.js'
+import { healEffectHandler } from './healEffectHandler.js'
 
 let registered = false
 
@@ -10,6 +11,7 @@ export function registerAllEffectHandlers(): void {
   registered = true
   registerEffectHandler(dashEffectHandler)
   registerEffectHandler(projectileEffectHandler)
+  registerEffectHandler(healEffectHandler)
 }
 
 /** Reset registration state and clear registry. For testing only. */
