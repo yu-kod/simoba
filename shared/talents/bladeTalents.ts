@@ -117,10 +117,10 @@ export const BLADE_TALENT_TREE: TalentTreeDefinition = {
     {
       id: 'blade-fortify',
       name: 'Fortify',
-      description: 'Max HP +120',
+      description: 'Unlock Fortify — reduce incoming damage',
       cost: 2,
       prerequisites: ['blade-vitality'],
-      effects: [{ type: 'stat_modifier', stat: 'maxHp', value: 120, mode: 'flat' }],
+      effects: [{ type: 'grant_skill', skillId: 'blade-fortify' }],
     },
     {
       id: 'blade-thorns',

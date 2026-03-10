@@ -599,6 +599,70 @@ describe('executeSkill — aura-weaken', () => {
   })
 })
 
+describe('executeSkill — blade-fortify', () => {
+  function createFortifyHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'BLADE',
+      team: 'blue',
+      hp: 650,
+      maxHp: 650,
+      skillSlotQ: 'blade-fortify',
+      ...overrides,
+    })
+  }
+
+  it('should apply damageReduction buff to self', () => {
+    const caster = createFortifyHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('blade-fortify')
+
+    const effect = caster.statusEffects.get('blade-fortify')
+    expect(effect).toBeDefined()
+    expect(effect!.buffType).toBe('damageReduction')
+    expect(effect!.value).toBe(0.3)
+    expect(effect!.remainingDuration).toBe(4)
+    expect(effect!.isDebuff).toBe(false)
+  })
+
+  it('should set cooldown to 14 seconds', () => {
+    const caster = createFortifyHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(caster.cooldownQ).toBe(14)
+  })
+
+  it('should refresh duration on recast', () => {
+    const caster = createFortifyHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    const effect = caster.statusEffects.get('blade-fortify')!
+    effect.remainingDuration = 1 // simulate time passing
+
+    caster.cooldownQ = 0 // reset CD for recast
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(caster.statusEffects.get('blade-fortify')!.remainingDuration).toBe(4)
+  })
+
+  it('should actually reduce damage taken while active', () => {
+    const caster = createFortifyHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    caster.applyDamage(100)
+    // 100 * (1 - 0.3) = 70 damage → 650 - 70 = 580
+    expect(caster.hp).toBe(580)
+  })
+})
+
 describe('tickCooldowns', () => {
   it('should decrement cooldowns by dt', () => {
     const hero = createHero()
