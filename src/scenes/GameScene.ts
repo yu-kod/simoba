@@ -14,6 +14,7 @@ import { renderMap } from '@/scenes/mapRenderer'
 import { HeroRenderer } from '@/scenes/HeroRenderer'
 import { MeleeSwingRenderer } from '@/scenes/effects/MeleeSwingRenderer'
 import { ProjectileRenderer } from '@/scenes/effects/ProjectileRenderer'
+import { ZoneRenderer } from '@/scenes/effects/ZoneRenderer'
 import { InputHandler } from '@/scenes/InputHandler'
 import { EntityManager } from '@/scenes/EntityManager'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
@@ -47,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   private entityRenderers = new Map<string, EntityRenderer>()
   private meleeSwing!: MeleeSwingRenderer
   private projectileRenderer!: ProjectileRenderer
+  private zoneRenderer!: ZoneRenderer
   private respawnText!: Phaser.GameObjects.Text
   private gameHud!: GameHud
   private talentTreeOverlay!: TalentTreeOverlay
@@ -132,6 +134,7 @@ export class GameScene extends Phaser.Scene {
 
     this.meleeSwing = new MeleeSwingRenderer(this)
     this.projectileRenderer = new ProjectileRenderer(this)
+    this.zoneRenderer = new ZoneRenderer(this, this.localTeam)
 
     const localRenderer = this.entityRenderers.get(this.entityManager.localHeroId)!
     this.cameras.main.startFollow(localRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)
@@ -270,6 +273,12 @@ export class GameScene extends Phaser.Scene {
       onDeathEvent: (event) => {
         this.handleDeathEvent(event)
       },
+      onServerZoneAdded: (state) => {
+        this.zoneRenderer.add(state)
+      },
+      onServerZoneRemoved: (zoneId) => {
+        this.zoneRenderer.remove(zoneId)
+      },
     })
     this.networkBridge.setupCallbacks()
 
@@ -286,6 +295,7 @@ export class GameScene extends Phaser.Scene {
     for (const renderer of this.entityRenderers.values()) {
       renderer.destroy()
     }
+    this.zoneRenderer.destroy()
     this.gameHud.destroy()
     this.talentTreeOverlay.destroy()
   }
@@ -378,6 +388,9 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.projectileRenderer.drawServer(interpolatedProjectiles)
+
+    // --- Zone rendering ---
+    this.zoneRenderer.draw()
   }
 
   /** Send input to server + apply local facing/target updates. */

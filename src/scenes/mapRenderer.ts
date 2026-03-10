@@ -4,6 +4,7 @@ import { WORLD_WIDTH, WORLD_HEIGHT } from '@/domain/constants'
 
 export function renderMap(scene: Phaser.Scene): void {
   const g = scene.add.graphics()
+  g.setDepth(-10)
 
   drawBackground(g)
   drawLane(g)
