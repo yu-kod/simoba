@@ -21,7 +21,6 @@ export interface ProjectileEffectParams {
 export interface HealEffectParams {
   readonly effectType: 'heal'
   readonly healAmount: number    // HP restored
-  readonly range: number         // ally selection range (px)
 }
 
 export interface BuffEffectParams {
@@ -97,7 +96,6 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     effect: {
       effectType: 'heal',
       healAmount: 120,
-      range: 400,
     },
   },
   'aura-haste': {

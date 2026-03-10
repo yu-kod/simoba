@@ -228,10 +228,10 @@ describe('executeSkill — aura-heal', () => {
     expect(def).toBeDefined()
     expect(def!.targeting).toBe('ally')
     expect(def!.cooldown).toBe(10)
+    expect(def!.range).toBe(400)
     expect(def!.effect.effectType).toBe('heal')
     if (def!.effect.effectType === 'heal') {
       expect(def!.effect.healAmount).toBe(120)
-      expect(def!.effect.range).toBe(400)
     }
   })
 
