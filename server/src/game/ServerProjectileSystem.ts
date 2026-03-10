@@ -6,6 +6,7 @@ import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
 import type { ProjectileTracker } from './ProjectileTracker.js'
+import { distanceSq } from '@shared/math/distanceSq'
 
 interface TargetPosition {
   readonly x: number
@@ -30,12 +31,6 @@ function findTargetPosition(
     if (minion) return { x: minion.x, y: minion.y, radius: minion.radius, dead: minion.dead, team: minion.team }
   }
   return null
-}
-
-function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
-  const dx = x2 - x1
-  const dy = y2 - y1
-  return dx * dx + dy * dy
 }
 
 // ── Homing projectile logic (existing behavior) ────────────

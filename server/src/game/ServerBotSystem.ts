@@ -3,6 +3,7 @@ import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { InputMessage } from '@shared/messages'
+import { distanceSq } from '@shared/math/distanceSq'
 
 interface PositionEntity {
   readonly id: string
@@ -11,12 +12,6 @@ interface PositionEntity {
   readonly dead: boolean
   readonly team: string
   readonly radius: number
-}
-
-function distanceSq(ax: number, ay: number, bx: number, by: number): number {
-  const dx = ax - bx
-  const dy = ay - by
-  return dx * dx + dy * dy
 }
 
 /**

@@ -2,12 +2,7 @@ import type { HeroState } from '@shared/entities/Hero'
 import type { Position, Team } from '@/domain/types'
 import { MINION_XP_REWARD, XP_GRANT_RANGE } from '@shared/constants'
 import { grantXp } from '@/domain/systems/grantXp'
-
-function distanceSq(a: Position, b: Position): number {
-  const dx = a.x - b.x
-  const dy = a.y - b.y
-  return dx * dx + dy * dy
-}
+import { distanceSq } from '@shared/math/distanceSq'
 
 export interface XpUpdate {
   readonly heroId: string
@@ -23,7 +18,7 @@ export function distributeMinionXp(
   const allyTeam = minionTeam === 'blue' ? 'red' : 'blue'
 
   const eligibleHeroes = heroes.filter(
-    (h) => !h.dead && h.team === allyTeam && distanceSq(h.position, deathPosition) <= rangeSq,
+    (h) => !h.dead && h.team === allyTeam && distanceSq(h.position.x, h.position.y, deathPosition.x, deathPosition.y) <= rangeSq,
   )
 
   if (eligibleHeroes.length === 0) return []
