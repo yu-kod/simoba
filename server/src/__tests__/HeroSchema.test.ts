@@ -3,6 +3,33 @@ import { ArraySchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
 
+function createHero(hp: number): HeroSchema {
+  const hero = new HeroSchema()
+  hero.hp = hp
+  hero.maxHp = hp
+  return hero
+}
+
+function addDamageReduction(hero: HeroSchema, value: number): void {
+  const effect = new StatusEffectSchema()
+  effect.id = 'blade-fortify'
+  effect.buffType = 'damageReduction'
+  effect.value = value
+  effect.remainingDuration = 4
+  effect.isDebuff = false
+  hero.statusEffects.set('blade-fortify', effect)
+}
+
+function addBlock(hero: HeroSchema, value: number): void {
+  const effect = new StatusEffectSchema()
+  effect.id = 'blade-block'
+  effect.buffType = 'blockAmount'
+  effect.value = value
+  effect.remainingDuration = 3
+  effect.isDebuff = false
+  hero.statusEffects.set('blade-block', effect)
+}
+
 describe('HeroSchema — talent fields', () => {
   it('should initialize acquiredTalents as empty ArraySchema', () => {
     const hero = new HeroSchema()
@@ -59,23 +86,6 @@ describe('HeroSchema — talent fields', () => {
 })
 
 describe('HeroSchema — applyDamage with damageReduction', () => {
-  function createHero(hp: number): HeroSchema {
-    const hero = new HeroSchema()
-    hero.hp = hp
-    hero.maxHp = hp
-    return hero
-  }
-
-  function addDamageReduction(hero: HeroSchema, value: number): void {
-    const effect = new StatusEffectSchema()
-    effect.id = 'blade-fortify'
-    effect.buffType = 'damageReduction'
-    effect.value = value
-    effect.remainingDuration = 4
-    effect.isDebuff = false
-    hero.statusEffects.set('blade-fortify', effect)
-  }
-
   it('should apply full damage without damageReduction', () => {
     const hero = createHero(500)
     hero.applyDamage(100)
@@ -122,33 +132,6 @@ describe('HeroSchema — applyDamage with damageReduction', () => {
 })
 
 describe('HeroSchema — applyDamage with blockAmount', () => {
-  function createHero(hp: number): HeroSchema {
-    const hero = new HeroSchema()
-    hero.hp = hp
-    hero.maxHp = hp
-    return hero
-  }
-
-  function addBlock(hero: HeroSchema, value: number): void {
-    const effect = new StatusEffectSchema()
-    effect.id = 'blade-block'
-    effect.buffType = 'blockAmount'
-    effect.value = value
-    effect.remainingDuration = 3
-    effect.isDebuff = false
-    hero.statusEffects.set('blade-block', effect)
-  }
-
-  function addDamageReduction(hero: HeroSchema, value: number): void {
-    const effect = new StatusEffectSchema()
-    effect.id = 'blade-fortify'
-    effect.buffType = 'damageReduction'
-    effect.value = value
-    effect.remainingDuration = 4
-    effect.isDebuff = false
-    hero.statusEffects.set('blade-fortify', effect)
-  }
-
   it('should subtract flat blockAmount from damage', () => {
     const hero = createHero(500)
     addBlock(hero, 30)
