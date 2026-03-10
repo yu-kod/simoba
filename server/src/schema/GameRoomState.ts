@@ -3,6 +3,7 @@ import { HeroSchema } from './HeroSchema.js'
 import { TowerSchema } from './TowerSchema.js'
 import { ProjectileSchema } from './ProjectileSchema.js'
 import { MinionSchema } from './MinionSchema.js'
+import { ZoneSchema } from './ZoneSchema.js'
 
 /**
  * Root state schema for a game room.
@@ -20,6 +21,9 @@ export class GameRoomState extends Schema {
 
   @type({ map: ProjectileSchema })
   projectiles = new MapSchema<ProjectileSchema>()
+
+  @type({ map: ZoneSchema })
+  zones = new MapSchema<ZoneSchema>()
 
   @type('string')
   matchPhase: 'waiting' | 'playing' | 'finished' = 'waiting'

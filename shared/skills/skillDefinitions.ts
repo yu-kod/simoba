@@ -38,7 +38,19 @@ export interface AoEEffectParams {
   readonly radius: number           // effect radius (px)
 }
 
-export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams
+export interface ZoneEffectParams {
+  readonly effectType: 'zone'
+  readonly zoneRadius: number       // zone radius (px)
+  readonly zoneDuration: number     // zone duration (seconds)
+  readonly zoneEffect: {
+    readonly buffType: string       // effect category ('speed', etc.)
+    readonly value: number          // effect amount (negative = debuff)
+    readonly isDebuff: boolean
+    readonly target: 'enemy' | 'ally' | 'all'
+  }
+}
+
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams | ZoneEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -138,6 +150,23 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       damage: 80,
       healAmount: 60,
       radius: 200,
+    },
+  },
+  'aura-slow-field': {
+    id: 'aura-slow-field',
+    targeting: 'point',
+    cooldown: 14,
+    range: 600,
+    effect: {
+      effectType: 'zone',
+      zoneRadius: 200,
+      zoneDuration: 4,
+      zoneEffect: {
+        buffType: 'speed',
+        value: -60,
+        isDebuff: true,
+        target: 'enemy',
+      },
     },
   },
 }

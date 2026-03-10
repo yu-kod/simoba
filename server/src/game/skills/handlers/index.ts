@@ -4,6 +4,7 @@ import { projectileEffectHandler } from './projectileEffectHandler.js'
 import { healEffectHandler } from './healEffectHandler.js'
 import { buffEffectHandler } from './buffEffectHandler.js'
 import { aoeEffectHandler } from './aoeEffectHandler.js'
+import { zoneEffectHandler } from './zoneEffectHandler.js'
 
 let registered = false
 
@@ -16,6 +17,7 @@ export function registerAllEffectHandlers(): void {
   registerEffectHandler(healEffectHandler)
   registerEffectHandler(buffEffectHandler)
   registerEffectHandler(aoeEffectHandler)
+  registerEffectHandler(zoneEffectHandler)
 }
 
 /** Reset registration state and clear registry. For testing only. */

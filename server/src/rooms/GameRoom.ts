@@ -34,6 +34,7 @@ import {
 } from '../game/ServerSkillSlotSystem.js'
 import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.js'
 import { tickBuffs } from '../game/StatusEffectSystem.js'
+import { tickZones } from '../game/ServerZoneSystem.js'
 import { processDashDamage, cleanupDashHitSets } from '../game/ServerDashDamageSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { TALENT_TREES } from '@shared/talents/index'
@@ -180,7 +181,7 @@ export class GameRoom extends Room<GameRoomState> {
       if (!isValidUseSkillMessage(message)) return
       const hero = this.state.heroes.get(client.sessionId)
       if (!hero) return
-      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes, this.projectileTracker)
+      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes, this.projectileTracker, this.state.zones)
       if (event) {
         this.broadcast('skill', event)
       }
@@ -386,7 +387,10 @@ export class GameRoom extends Room<GameRoomState> {
       events.push(...heroEvents)
     })
 
-    // 1.5. Tick skill cooldowns and buff durations
+    // 1.5. Tick zones (apply effects before buff tick so zone debuffs are included)
+    tickZones(this.state.zones, heroes, deltaTime)
+
+    // 1.6. Tick skill cooldowns and buff durations
     heroes.forEach((hero) => {
       tickCooldowns(hero, deltaTime)
       tickBuffs(hero, deltaTime)
