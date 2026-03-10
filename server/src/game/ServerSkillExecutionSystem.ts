@@ -115,7 +115,9 @@ export function executeSkill(
   // Resolve target hero for ally/enemy targeting
   let targetHero: HeroSchema | undefined
   const range = def.range ?? 0
-  if (def.targeting === 'ally' && heroes) {
+  if (def.targeting === 'self') {
+    targetHero = hero
+  } else if (def.targeting === 'ally' && heroes) {
     const allyFilter = (c: HeroSchema, sid: string) => sid !== sessionId && c.team === hero.team && !c.dead
     targetHero = resolveHeroTarget(target, heroes, range, allyFilter) ?? hero
   } else if (def.targeting === 'enemy' && heroes) {

@@ -46,6 +46,7 @@ export class HeroSchema extends CombatEntitySchema {
    * damageReduction value is a fraction (e.g. 0.3 = 30% reduction).
    */
   override applyDamage(amount: number): void {
+    if (this.dead) return
     const reduction = getStatusEffectValue(this, 'damageReduction')
     const reduced = reduction > 0 ? amount * (1 - Math.min(reduction, 1)) : amount
     super.applyDamage(reduced)
