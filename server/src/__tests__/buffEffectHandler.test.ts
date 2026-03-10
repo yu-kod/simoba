@@ -97,6 +97,74 @@ describe('buffEffectHandler', () => {
     expect(effect.value).toBe(80)
   })
 
+  it('should apply additionalBuffs as separate status effects', () => {
+    const caster = createHero()
+    const furyParams: BuffEffectParams = {
+      effectType: 'buff',
+      buffType: 'attackDamage',
+      value: 25,
+      duration: 5,
+      isDebuff: false,
+      additionalBuffs: [
+        { buffType: 'attackSpeed', value: 0.5 },
+      ],
+    }
+    const ctx = createContext(caster, { skillId: 'blade-fury' })
+
+    buffEffectHandler.execute(ctx, furyParams)
+
+    // Primary buff keyed by skillId
+    const primary = caster.statusEffects.get('blade-fury')
+    expect(primary).toBeDefined()
+    expect(primary!.buffType).toBe('attackDamage')
+    expect(primary!.value).toBe(25)
+    expect(primary!.remainingDuration).toBe(5)
+
+    // Additional buff keyed by ${skillId}:${buffType}
+    const extra = caster.statusEffects.get('blade-fury:attackSpeed')
+    expect(extra).toBeDefined()
+    expect(extra!.buffType).toBe('attackSpeed')
+    expect(extra!.value).toBe(0.5)
+    expect(extra!.remainingDuration).toBe(5)
+  })
+
+  it('should refresh all buffs including additionalBuffs on recast', () => {
+    const caster = createHero()
+    const furyParams: BuffEffectParams = {
+      effectType: 'buff',
+      buffType: 'attackDamage',
+      value: 25,
+      duration: 5,
+      isDebuff: false,
+      additionalBuffs: [
+        { buffType: 'attackSpeed', value: 0.5 },
+      ],
+    }
+    const ctx = createContext(caster, { skillId: 'blade-fury' })
+
+    buffEffectHandler.execute(ctx, furyParams)
+
+    // Simulate time passing
+    caster.statusEffects.get('blade-fury')!.remainingDuration = 1
+    caster.statusEffects.get('blade-fury:attackSpeed')!.remainingDuration = 1
+
+    // Recast
+    buffEffectHandler.execute(ctx, furyParams)
+
+    expect(caster.statusEffects.get('blade-fury')!.remainingDuration).toBe(5)
+    expect(caster.statusEffects.get('blade-fury:attackSpeed')!.remainingDuration).toBe(5)
+  })
+
+  it('should not create additionalBuffs when not present in params', () => {
+    const caster = createHero()
+    const ctx = createContext(caster)
+
+    buffEffectHandler.execute(ctx, HASTE_PARAMS)
+
+    expect(caster.statusEffects.size).toBe(1)
+    expect(caster.statusEffects.get('aura-haste')).toBeDefined()
+  })
+
   it('should set isDebuff flag correctly for debuffs', () => {
     const caster = createHero()
     const target = createHero()

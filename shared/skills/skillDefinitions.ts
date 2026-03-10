@@ -29,6 +29,10 @@ export interface BuffEffectParams {
   readonly value: number         // effect amount (positive = buff, negative = debuff)
   readonly duration: number      // duration in seconds
   readonly isDebuff: boolean     // true = debuff (for future dispel logic)
+  readonly additionalBuffs?: readonly {
+    readonly buffType: string
+    readonly value: number
+  }[]
 }
 
 export interface AoEEffectParams {
@@ -202,6 +206,21 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       value: 0.3,
       duration: 4,
       isDebuff: false,
+    },
+  },
+  'blade-fury': {
+    id: 'blade-fury',
+    targeting: 'self',
+    cooldown: 18,
+    effect: {
+      effectType: 'buff',
+      buffType: 'attackDamage',
+      value: 25,
+      duration: 5,
+      isDebuff: false,
+      additionalBuffs: [
+        { buffType: 'attackSpeed', value: 0.5 },
+      ],
     },
   },
 }

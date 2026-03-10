@@ -663,6 +663,70 @@ describe('executeSkill — blade-fortify', () => {
   })
 })
 
+describe('executeSkill — blade-fury', () => {
+  function createFuryHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'BLADE',
+      team: 'blue',
+      hp: 650,
+      maxHp: 650,
+      skillSlotQ: 'blade-fury',
+      ...overrides,
+    })
+  }
+
+  it('should apply both attackDamage and attackSpeed buffs to self', () => {
+    const caster = createFuryHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('blade-fury')
+
+    // Primary buff: attackDamage
+    const adBuff = caster.statusEffects.get('blade-fury')
+    expect(adBuff).toBeDefined()
+    expect(adBuff!.buffType).toBe('attackDamage')
+    expect(adBuff!.value).toBe(25)
+    expect(adBuff!.remainingDuration).toBe(5)
+
+    // Additional buff: attackSpeed
+    const asBuff = caster.statusEffects.get('blade-fury:attackSpeed')
+    expect(asBuff).toBeDefined()
+    expect(asBuff!.buffType).toBe('attackSpeed')
+    expect(asBuff!.value).toBe(0.5)
+    expect(asBuff!.remainingDuration).toBe(5)
+  })
+
+  it('should set cooldown to 18 seconds', () => {
+    const caster = createFuryHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(caster.cooldownQ).toBe(18)
+  })
+
+  it('should refresh both buff durations on recast', () => {
+    const caster = createFuryHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+
+    // Simulate time passing
+    caster.statusEffects.get('blade-fury')!.remainingDuration = 1
+    caster.statusEffects.get('blade-fury:attackSpeed')!.remainingDuration = 1
+
+    caster.cooldownQ = 0
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+
+    expect(caster.statusEffects.get('blade-fury')!.remainingDuration).toBe(5)
+    expect(caster.statusEffects.get('blade-fury:attackSpeed')!.remainingDuration).toBe(5)
+  })
+})
+
 describe('tickCooldowns', () => {
   it('should decrement cooldowns by dt', () => {
     const hero = createHero()
