@@ -18,6 +18,9 @@ export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
     zone.value = params.zoneEffect.value
     zone.isDebuff = params.zoneEffect.isDebuff
     zone.target = params.zoneEffect.target
+    zone.triggerDamage = params.triggerDamage ?? 0
+    zone.triggerOnce = params.triggerOnce ?? false
+    zone.effectDuration = params.zoneEffect.duration ?? 0
 
     const id = ctx.projectileTracker.nextZoneId()
     ctx.zones.set(id, zone)

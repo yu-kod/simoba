@@ -4,7 +4,7 @@ import type { ZoneSchema } from '../schema/ZoneSchema.js'
 import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
 
 /** Duration set on zone-applied status effects. Short so they expire quickly when leaving the zone. */
-const ZONE_EFFECT_DURATION = 0.1
+export const ZONE_EFFECT_DURATION = 0.1
 
 function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1
@@ -37,28 +37,44 @@ export function tickZones(
 
     const radiusSq = zone.radius * zone.radius
 
+    let triggered = false
+
     heroes.forEach((hero) => {
       if (hero.dead) return
       if (!shouldAffect(zone, hero)) return
+      if (triggered && zone.triggerOnce) return
 
       const dSq = distanceSq(zone.x, zone.y, hero.x, hero.y)
       if (dSq > radiusSq) return
 
+      triggered = true
+
+      // Trigger damage (one-shot zones like traps)
+      if (zone.triggerDamage > 0) {
+        hero.applyDamage(zone.triggerDamage)
+        hero.lastAttackerSessionId = zone.casterId
+      }
+
       // Apply or refresh status effect
       const effectKey = zoneId
+      const effectDuration = zone.effectDuration > 0 ? zone.effectDuration : ZONE_EFFECT_DURATION
       const existing = hero.statusEffects.get(effectKey)
       if (existing) {
-        existing.remainingDuration = ZONE_EFFECT_DURATION
+        existing.remainingDuration = effectDuration
       } else {
         const effect = new StatusEffectSchema()
         effect.id = effectKey
         effect.buffType = zone.buffType
         effect.value = zone.value
-        effect.remainingDuration = ZONE_EFFECT_DURATION
+        effect.remainingDuration = effectDuration
         effect.isDebuff = zone.isDebuff
         hero.statusEffects.set(effectKey, effect)
       }
     })
+
+    if (triggered && zone.triggerOnce) {
+      toRemove.push(zoneId)
+    }
   })
 
   for (const id of toRemove) {
