@@ -427,6 +427,33 @@ describe('ServerCombatManager', () => {
       expect(attacker.attackCooldown).toBeCloseTo(1 / 1.5, 2)
     })
 
+    it('should clamp effective attackSpeed to minimum 0.1 to prevent division by zero', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackDamage: 60, attackSpeed: 1.0, attackCooldown: 0,
+        heroType: 'BLADE',
+      })
+      // Apply attackSpeed debuff that exceeds base → effective would be negative without clamp
+      const debuff = new StatusEffectSchema()
+      debuff.id = 'test-debuff'
+      debuff.buffType = 'attackSpeed'
+      debuff.value = -1.5
+      debuff.remainingDuration = 5
+      debuff.isDebuff = true
+      attacker.statusEffects.set('test-debuff', debuff)
+
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
+
+      // Clamped to 0.1, so cooldown = 1 / 0.1 = 10
+      expect(attacker.attackCooldown).toBeCloseTo(10, 2)
+      expect(Number.isFinite(attacker.attackCooldown)).toBe(true)
+    })
+
     it('should use base attackSpeed when no buff is active', () => {
       const attacker = createHero('attacker', {
         x: 100, y: 100, team: 'blue', radius: 22,
