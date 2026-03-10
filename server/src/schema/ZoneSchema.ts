@@ -19,4 +19,10 @@ export class ZoneSchema extends Schema {
   @type('boolean') isDebuff: boolean = false
   /** Who the zone affects: 'enemy', 'ally', or 'all' */
   @type('string') target: string = ''
+  /** Damage applied when a hero triggers this zone (0 = no trigger damage) */
+  @type('float32') triggerDamage: number = 0
+  /** If true, zone is removed after first trigger */
+  @type('boolean') triggerOnce: boolean = false
+  /** Duration for the applied status effect (seconds). Used by trigger zones. */
+  @type('float32') effectDuration: number = 0
 }

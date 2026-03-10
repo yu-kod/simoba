@@ -42,11 +42,14 @@ export interface ZoneEffectParams {
   readonly effectType: 'zone'
   readonly zoneRadius: number       // zone radius (px)
   readonly zoneDuration: number     // zone duration (seconds)
+  readonly triggerDamage?: number   // damage on trigger (0 = no trigger damage)
+  readonly triggerOnce?: boolean    // true = zone removed after first trigger
   readonly zoneEffect: {
     readonly buffType: string       // effect category ('speed', etc.)
     readonly value: number          // effect amount (negative = debuff)
     readonly isDebuff: boolean
     readonly target: 'enemy' | 'ally' | 'all'
+    readonly duration?: number      // debuff duration (seconds) — used by trigger zones
   }
 }
 
@@ -166,6 +169,26 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
         value: -60,
         isDebuff: true,
         target: 'enemy',
+      },
+    },
+  },
+  'bolt-trap': {
+    id: 'bolt-trap',
+    targeting: 'point',
+    cooldown: 10,
+    range: 500,
+    effect: {
+      effectType: 'zone',
+      zoneRadius: 80,
+      zoneDuration: 30,
+      triggerDamage: 70,
+      triggerOnce: true,
+      zoneEffect: {
+        buffType: 'speed',
+        value: -50,
+        isDebuff: true,
+        target: 'enemy',
+        duration: 2,
       },
     },
   },

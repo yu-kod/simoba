@@ -37,28 +37,43 @@ export function tickZones(
 
     const radiusSq = zone.radius * zone.radius
 
+    let triggered = false
+
     heroes.forEach((hero) => {
       if (hero.dead) return
       if (!shouldAffect(zone, hero)) return
+      if (triggered && zone.triggerOnce) return
 
       const dSq = distanceSq(zone.x, zone.y, hero.x, hero.y)
       if (dSq > radiusSq) return
 
+      // Trigger damage (one-shot zones like traps)
+      if (zone.triggerDamage > 0) {
+        hero.applyDamage(zone.triggerDamage)
+        hero.lastAttackerSessionId = zone.casterId
+        triggered = true
+      }
+
       // Apply or refresh status effect
       const effectKey = zoneId
+      const effectDuration = zone.effectDuration > 0 ? zone.effectDuration : ZONE_EFFECT_DURATION
       const existing = hero.statusEffects.get(effectKey)
       if (existing) {
-        existing.remainingDuration = ZONE_EFFECT_DURATION
+        existing.remainingDuration = effectDuration
       } else {
         const effect = new StatusEffectSchema()
         effect.id = effectKey
         effect.buffType = zone.buffType
         effect.value = zone.value
-        effect.remainingDuration = ZONE_EFFECT_DURATION
+        effect.remainingDuration = effectDuration
         effect.isDebuff = zone.isDebuff
         hero.statusEffects.set(effectKey, effect)
       }
     })
+
+    if (triggered && zone.triggerOnce) {
+      toRemove.push(zoneId)
+    }
   })
 
   for (const id of toRemove) {
