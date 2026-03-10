@@ -5,6 +5,7 @@ import type {
   ServerTowerState,
   ServerMinionState,
   ServerProjectileState,
+  ServerZoneState,
 } from '@/network/GameMode'
 
 export interface NetworkBridgeCallbacks {
@@ -19,6 +20,10 @@ export interface NetworkBridgeCallbacks {
   onServerMinionRemoved?: (minionId: string) => void
   /** Server-authoritative: projectiles changed */
   onServerProjectilesUpdated?: (projectiles: readonly ServerProjectileState[]) => void
+  /** Server-authoritative: zone added */
+  onServerZoneAdded?: (state: ServerZoneState) => void
+  /** Server-authoritative: zone removed */
+  onServerZoneRemoved?: (zoneId: string) => void
   /** Server-authoritative: combat event — attack occurred */
   onAttackEvent?: (event: AttackEvent) => void
   /** Server-authoritative: combat event — damage applied */
@@ -61,6 +66,14 @@ export class NetworkBridge {
 
     this.gameMode.onServerProjectileUpdate((projectiles) => {
       this.callbacks.onServerProjectilesUpdated?.(projectiles)
+    })
+
+    this.gameMode.onServerZoneAdd((state) => {
+      this.callbacks.onServerZoneAdded?.(state)
+    })
+
+    this.gameMode.onServerZoneRemove((zoneId) => {
+      this.callbacks.onServerZoneRemoved?.(zoneId)
     })
 
     // Server-authoritative combat events

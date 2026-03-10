@@ -62,6 +62,16 @@ export interface ServerMinionState {
   readonly projectileRadius: number
 }
 
+/** Server-synced zone for rendering */
+export interface ServerZoneState {
+  readonly id: string
+  readonly x: number
+  readonly y: number
+  readonly radius: number
+  readonly skillId: string // key into ZONE_VISUALS
+  readonly team: string
+}
+
 /** Server-synced tower state */
 export interface ServerTowerState {
   readonly id: string
@@ -113,6 +123,12 @@ export interface GameMode {
 
   /** Register callback for server projectile sync */
   onServerProjectileUpdate(callback: (projectiles: readonly ServerProjectileState[]) => void): void
+
+  /** Register callback for server zone added */
+  onServerZoneAdd(callback: (state: ServerZoneState) => void): void
+
+  /** Register callback for server zone removed */
+  onServerZoneRemove(callback: (zoneId: string) => void): void
 
   /** Register callback for server attack event (server-authoritative) */
   onAttackEvent(callback: (event: AttackEvent) => void): void

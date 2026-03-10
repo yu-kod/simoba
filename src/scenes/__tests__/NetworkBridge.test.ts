@@ -1,13 +1,17 @@
 import { describe, it, expect, vi } from 'vitest'
 import { NetworkBridge } from '@/scenes/NetworkBridge'
-import type { GameMode, ServerHeroState } from '@/network/GameMode'
+import type { GameMode, ServerHeroState, ServerZoneState } from '@/network/GameMode'
 
 function createMockGameMode(): GameMode & {
   _triggerServerHeroUpdate: (state: ServerHeroState) => void
   _triggerServerHeroRemove: (sessionId: string) => void
+  _triggerServerZoneAdd: (state: ServerZoneState) => void
+  _triggerServerZoneRemove: (zoneId: string) => void
 } {
   let heroUpdateCb: ((state: ServerHeroState) => void) | null = null
   let heroRemoveCb: ((sessionId: string) => void) | null = null
+  let zoneAddCb: ((state: ServerZoneState) => void) | null = null
+  let zoneRemoveCb: ((zoneId: string) => void) | null = null
 
   return {
     localSessionId: 'local-1',
@@ -19,6 +23,8 @@ function createMockGameMode(): GameMode & {
     onServerMinionUpdate: vi.fn(),
     onServerMinionRemove: vi.fn(),
     onServerProjectileUpdate: vi.fn(),
+    onServerZoneAdd: (cb) => { zoneAddCb = cb },
+    onServerZoneRemove: (cb) => { zoneRemoveCb = cb },
     onAttackEvent: vi.fn(),
     onDamageEvent: vi.fn(),
     onDeathEvent: vi.fn(),
@@ -30,6 +36,8 @@ function createMockGameMode(): GameMode & {
     dispose: vi.fn(),
     _triggerServerHeroUpdate: (s) => heroUpdateCb?.(s),
     _triggerServerHeroRemove: (id) => heroRemoveCb?.(id),
+    _triggerServerZoneAdd: (s) => zoneAddCb?.(s),
+    _triggerServerZoneRemove: (id) => zoneRemoveCb?.(id),
   }
 }
 
@@ -65,6 +73,30 @@ describe('NetworkBridge', () => {
 
       gm._triggerServerHeroRemove('sess-1')
       expect(onRemoved).toHaveBeenCalledWith('sess-1')
+    })
+
+    it('fires onServerZoneAdded callback on zone add', () => {
+      const gm = createMockGameMode()
+      const onAdded = vi.fn()
+      const bridge = new NetworkBridge(gm, { onServerZoneAdded: onAdded })
+      bridge.setupCallbacks()
+
+      const zoneState: ServerZoneState = {
+        id: 'zone-1', x: 300, y: 100, radius: 200,
+        skillId: 'aura-slow-field', team: 'blue',
+      }
+      gm._triggerServerZoneAdd(zoneState)
+      expect(onAdded).toHaveBeenCalledWith(zoneState)
+    })
+
+    it('fires onServerZoneRemoved callback on zone remove', () => {
+      const gm = createMockGameMode()
+      const onRemoved = vi.fn()
+      const bridge = new NetworkBridge(gm, { onServerZoneRemoved: onRemoved })
+      bridge.setupCallbacks()
+
+      gm._triggerServerZoneRemove('zone-1')
+      expect(onRemoved).toHaveBeenCalledWith('zone-1')
     })
   })
 

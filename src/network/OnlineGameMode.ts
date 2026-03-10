@@ -7,6 +7,7 @@ import type {
   ServerTowerState,
   ServerMinionState,
   ServerProjectileState,
+  ServerZoneState,
 } from '@/network/GameMode'
 import { NetworkClient } from '@/network/NetworkClient'
 import { DEFAULT_PROJECTILE_RADIUS } from '@shared/constants'
@@ -45,6 +46,8 @@ export class OnlineGameMode implements GameMode {
   private serverMinionUpdateCallbacks: ((state: ServerMinionState) => void)[] = []
   private serverMinionRemoveCallbacks: ((minionId: string) => void)[] = []
   private serverProjectileUpdateCallbacks: ((projectiles: readonly ServerProjectileState[]) => void)[] = []
+  private serverZoneAddCallbacks: ((state: ServerZoneState) => void)[] = []
+  private serverZoneRemoveCallbacks: ((zoneId: string) => void)[] = []
 
   // Combat event callbacks
   private attackEventCallbacks: ((event: AttackEvent) => void)[] = []
@@ -201,6 +204,23 @@ export class OnlineGameMode implements GameMode {
 
     $(this.room.state.projectiles).onRemove((_proj: SchemaInstance) => {
       this.scheduleProjectileUpdate()
+    })
+
+    // --- Server-authoritative zone sync ---
+    $(this.room.state.zones).onAdd((zone: SchemaInstance, zoneId: string) => {
+      const state: ServerZoneState = {
+        id: zoneId,
+        x: zone.x as number,
+        y: zone.y as number,
+        radius: zone.radius as number,
+        skillId: zone.skillId as string,
+        team: zone.team as string,
+      }
+      for (const cb of this.serverZoneAddCallbacks) cb(state)
+    })
+
+    $(this.room.state.zones).onRemove((_zone: SchemaInstance, zoneId: string) => {
+      for (const cb of this.serverZoneRemoveCallbacks) cb(zoneId)
     })
   }
 
@@ -380,6 +400,14 @@ export class OnlineGameMode implements GameMode {
     this.serverProjectileUpdateCallbacks = [...this.serverProjectileUpdateCallbacks, callback]
   }
 
+  onServerZoneAdd(callback: (state: ServerZoneState) => void): void {
+    this.serverZoneAddCallbacks = [...this.serverZoneAddCallbacks, callback]
+  }
+
+  onServerZoneRemove(callback: (zoneId: string) => void): void {
+    this.serverZoneRemoveCallbacks = [...this.serverZoneRemoveCallbacks, callback]
+  }
+
   onAttackEvent(callback: (event: AttackEvent) => void): void {
     this.attackEventCallbacks = [...this.attackEventCallbacks, callback]
   }
@@ -413,6 +441,8 @@ export class OnlineGameMode implements GameMode {
     this.serverMinionUpdateCallbacks = []
     this.serverMinionRemoveCallbacks = []
     this.serverProjectileUpdateCallbacks = []
+    this.serverZoneAddCallbacks = []
+    this.serverZoneRemoveCallbacks = []
     this.attackEventCallbacks = []
     this.damageEventCallbacks = []
     this.deathEventCallbacks = []
