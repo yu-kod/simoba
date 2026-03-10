@@ -1,10 +1,12 @@
 import { ArraySchema, MapSchema, type } from '@colyseus/schema'
 import { CombatEntitySchema } from './CombatEntitySchema.js'
 import { StatusEffectSchema } from './StatusEffectSchema.js'
+import { getStatusEffectValue } from '../game/StatusEffectSystem.js'
 
 /**
  * Colyseus state schema for a hero entity.
- * Inherits id, x, y, hp, maxHp, dead, team, radius, applyDamage() from CombatEntitySchema.
+ * Inherits id, x, y, hp, maxHp, dead, team, radius from CombatEntitySchema.
+ * Overrides applyDamage to apply damageReduction from status effects.
  */
 export class HeroSchema extends CombatEntitySchema {
   @type('float32') facing: number = 0
@@ -38,6 +40,17 @@ export class HeroSchema extends CombatEntitySchema {
   /** Contact damage dealt during this dash (set by effect handler, 0 = no damage) */
   dashDamage: number = 0
   @type('boolean') isBot: boolean = false
+
+  /**
+   * Override to apply damageReduction status effects before subtracting HP.
+   * damageReduction value is a fraction (e.g. 0.3 = 30% reduction).
+   */
+  override applyDamage(amount: number): void {
+    if (this.dead) return
+    const reduction = getStatusEffectValue(this, 'damageReduction')
+    const reduced = reduction > 0 ? amount * (1 - Math.min(reduction, 1)) : amount
+    super.applyDamage(reduced)
+  }
   // Server-only: not synced to clients (no @type decorator)
   lastAttackerSessionId: string = ''
   /** Brief movement pause after firing a ranged attack (seconds remaining) */

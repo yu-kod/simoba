@@ -192,6 +192,18 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       },
     },
   },
+  'blade-fortify': {
+    id: 'blade-fortify',
+    targeting: 'self',
+    cooldown: 14,
+    effect: {
+      effectType: 'buff',
+      buffType: 'damageReduction',
+      value: 0.3,
+      duration: 4,
+      isDebuff: false,
+    },
+  },
 }
 
 export function getSkillDefinition(skillId: string): SkillDefinition | undefined {
