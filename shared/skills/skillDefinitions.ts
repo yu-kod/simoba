@@ -31,10 +31,14 @@ export interface BuffEffectParams {
   readonly isDebuff: boolean     // true = debuff (for future dispel logic)
 }
 
-// Future effect types:
-// export interface AoeEffectParams { effectType: 'aoe'; ... }
+export interface AoEEffectParams {
+  readonly effectType: 'aoe'
+  readonly damage: number           // damage to enemies in radius
+  readonly healAmount: number       // healing to allies in radius
+  readonly radius: number           // effect radius (px)
+}
 
-export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -122,6 +126,18 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       value: -15,
       duration: 4,
       isDebuff: true,
+    },
+  },
+  'aura-nova': {
+    id: 'aura-nova',
+    targeting: 'point',
+    cooldown: 16,
+    range: 600,
+    effect: {
+      effectType: 'aoe',
+      damage: 80,
+      healAmount: 60,
+      radius: 200,
     },
   },
 }
