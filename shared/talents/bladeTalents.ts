@@ -27,6 +27,14 @@ export const BLADE_TALENT_TREE: TalentTreeDefinition = {
     // Depth 1 — Early branches (4 nodes)
     // =========================================================================
     {
+      id: 'blade-block',
+      name: 'Block',
+      description: 'Unlock Block — absorb damage per hit',
+      cost: 1,
+      prerequisites: ['blade-toughness'],
+      effects: [{ type: 'grant_skill', skillId: 'blade-block' }],
+    },
+    {
       id: 'blade-thick-skin',
       name: 'Thick Skin',
       description: 'Max HP +60',

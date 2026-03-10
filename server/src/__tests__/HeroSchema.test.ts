@@ -120,3 +120,63 @@ describe('HeroSchema — applyDamage with damageReduction', () => {
     expect(hero.hp).toBe(500) // no change — dead heroes ignore damage
   })
 })
+
+describe('HeroSchema — applyDamage with blockAmount', () => {
+  function createHero(hp: number): HeroSchema {
+    const hero = new HeroSchema()
+    hero.hp = hp
+    hero.maxHp = hp
+    return hero
+  }
+
+  function addBlock(hero: HeroSchema, value: number): void {
+    const effect = new StatusEffectSchema()
+    effect.id = 'blade-block'
+    effect.buffType = 'blockAmount'
+    effect.value = value
+    effect.remainingDuration = 3
+    effect.isDebuff = false
+    hero.statusEffects.set('blade-block', effect)
+  }
+
+  function addDamageReduction(hero: HeroSchema, value: number): void {
+    const effect = new StatusEffectSchema()
+    effect.id = 'blade-fortify'
+    effect.buffType = 'damageReduction'
+    effect.value = value
+    effect.remainingDuration = 4
+    effect.isDebuff = false
+    hero.statusEffects.set('blade-fortify', effect)
+  }
+
+  it('should subtract flat blockAmount from damage', () => {
+    const hero = createHero(500)
+    addBlock(hero, 30)
+    hero.applyDamage(100)
+    // 100 - 30 = 70 damage → 500 - 70 = 430
+    expect(hero.hp).toBe(430)
+  })
+
+  it('should clamp to 0 when blockAmount exceeds damage', () => {
+    const hero = createHero(500)
+    addBlock(hero, 30)
+    hero.applyDamage(20)
+    // 20 - 30 = clamped to 0 → no damage
+    expect(hero.hp).toBe(500)
+  })
+
+  it('should apply blockAmount after damageReduction', () => {
+    const hero = createHero(500)
+    addDamageReduction(hero, 0.3)
+    addBlock(hero, 30)
+    hero.applyDamage(100)
+    // 100 * 0.7 = 70, then 70 - 30 = 40 → 500 - 40 = 460
+    expect(hero.hp).toBe(460)
+  })
+
+  it('should apply full damage when no blockAmount', () => {
+    const hero = createHero(500)
+    hero.applyDamage(100)
+    expect(hero.hp).toBe(400)
+  })
+})

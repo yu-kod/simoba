@@ -599,6 +599,69 @@ describe('executeSkill — aura-weaken', () => {
   })
 })
 
+describe('executeSkill — blade-block', () => {
+  function createBlockHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'BLADE',
+      team: 'blue',
+      hp: 650,
+      maxHp: 650,
+      skillSlotQ: 'blade-block',
+      ...overrides,
+    })
+  }
+
+  it('should apply blockAmount buff to self', () => {
+    const caster = createBlockHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('blade-block')
+
+    const effect = caster.statusEffects.get('blade-block')
+    expect(effect).toBeDefined()
+    expect(effect!.buffType).toBe('blockAmount')
+    expect(effect!.value).toBe(30)
+    expect(effect!.remainingDuration).toBe(3)
+    expect(effect!.isDebuff).toBe(false)
+  })
+
+  it('should set cooldown to 10 seconds', () => {
+    const caster = createBlockHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(caster.cooldownQ).toBe(10)
+  })
+
+  it('should refresh duration on recast', () => {
+    const caster = createBlockHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    caster.statusEffects.get('blade-block')!.remainingDuration = 0.5
+
+    caster.cooldownQ = 0
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(caster.statusEffects.get('blade-block')!.remainingDuration).toBe(3)
+  })
+
+  it('should actually absorb damage while active', () => {
+    const caster = createBlockHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    caster.applyDamage(100)
+    // 100 - 30 = 70 damage → 650 - 70 = 580
+    expect(caster.hp).toBe(580)
+  })
+})
+
 describe('executeSkill — blade-fortify', () => {
   function createFortifyHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
     return createHero({
