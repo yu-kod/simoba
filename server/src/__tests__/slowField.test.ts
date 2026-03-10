@@ -3,7 +3,7 @@ import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { ZoneSchema } from '../schema/ZoneSchema.js'
-import { zoneEffectHandler, resetZoneIdCounter } from '../game/skills/handlers/zoneEffectHandler.js'
+import { zoneEffectHandler } from '../game/skills/handlers/zoneEffectHandler.js'
 import { tickZones } from '../game/ServerZoneSystem.js'
 import { executeSkill } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
@@ -59,7 +59,6 @@ function createContext(
 
 beforeEach(() => {
   registerAllEffectHandlers()
-  resetZoneIdCounter()
 })
 
 describe('getSkillDefinition — aura-slow-field', () => {
@@ -97,7 +96,7 @@ describe('zoneEffectHandler', () => {
     zoneEffectHandler.execute(ctx, SLOW_FIELD_PARAMS)
 
     expect(zones.size).toBe(1)
-    const zone = zones.get('zone-0')!
+    const zone = zones.get('zone-1')!
     expect(zone.x).toBe(400)
     expect(zone.y).toBe(200)
     expect(zone.radius).toBe(200)
@@ -234,6 +233,58 @@ describe('tickZones — ServerZoneSystem', () => {
     tickZones(zones, heroes, 0.016)
 
     expect(deadEnemy.statusEffects.size).toBe(0)
+  })
+
+  it('should affect allies when target is ally', () => {
+    const zones = new MapSchema<ZoneSchema>()
+    const zone = new ZoneSchema()
+    zone.x = 300
+    zone.y = 100
+    zone.radius = 200
+    zone.remainingDuration = 4
+    zone.team = 'blue'
+    zone.target = 'ally'
+    zone.buffType = 'speed'
+    zone.value = 50
+    zone.isDebuff = false
+    zones.set('zone-0', zone)
+
+    const ally = createHero({ x: 300, y: 100, team: 'blue' })
+    const enemy = createHero({ x: 300, y: 100, team: 'red' })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('ally-1', ally)
+    heroes.set('enemy-1', enemy)
+
+    tickZones(zones, heroes, 0.016)
+
+    expect(ally.statusEffects.size).toBe(1)
+    expect(enemy.statusEffects.size).toBe(0)
+  })
+
+  it('should affect all heroes when target is all', () => {
+    const zones = new MapSchema<ZoneSchema>()
+    const zone = new ZoneSchema()
+    zone.x = 300
+    zone.y = 100
+    zone.radius = 200
+    zone.remainingDuration = 4
+    zone.team = 'blue'
+    zone.target = 'all'
+    zone.buffType = 'speed'
+    zone.value = -30
+    zone.isDebuff = true
+    zones.set('zone-0', zone)
+
+    const ally = createHero({ x: 300, y: 100, team: 'blue' })
+    const enemy = createHero({ x: 300, y: 100, team: 'red' })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('ally-1', ally)
+    heroes.set('enemy-1', enemy)
+
+    tickZones(zones, heroes, 0.016)
+
+    expect(ally.statusEffects.size).toBe(1)
+    expect(enemy.statusEffects.size).toBe(1)
   })
 
   it('should refresh effect duration on subsequent ticks', () => {

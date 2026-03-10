@@ -2,13 +2,6 @@ import type { SkillEffectHandler, SkillExecutionContext } from '../SkillEffectHa
 import type { ZoneEffectParams } from '@shared/skills/skillDefinitions'
 import { ZoneSchema } from '../../../schema/ZoneSchema.js'
 
-let zoneIdCounter = 0
-
-/** Reset zone ID counter. For testing only. */
-export function resetZoneIdCounter(): void {
-  zoneIdCounter = 0
-}
-
 export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
   effectType: 'zone',
 
@@ -26,7 +19,7 @@ export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
     zone.isDebuff = params.zoneEffect.isDebuff
     zone.target = params.zoneEffect.target
 
-    const id = `zone-${zoneIdCounter++}`
+    const id = ctx.projectileTracker.nextZoneId()
     ctx.zones.set(id, zone)
   },
 }

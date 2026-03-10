@@ -7,6 +7,7 @@ export class ProjectileTracker {
   private combatCounter = 0
   private skillCounter = 0
   private towerCounter = 0
+  private zoneCounter = 0
 
   private readonly distanceTraveled = new Map<string, number>()
   private readonly hitEntityIds = new Map<string, Set<string>>()
@@ -21,6 +22,10 @@ export class ProjectileTracker {
 
   nextTowerProjectileId(): string {
     return `tower-proj-${++this.towerCounter}`
+  }
+
+  nextZoneId(): string {
+    return `zone-${++this.zoneCounter}`
   }
 
   getDistanceTraveled(projId: string): number {
