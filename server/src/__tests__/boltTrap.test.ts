@@ -4,7 +4,7 @@ import { HeroSchema } from '../schema/HeroSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { ZoneSchema } from '../schema/ZoneSchema.js'
 import { zoneEffectHandler } from '../game/skills/handlers/zoneEffectHandler.js'
-import { tickZones } from '../game/ServerZoneSystem.js'
+import { tickZones, ZONE_EFFECT_DURATION } from '../game/ServerZoneSystem.js'
 import { executeSkill } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
@@ -242,7 +242,26 @@ describe('tickZones — trap trigger logic', () => {
 
     expect(enemy.hp).toBe(500) // no trigger damage
     expect(zones.size).toBe(1) // zone persists
-    expect(enemy.statusEffects.get('zone-0')!.remainingDuration).toBeCloseTo(0.1) // ZONE_EFFECT_DURATION
+    expect(enemy.statusEffects.get('zone-0')!.remainingDuration).toBeCloseTo(ZONE_EFFECT_DURATION)
+  })
+
+  it('should hit only the first enemy when multiple are in zone simultaneously', () => {
+    const zones = new MapSchema<ZoneSchema>()
+    zones.set('zone-1', createTrapZone())
+
+    const enemy1 = createHero({ x: 300, y: 100, team: 'red', hp: 500 })
+    const enemy2 = createHero({ x: 300, y: 100, team: 'red', hp: 500 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('enemy-1', enemy1)
+    heroes.set('enemy-2', enemy2)
+
+    tickZones(zones, heroes, 0.016)
+
+    const damaged = [enemy1, enemy2].filter(e => e.hp === 430).length
+    const undamaged = [enemy1, enemy2].filter(e => e.hp === 500).length
+    expect(damaged).toBe(1)
+    expect(undamaged).toBe(1)
+    expect(zones.size).toBe(0) // zone removed
   })
 })
 

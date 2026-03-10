@@ -4,7 +4,7 @@ import { HeroSchema } from '../schema/HeroSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { ZoneSchema } from '../schema/ZoneSchema.js'
 import { zoneEffectHandler } from '../game/skills/handlers/zoneEffectHandler.js'
-import { tickZones } from '../game/ServerZoneSystem.js'
+import { tickZones, ZONE_EFFECT_DURATION } from '../game/ServerZoneSystem.js'
 import { executeSkill } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
@@ -163,7 +163,7 @@ describe('tickZones — ServerZoneSystem', () => {
     expect(effect!.buffType).toBe('speed')
     expect(effect!.value).toBe(-60)
     expect(effect!.isDebuff).toBe(true)
-    expect(effect!.remainingDuration).toBeCloseTo(0.1)
+    expect(effect!.remainingDuration).toBeCloseTo(ZONE_EFFECT_DURATION)
   })
 
   it('should not affect heroes outside radius', () => {
@@ -307,14 +307,14 @@ describe('tickZones — ServerZoneSystem', () => {
 
     // First tick
     tickZones(zones, heroes, 0.016)
-    expect(enemy.statusEffects.get('zone-0')!.remainingDuration).toBeCloseTo(0.1)
+    expect(enemy.statusEffects.get('zone-0')!.remainingDuration).toBeCloseTo(ZONE_EFFECT_DURATION)
 
     // Simulate some time passing (effect would tick down)
     enemy.statusEffects.get('zone-0')!.remainingDuration = 0.05
 
     // Second tick — should refresh
     tickZones(zones, heroes, 0.016)
-    expect(enemy.statusEffects.get('zone-0')!.remainingDuration).toBeCloseTo(0.1)
+    expect(enemy.statusEffects.get('zone-0')!.remainingDuration).toBeCloseTo(ZONE_EFFECT_DURATION)
   })
 })
 
