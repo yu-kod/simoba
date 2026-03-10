@@ -25,11 +25,15 @@ AURA Haste スキル — 味方に移動速度バフを付与するオーラス�
 - **THEN** `statusEffects` に `'aura-haste'` と `'aura-slow'` の2エントリが別々に存在する
 
 ### Requirement: BuffEffectParams 定義
-`shared/skills/skillDefinitions.ts` に `BuffEffectParams` インターフェースを追加しなければならない（SHALL）。`effectType: 'buff'`、`buffType: string`（効果種別）、`value: number`（効果量）、`duration: number`（持続秒数）、`isDebuff: boolean`（デバフフラグ）を持たなければならない（SHALL）。`SkillEffectParams` 共用体に `BuffEffectParams` を追加しなければならない（SHALL）。
+`shared/skills/skillDefinitions.ts` に `BuffEffectParams` インターフェースを追加しなければならない（SHALL）。`effectType: 'buff'`、`buffType: string`（効果種別）、`value: number`（効果量）、`duration: number`（持続秒数）、`isDebuff: boolean`（デバフフラグ）を持たなければならない（SHALL）。オプションの `additionalBuffs` 配列（`{ buffType: string, value: number }[]`）を持たなければならない（SHALL）。`SkillEffectParams` 共用体に `BuffEffectParams` を追加しなければならない（SHALL）。
 
 #### Scenario: BuffEffectParams の型定義
 - **WHEN** `BuffEffectParams` を定義する
 - **THEN** `effectType`, `buffType`, `value`, `duration`, `isDebuff` のプロパティを持つ
+
+#### Scenario: BuffEffectParams の additionalBuffs フィールド
+- **WHEN** `BuffEffectParams` に `additionalBuffs` を指定する
+- **THEN** 各要素は `{ buffType: string, value: number }` であり、同じ `duration` と `isDebuff` で追加のステータスエフェクトが適用される
 
 #### Scenario: SkillEffectParams 共用体の拡張
 - **WHEN** `SkillEffectParams` 型を参照する
@@ -43,7 +47,7 @@ AURA Haste スキル — 味方に移動速度バフを付与するオーラス�
 - **THEN** `targeting: 'ally'`、`cooldown: 12`、`range: 400`、`effect.effectType: 'buff'`、`effect.buffType: 'speed'`、`effect.value: 80`、`effect.duration: 3`、`effect.isDebuff: false` のスキル定義が返される
 
 ### Requirement: buffEffectHandler
-サーバーに `buffEffectHandler` を実装しなければならない（SHALL）。`effectType: 'buff'` として効果ハンドラレジストリに登録しなければならない（SHALL）。実行時に対象ヒーロー（`ctx.targetHero ?? ctx.hero`）の `statusEffects` にスキルIDをキーとして `StatusEffectSchema` を追加しなければならない（SHALL）。同じスキルIDのエントリが既に存在する場合は `remainingDuration` と `value` を上書きしなければならない（SHALL）。
+サーバーに `buffEffectHandler` を実装しなければならない（SHALL）。`effectType: 'buff'` として効果ハンドラレジストリに登録しなければならない（SHALL）。実行時に対象ヒーロー（`ctx.targetHero ?? ctx.hero`）の `statusEffects` にスキルIDをキーとして `StatusEffectSchema` を追加しなければならない（SHALL）。同じスキルIDのエントリが既に存在する場合は `remainingDuration` と `value` を上書きしなければならない（SHALL）。`additionalBuffs` が定義されている場合、各追加バフを `${skillId}:${buffType}` をキーとして個別の `StatusEffectSchema` エントリとして追加しなければならない（SHALL）。
 
 #### Scenario: 味方に速度バフを適用
 - **WHEN** スキルID `aura-haste` で `targetHero` が味方、`buffType: 'speed'`、`value: 80`、`duration: 3` で実行する
@@ -56,6 +60,10 @@ AURA Haste スキル — 味方に移動速度バフを付与するオーラス�
 #### Scenario: 同じスキルの持続時間リフレッシュ
 - **WHEN** 既に `aura-haste` エントリ（`remainingDuration: 1.5`）がある状態で同じスキルを再度適用する
 - **THEN** `remainingDuration` が 3 に更新される
+
+#### Scenario: additionalBuffs の適用
+- **WHEN** `additionalBuffs: [{ buffType: 'attackSpeed', value: 0.5 }]` を持つバフスキル `blade-fury` で実行する
+- **THEN** `statusEffects` に `'blade-fury:attackSpeed'` をキーとして `buffType: 'attackSpeed'`、`value: 0.5` のエントリが追加される
 
 ### Requirement: バフタイマー自己管理
 サーバーは毎 tick、各ヒーローの `statusEffects` を走査し、`remainingDuration` を deltaSeconds 分減算しなければならない（SHALL）。0 以下になったエントリは `statusEffects` から削除しなければならない（SHALL）。

@@ -113,8 +113,9 @@ export function processHeroCombat(
       return events
     }
 
-    // Reset cooldown
-    hero.attackCooldown = 1 / hero.attackSpeed
+    // Reset cooldown (apply attackSpeed status effects, min 0.1 to prevent division by zero)
+    const effectiveAS = Math.max(0.1, getEffectiveStat(hero.attackSpeed, hero, 'attackSpeed'))
+    hero.attackCooldown = 1 / effectiveAS
 
     const heroType = hero.heroType as HeroType
     const def = HERO_DEFINITIONS[heroType]
