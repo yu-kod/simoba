@@ -5,6 +5,7 @@ export interface DashEffectParams {
   readonly distance: number       // px traveled during dash
   readonly duration: number       // seconds
   readonly damage: number         // contact damage during dash
+  readonly invulnerable?: boolean // true = invulnerable during dash
 }
 
 export interface ProjectileEffectParams {
@@ -194,6 +195,18 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
         target: 'enemy',
         duration: 2,
       },
+    },
+  },
+  'blade-dodge': {
+    id: 'blade-dodge',
+    targeting: 'direction',
+    cooldown: 8,
+    effect: {
+      effectType: 'dash',
+      distance: 150,
+      duration: 0.15,
+      damage: 0,
+      invulnerable: true,
     },
   },
   'blade-block': {

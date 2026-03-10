@@ -599,6 +599,54 @@ describe('executeSkill — aura-weaken', () => {
   })
 })
 
+describe('executeSkill — blade-dodge', () => {
+  function createDodgeHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'BLADE',
+      team: 'blue',
+      hp: 650,
+      maxHp: 650,
+      skillSlotQ: 'blade-dodge',
+      ...overrides,
+    })
+  }
+
+  it('should set dash state with invulnerability', () => {
+    const caster = createDodgeHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 400, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('blade-dodge')
+    expect(caster.dashTimer).toBeCloseTo(0.15)
+    expect(caster.dashDirX).toBeCloseTo(1)
+    expect(caster.dashDirY).toBeCloseTo(0)
+    expect(caster.dashSpeed).toBeCloseTo(150 / 0.15)
+    expect(caster.dashDamage).toBe(0)
+    expect(caster.dashInvulnerable).toBe(true)
+  })
+
+  it('should set cooldown to 8 seconds', () => {
+    const caster = createDodgeHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 400, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    expect(caster.cooldownQ).toBe(8)
+  })
+
+  it('should ignore damage during dodge', () => {
+    const caster = createDodgeHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 400, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+    caster.applyDamage(100)
+    expect(caster.hp).toBe(650) // invulnerable
+  })
+})
+
 describe('executeSkill — blade-block', () => {
   function createBlockHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
     return createHero({

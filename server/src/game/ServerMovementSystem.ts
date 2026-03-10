@@ -63,6 +63,7 @@ function processDashMovement(hero: HeroSchema, deltaTime: number): void {
     hero.dashDirY = 0
     hero.dashSpeed = 0
     hero.dashDamage = 0
+    hero.dashInvulnerable = false
   }
 }
 
