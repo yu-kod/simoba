@@ -3,6 +3,7 @@ import { dashEffectHandler } from './dashEffectHandler.js'
 import { projectileEffectHandler } from './projectileEffectHandler.js'
 import { healEffectHandler } from './healEffectHandler.js'
 import { buffEffectHandler } from './buffEffectHandler.js'
+import { aoeEffectHandler } from './aoeEffectHandler.js'
 
 let registered = false
 
@@ -14,6 +15,7 @@ export function registerAllEffectHandlers(): void {
   registerEffectHandler(projectileEffectHandler)
   registerEffectHandler(healEffectHandler)
   registerEffectHandler(buffEffectHandler)
+  registerEffectHandler(aoeEffectHandler)
 }
 
 /** Reset registration state and clear registry. For testing only. */
