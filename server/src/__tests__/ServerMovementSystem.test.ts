@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { HeroSchema } from '../schema/HeroSchema.js'
+import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
 import { processMovement } from '../game/ServerMovementSystem.js'
 import type { InputMessage } from '@shared/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@shared/constants'
@@ -128,6 +129,49 @@ describe('ServerMovementSystem', () => {
 
       expect(hero.facing).toBe(2.5) // Facing updated even during pause
       expect(hero.x).toBe(100) // But position unchanged
+    })
+  })
+
+  describe('speed buff integration', () => {
+    it('should use effective speed with buff applied', () => {
+      const hero = createHero({ x: 500, y: 360, speed: 200 })
+      const effect = new StatusEffectSchema()
+      effect.id = 'aura-haste'
+      effect.buffType = 'speed'
+      effect.value = 80
+      effect.remainingDuration = 3
+      hero.statusEffects.set('aura-haste', effect)
+
+      const input = createInput({ moveDir: { x: 1, y: 0 } })
+      processMovement(hero, input, 1.0)
+
+      // effective speed = 200 + 80 = 280
+      expect(hero.x).toBeCloseTo(780)
+    })
+
+    it('should apply combined buff and debuff to speed', () => {
+      const hero = createHero({ x: 500, y: 360, speed: 200 })
+
+      const haste = new StatusEffectSchema()
+      haste.id = 'aura-haste'
+      haste.buffType = 'speed'
+      haste.value = 80
+      haste.remainingDuration = 3
+      hero.statusEffects.set('aura-haste', haste)
+
+      const slow = new StatusEffectSchema()
+      slow.id = 'aura-slow'
+      slow.buffType = 'speed'
+      slow.value = -50
+      slow.remainingDuration = 1
+      slow.isDebuff = true
+      hero.statusEffects.set('aura-slow', slow)
+
+      const input = createInput({ moveDir: { x: 1, y: 0 } })
+      processMovement(hero, input, 1.0)
+
+      // effective speed = 200 + 80 - 50 = 230
+      expect(hero.x).toBeCloseTo(730)
     })
   })
 })

@@ -150,6 +150,17 @@ export class OnlineGameMode implements GameMode {
       $(hero.acquiredTalents as SchemaInstance).onRemove(arrSchedule)
       $(hero.ownedSkills as SchemaInstance).onAdd(arrSchedule)
       $(hero.ownedSkills as SchemaInstance).onRemove(arrSchedule)
+
+      // Status effects (buffs/debuffs) — trigger hero update on add/change/remove.
+      // Note: statusEffects data is not yet included in ServerHeroState (no client buff visuals in scope).
+      $(hero.statusEffects as SchemaInstance).onAdd((effect: SchemaInstance) => {
+        this.scheduleHeroUpdate(sessionId, hero)
+        $(effect).listen('remainingDuration', () => this.scheduleHeroUpdate(sessionId, hero))
+        $(effect).listen('value', () => this.scheduleHeroUpdate(sessionId, hero))
+      })
+      $(hero.statusEffects as SchemaInstance).onRemove(() => {
+        this.scheduleHeroUpdate(sessionId, hero)
+      })
     })
 
     $(this.room.state.heroes).onRemove((_hero: SchemaInstance, sessionId: string) => {

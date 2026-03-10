@@ -81,9 +81,7 @@ function resolveAllyTarget(
 
 /** Extract range from skill definition for ally targeting. */
 function getAllyRange(def: SkillDefinition): number {
-  if (def.effect.effectType === 'heal') return def.effect.range
-  logger.warn('getAllyRange: no range for ally-targeting effect', { effectType: def.effect.effectType })
-  return 0
+  return def.range ?? 0
 }
 
 /**
@@ -135,6 +133,7 @@ export function executeSkill(
     {
       hero,
       casterId: sessionId,
+      skillId,
       direction,
       targetPosition: target,
       projectiles: projectiles ?? new MapSchema(),

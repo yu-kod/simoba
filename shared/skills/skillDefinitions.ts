@@ -21,14 +21,20 @@ export interface ProjectileEffectParams {
 export interface HealEffectParams {
   readonly effectType: 'heal'
   readonly healAmount: number    // HP restored
-  readonly range: number         // ally selection range (px)
+}
+
+export interface BuffEffectParams {
+  readonly effectType: 'buff'
+  readonly buffType: string      // effect category ('speed', 'attackSpeed', etc.)
+  readonly value: number         // effect amount (positive = buff, negative = debuff)
+  readonly duration: number      // duration in seconds
+  readonly isDebuff: boolean     // true = debuff (for future dispel logic)
 }
 
 // Future effect types:
 // export interface AoeEffectParams { effectType: 'aoe'; ... }
-// export interface BuffEffectParams { effectType: 'buff'; ... }
 
-export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -38,6 +44,7 @@ export interface SkillDefinition {
   readonly id: string
   readonly targeting: SkillTargeting
   readonly cooldown: number       // seconds
+  readonly range?: number         // ally targeting range (px) — used by ally-targeting skills
   readonly effect: SkillEffectParams
 }
 
@@ -85,10 +92,23 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     id: 'aura-heal',
     targeting: 'ally',
     cooldown: 10,
+    range: 400,
     effect: {
       effectType: 'heal',
       healAmount: 120,
-      range: 400,
+    },
+  },
+  'aura-haste': {
+    id: 'aura-haste',
+    targeting: 'ally',
+    cooldown: 12,
+    range: 400,
+    effect: {
+      effectType: 'buff',
+      buffType: 'speed',
+      value: 80,
+      duration: 3,
+      isDebuff: false,
     },
   },
 }

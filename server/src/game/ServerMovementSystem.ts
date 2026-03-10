@@ -1,6 +1,7 @@
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@shared/constants'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { InputMessage } from '@shared/messages'
+import { getStatusEffectValue } from './StatusEffectSystem.js'
 
 /**
  * Server-side movement system.
@@ -42,8 +43,9 @@ export function processMovement(
   const nx = moveDir.x / len
   const ny = moveDir.y / len
 
-  hero.x = clamp(hero.x + nx * hero.speed * deltaTime, 0, WORLD_WIDTH)
-  hero.y = clamp(hero.y + ny * hero.speed * deltaTime, 0, WORLD_HEIGHT)
+  const effectiveSpeed = Math.max(0, hero.speed + getStatusEffectValue(hero, 'speed'))
+  hero.x = clamp(hero.x + nx * effectiveSpeed * deltaTime, 0, WORLD_WIDTH)
+  hero.y = clamp(hero.y + ny * effectiveSpeed * deltaTime, 0, WORLD_HEIGHT)
 }
 
 /**

@@ -7,11 +7,15 @@
 ## Requirements
 
 ### Requirement: スキルメタデータ定義
-各スキルの共通パラメータ（`cooldown`, `range`, `damage`, `targeting`, `castTime`）を共有定数テーブルとして定義しなければならない（SHALL）。`targeting` は `'direction' | 'point' | 'self' | 'ally'` のいずれかでなければならない（SHALL）。スキル定義はサーバーとクライアントの両方から参照可能な `shared/` 配下に配置しなければならない（SHALL）。
+各スキルの共通パラメータ（`cooldown`, `range`, `targeting`）を共有定数テーブルとして定義しなければならない（SHALL）。`targeting` は `'direction' | 'point' | 'self' | 'ally'` のいずれかでなければならない（SHALL）。スキル定義はサーバーとクライアントの両方から参照可能な `shared/` 配下に配置しなければならない（SHALL）。`ally` ターゲティングのスキルは `range` フィールド（味方選択射程 px）を持たなければならない（SHALL）。
 
 #### Scenario: スキル定義の参照
 - **WHEN** サーバーまたはクライアントがスキルID `blade-charge` のメタデータを取得する
-- **THEN** cooldown, range, damage, targeting 等のパラメータが返される
+- **THEN** cooldown, targeting 等のパラメータが返される
+
+#### Scenario: ally ターゲティングスキルの range 参照
+- **WHEN** `aura-heal` のメタデータを取得する
+- **THEN** `range: 400` がスキル定義レベルで取得できる
 
 ### Requirement: useSkill メッセージ
 クライアントは `useSkill` メッセージ（`slot: 'Q' | 'E' | 'R'`, `target: { x: number, y: number }`）をサーバーに送信しなければならない（SHALL）。サーバーは受信時に以下を検証しなければならない（SHALL）：該当スロットにスキルが装備されていること、スロットのクールダウンが 0 であること、ヒーローが生存中であること。検証失敗時はメッセージを無視しなければならない（SHALL）。
@@ -102,3 +106,14 @@ GameHud のスキルスロット表示にクールダウン残り時間を表示
 #### Scenario: GameRoom が heroes を渡す
 - **WHEN** クライアントが `useSkill` メッセージを送信する
 - **THEN** `executeSkill` に `this.state.heroes` と `this.state.projectiles` の両方が渡される
+
+### Requirement: getAllyRange の汎用化
+`executeSkill` 内の ally ターゲット射程取得は `SkillDefinition.range` フィールドを使用しなければならない（SHALL）。effectType に依存してはならない（SHALL）。
+
+#### Scenario: heal スキルの射程取得
+- **WHEN** ally ターゲティングで `aura-heal`（range: 400）のターゲット解決を行う
+- **THEN** `def.range` から 400 が取得される
+
+#### Scenario: buff スキルの射程取得
+- **WHEN** ally ターゲティングで `aura-haste`（range: 400）のターゲット解決を行う
+- **THEN** `def.range` から 400 が取得される

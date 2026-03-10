@@ -1,5 +1,6 @@
-import { ArraySchema, type } from '@colyseus/schema'
+import { ArraySchema, MapSchema, type } from '@colyseus/schema'
 import { CombatEntitySchema } from './CombatEntitySchema.js'
+import { StatusEffectSchema } from './StatusEffectSchema.js'
 
 /**
  * Colyseus state schema for a hero entity.
@@ -29,6 +30,7 @@ export class HeroSchema extends CombatEntitySchema {
   @type('float32') cooldownE: number = 0
   @type('float32') cooldownR: number = 0
   @type('float32') dashTimer: number = 0
+  @type({ map: StatusEffectSchema }) statusEffects = new MapSchema<StatusEffectSchema>()
   // Server-only dash state (not synced to clients — only dashTimer is needed client-side)
   dashDirX: number = 0
   dashDirY: number = 0
