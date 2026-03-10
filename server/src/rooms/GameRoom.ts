@@ -9,9 +9,10 @@ import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL } from '@shared/constan
 import type { HeroType } from '@shared/types'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
-import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerCombatManager.js'
+import { processHeroCombat } from '../game/ServerCombatManager.js'
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
-import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
+import { processTowerCombat } from '../game/ServerTowerSystem.js'
+import { ProjectileTracker } from '../game/ProjectileTracker.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
 import { isHeroInBase, processBaseRegen } from '../game/ServerBaseRegenSystem.js'
 import { checkTowerDestroyed, endMatch, endMatchByDisconnect } from '../game/ServerMatchSystem.js'
@@ -113,6 +114,7 @@ export class GameRoom extends Room<GameRoomState> {
   private playerInputs = new Map<string, InputMessage>()
   private nextWaveTime = MINION_WAVE_INTERVAL
   private minionCtx = createMinionSystemContext()
+  private projectileTracker = new ProjectileTracker()
   private isSoloMode = false
   private dashHitSets = new Map<string, Set<string>>()
 
@@ -178,7 +180,7 @@ export class GameRoom extends Room<GameRoomState> {
       if (!isValidUseSkillMessage(message)) return
       const hero = this.state.heroes.get(client.sessionId)
       if (!hero) return
-      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes)
+      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes, this.projectileTracker)
       if (event) {
         this.broadcast('skill', event)
       }
@@ -301,9 +303,6 @@ export class GameRoom extends Room<GameRoomState> {
 
   onDispose(): void {
     logger.info('Room disposed', { roomId: this.roomId })
-    resetProjectileIdCounter()
-    resetTowerProjectileIdCounter()
-    this.minionCtx = createMinionSystemContext()
   }
 
   private setupTowers(): void {
@@ -381,6 +380,7 @@ export class GameRoom extends Room<GameRoomState> {
         projectiles,
         ProjectileSchema,
         deltaTime,
+        this.projectileTracker,
         minions,
       )
       events.push(...heroEvents)
@@ -434,13 +434,14 @@ export class GameRoom extends Room<GameRoomState> {
         projectiles,
         ProjectileSchema,
         deltaTime,
+        this.projectileTracker,
         minions,
       )
       events.push(...towerEvents)
     })
 
     // 4. Process projectiles
-    const projectileEvents = processProjectiles(projectiles, heroes, towers, deltaTime, minions)
+    const projectileEvents = processProjectiles(projectiles, heroes, towers, deltaTime, this.projectileTracker, minions)
     events.push(...projectileEvents)
 
     // 5. Minion death + XP distribution

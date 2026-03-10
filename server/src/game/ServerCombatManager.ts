@@ -10,12 +10,7 @@ import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
 import { getEffectiveStat } from './StatusEffectSystem.js'
-
-let projectileIdCounter = 0
-
-export function resetProjectileIdCounter(): void {
-  projectileIdCounter = 0
-}
+import type { ProjectileTracker } from './ProjectileTracker.js'
 
 interface CombatTarget {
   id: string
@@ -58,6 +53,7 @@ export function processHeroCombat(
   projectiles: MapSchema<ProjectileSchema>,
   ProjectileSchemaClass: new () => ProjectileSchema,
   deltaTime: number,
+  tracker: ProjectileTracker,
   minions?: MapSchema<MinionSchema>,
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
@@ -150,7 +146,7 @@ export function processHeroCombat(
     } else {
       // Ranged: spawn projectile
       const proj = new ProjectileSchemaClass()
-      proj.id = `proj-${++projectileIdCounter}`
+      proj.id = tracker.nextCombatProjectileId()
       proj.x = hero.x
       proj.y = hero.y
       proj.targetX = target.x

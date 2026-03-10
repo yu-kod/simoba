@@ -4,7 +4,8 @@ import { HeroSchema } from '../schema/HeroSchema.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { MinionSchema } from '../schema/MinionSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
-import { processProjectiles, resetProjectileTracking } from '../game/ServerProjectileSystem.js'
+import { processProjectiles } from '../game/ServerProjectileSystem.js'
+import { ProjectileTracker } from '../game/ProjectileTracker.js'
 
 function createProjectile(overrides: Partial<Record<keyof ProjectileSchema, unknown>> = {}): ProjectileSchema {
   const proj = new ProjectileSchema()
@@ -40,12 +41,13 @@ describe('ServerProjectileSystem', () => {
   let heroes: MapSchema<HeroSchema>
   let towers: MapSchema<TowerSchema>
   let projectiles: MapSchema<ProjectileSchema>
+  let tracker: ProjectileTracker
 
   beforeEach(() => {
     heroes = new MapSchema<HeroSchema>()
     towers = new MapSchema<TowerSchema>()
     projectiles = new MapSchema<ProjectileSchema>()
-    resetProjectileTracking()
+    tracker = new ProjectileTracker()
   })
 
   describe('processProjectiles — homing', () => {
@@ -56,7 +58,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy', speed: 400 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.25)
+      processProjectiles(projectiles, heroes, towers, 0.25, tracker)
 
       expect(proj.x).toBeCloseTo(200, 0) // 100 + 400 * 0.25
       expect(proj.y).toBeCloseTo(100, 0)
@@ -71,14 +73,14 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(proj.id, proj)
 
       // First tick: target at (300, 100)
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
       const x1 = proj.x
 
       // Target moves up
       target.y = 200
 
       // Second tick: projectile should now home toward (300, 200)
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
 
       // Projectile should have a y component now (moving toward new target position)
       expect(proj.y).toBeGreaterThan(100)
@@ -96,7 +98,7 @@ describe('ServerProjectileSystem', () => {
       target.x = 400
       target.y = 200
 
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
 
       expect(proj.targetX).toBe(400)
       expect(proj.targetY).toBe(200)
@@ -112,7 +114,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 145, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.01)
+      processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       expect(bystander.hp).toBe(650) // No damage to bystander
       expect(projectiles.size).toBe(1) // Projectile not consumed
@@ -125,7 +127,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 195, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.01)
+      processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       expect(target.hp).toBe(590) // 650 - 60
       expect(projectiles.size).toBe(0) // Removed after hit
@@ -138,7 +140,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy' })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
 
       expect(projectiles.size).toBe(0)
     })
@@ -148,7 +150,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 100, y: 100, targetId: 'nonexistent' })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
 
       expect(projectiles.size).toBe(0)
     })
@@ -161,7 +163,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 195, y: 100, targetId: 'ally', team: 'blue', damage: 60 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.01)
+      processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       // Friendly fire guard: no damage applied, projectile removed
       expect(ally.hp).toBe(650)
@@ -176,7 +178,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 200, y: 100, targetId: 'enemy', team: 'blue', damage: 60 })
       projectiles.set(proj.id, proj)
 
-      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+      const events = processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       expect(target.hp).toBe(590)
       expect(projectiles.size).toBe(0)
@@ -190,7 +192,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 195, y: 100, targetId: 'enemy', team: 'blue', damage: 60, ownerId: 'shooter' })
       projectiles.set(proj.id, proj)
 
-      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+      const events = processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       expect(events).toHaveLength(1)
       expect(events[0]).toEqual({
@@ -206,7 +208,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 100, y: 100, targetId: 'enemy' })
       projectiles.set(proj.id, proj)
 
-      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+      const events = processProjectiles(projectiles, heroes, towers, 0.01, tracker)
       expect(events).toHaveLength(0)
     })
 
@@ -221,7 +223,7 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(proj1.id, proj1)
       projectiles.set(proj2.id, proj2)
 
-      processProjectiles(projectiles, heroes, towers, 0.01)
+      processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       expect(enemy1.hp).toBe(620) // hit by proj1
       expect(enemy2.hp).toBe(650) // proj2 still in flight
@@ -243,7 +245,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 195, y: 100, targetId: 'tower-red', team: 'blue', damage: 45 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.01)
+      processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       expect(tower.hp).toBe(1455)
       expect(projectiles.size).toBe(0)
@@ -265,7 +267,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createProjectile({ x: 295, y: 100, targetId: 'minion-1', damage: 50 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.01, minions)
+      processProjectiles(projectiles, heroes, towers, 0.01, tracker, minions)
 
       expect(minion.hp).toBe(50)
       expect(projectiles.size).toBe(0)
@@ -295,7 +297,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createLinearProjectile()
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.016)
+      processProjectiles(projectiles, heroes, towers, 0.016, tracker)
 
       expect(proj.x).toBeCloseTo(100 + 800 * 0.016) // 112.8
       expect(proj.y).toBeCloseTo(200)
@@ -307,7 +309,7 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(proj.id, proj)
 
       // One big tick that exceeds maxRange
-      processProjectiles(projectiles, heroes, towers, 0.2) // 800*0.2 = 160 > 100
+      processProjectiles(projectiles, heroes, towers, 0.2, tracker) // 800*0.2 = 160 > 100
 
       expect(projectiles.size).toBe(0)
     })
@@ -316,7 +318,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createLinearProjectile({ maxRange: 600 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.1) // 80px traveled
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker) // 80px traveled
 
       expect(projectiles.size).toBe(1)
     })
@@ -328,7 +330,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createLinearProjectile({ x: 100, y: 200 })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.016)
+      processProjectiles(projectiles, heroes, towers, 0.016, tracker)
 
       expect(enemy.hp).toBe(440) // 500 - 60
       expect(proj.pierceRemaining).toBe(2)
@@ -346,13 +348,13 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(proj.id, proj)
 
       // Tick 1: proj moves to 180 — within 27px of enemy1 at 200? dist=20 < 27, hit!
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
       expect(enemy1.hp).toBe(440)
       expect(proj.pierceRemaining).toBe(2)
 
       // Tick 2-3: proj moves further, reaches enemy2
-      processProjectiles(projectiles, heroes, towers, 0.1) // x=260
-      processProjectiles(projectiles, heroes, towers, 0.1) // x=340, dist to enemy2=10 < 27, hit!
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker) // x=260
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker) // x=340, dist to enemy2=10 < 27, hit!
       expect(enemy2.hp).toBe(440)
       expect(proj.pierceRemaining).toBe(1)
       expect(projectiles.size).toBe(1) // still alive
@@ -369,7 +371,7 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(proj.id, proj)
 
       // Tick: proj moves to 180 — hits enemy1, pierceRemaining becomes 0, removed
-      processProjectiles(projectiles, heroes, towers, 0.1)
+      processProjectiles(projectiles, heroes, towers, 0.1, tracker)
 
       expect(enemy1.hp).toBe(440)
       expect(enemy2.hp).toBe(500) // not hit — projectile removed after 1st
@@ -384,11 +386,11 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(proj.id, proj)
 
       // First tick — hits enemy
-      processProjectiles(projectiles, heroes, towers, 0.005)
+      processProjectiles(projectiles, heroes, towers, 0.005, tracker)
       expect(enemy.hp).toBe(440)
 
       // Second tick — still overlapping, but should NOT hit again
-      processProjectiles(projectiles, heroes, towers, 0.005)
+      processProjectiles(projectiles, heroes, towers, 0.005, tracker)
       expect(enemy.hp).toBe(440) // unchanged
     })
 
@@ -399,7 +401,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createLinearProjectile({ x: 100, y: 200, team: 'blue' })
       projectiles.set(proj.id, proj)
 
-      processProjectiles(projectiles, heroes, towers, 0.016)
+      processProjectiles(projectiles, heroes, towers, 0.016, tracker)
 
       expect(ally.hp).toBe(500)
     })
@@ -411,7 +413,7 @@ describe('ServerProjectileSystem', () => {
       const proj = createLinearProjectile({ x: 100, y: 200, ownerId: 'shooter' })
       projectiles.set(proj.id, proj)
 
-      const events = processProjectiles(projectiles, heroes, towers, 0.016)
+      const events = processProjectiles(projectiles, heroes, towers, 0.016, tracker)
 
       expect(events).toHaveLength(1)
       expect(events[0]).toEqual({
@@ -430,7 +432,7 @@ describe('ServerProjectileSystem', () => {
       projectiles.set(homing.id, homing)
       projectiles.set(linear.id, linear)
 
-      const events = processProjectiles(projectiles, heroes, towers, 0.01)
+      const events = processProjectiles(projectiles, heroes, towers, 0.01, tracker)
 
       // Homing should hit its target
       expect(target.hp).toBe(600)
