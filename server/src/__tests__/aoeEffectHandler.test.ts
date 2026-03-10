@@ -204,4 +204,18 @@ describe('executeSkill — aura-nova integration', () => {
 
     expect(caster.cooldownQ).toBe(16)
   })
+
+  it('should fail when target is beyond cast range', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue', skillSlotQ: 'aura-nova' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    const tracker = new ProjectileTracker()
+    // range is 600, target at (800, 100) → distance 700 > 600
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 800, y: 100 }, new MapSchema<ProjectileSchema>(), heroes, tracker)
+
+    expect(event).toBeNull()
+    expect(caster.cooldownQ).toBe(0) // no CD consumed
+  })
 })

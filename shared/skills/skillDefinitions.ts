@@ -132,6 +132,7 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     id: 'aura-nova',
     targeting: 'point',
     cooldown: 16,
+    range: 600,
     effect: {
       effectType: 'aoe',
       damage: 80,

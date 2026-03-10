@@ -121,6 +121,10 @@ export function executeSkill(
     const resolved = resolveHeroTarget(target, heroes, range, enemyFilter)
     if (!resolved) return null // No enemy in range — skill fails, no CD consumed
     targetHero = resolved
+  } else if (def.targeting === 'point' && range > 0) {
+    const dx = target.x - hero.x
+    const dy = target.y - hero.y
+    if (dx * dx + dy * dy > range * range) return null
   }
 
   // Dispatch to registered effect handler by effectType
