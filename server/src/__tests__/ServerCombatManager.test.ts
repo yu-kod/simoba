@@ -3,6 +3,7 @@ import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
+import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
 import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerCombatManager.js'
 import type { InputMessage } from '@shared/messages'
 
@@ -309,6 +310,85 @@ describe('ServerCombatManager', () => {
         kind: 'attack',
         event: { attackerId: 'attacker', targetId: 'target', attackType: 'ranged', position: { x: 100, y: 100 }, facing: 0.5 },
       })
+    })
+
+    it('should use effective attackDamage with debuff applied (melee)', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackDamage: 50, attackSpeed: 0.8, attackCooldown: 0,
+        heroType: 'BLADE',
+      })
+      // Apply attackDamage debuff
+      const debuff = new StatusEffectSchema()
+      debuff.id = 'aura-weaken'
+      debuff.buffType = 'attackDamage'
+      debuff.value = -15
+      debuff.remainingDuration = 4
+      debuff.isDebuff = true
+      attacker.statusEffects.set('aura-weaken', debuff)
+
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(target.hp).toBe(615) // 650 - (50 - 15) = 650 - 35
+      expect(events[1]).toEqual({
+        kind: 'damage',
+        event: { targetId: 'target', amount: 35, sourceId: 'attacker' },
+      })
+    })
+
+    it('should clamp effective attackDamage to 0 when debuff exceeds base', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 22,
+        attackRange: 60, attackDamage: 10, attackSpeed: 0.8, attackCooldown: 0,
+        heroType: 'BLADE',
+      })
+      const debuff = new StatusEffectSchema()
+      debuff.id = 'aura-weaken'
+      debuff.buffType = 'attackDamage'
+      debuff.value = -30
+      debuff.remainingDuration = 4
+      debuff.isDebuff = true
+      attacker.statusEffects.set('aura-weaken', debuff)
+
+      const target = createHero('target', { x: 160, y: 100, team: 'red', radius: 22, hp: 650 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(target.hp).toBe(650) // 0 damage
+    })
+
+    it('should use effective attackDamage for ranged projectile damage', () => {
+      const attacker = createHero('attacker', {
+        x: 100, y: 100, team: 'blue', radius: 18,
+        attackRange: 300, attackDamage: 45, attackSpeed: 1.0, attackCooldown: 0,
+        heroType: 'BOLT',
+      })
+      const debuff = new StatusEffectSchema()
+      debuff.id = 'aura-weaken'
+      debuff.buffType = 'attackDamage'
+      debuff.value = -10
+      debuff.remainingDuration = 4
+      debuff.isDebuff = true
+      attacker.statusEffects.set('aura-weaken', debuff)
+
+      const target = createHero('target', { x: 350, y: 100, team: 'red', radius: 22 })
+      heroes.set('attacker', attacker)
+      heroes.set('target', target)
+
+      const input = createInput({ attackTargetId: 'target' })
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+
+      expect(projectiles.size).toBe(1)
+      const proj = Array.from(projectiles.values())[0]!
+      expect(proj.damage).toBe(35) // 45 - 10
     })
 
     it('should return empty events when no attack fires', () => {
