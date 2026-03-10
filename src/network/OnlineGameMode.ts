@@ -376,6 +376,10 @@ export class OnlineGameMode implements GameMode {
     this.room?.send('useSkill', { slot, target })
   }
 
+  sendMaxLevel(): void {
+    this.room?.send('maxLevel')
+  }
+
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void {
     this.serverHeroUpdateCallbacks = [...this.serverHeroUpdateCallbacks, callback]
   }

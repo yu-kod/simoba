@@ -36,6 +36,7 @@ import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.
 import { tickBuffs } from '../game/StatusEffectSystem.js'
 import { tickZones } from '../game/ServerZoneSystem.js'
 import { processDashDamage, cleanupDashHitSets } from '../game/ServerDashDamageSystem.js'
+import { applyMaxLevel } from '../game/maxLevelUtils.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { TALENT_TREES } from '@shared/talents/index'
 import type { SkillSlot } from '@shared/talents/types'
@@ -173,6 +174,15 @@ export class GameRoom extends Room<GameRoomState> {
       if (!hero) return
       const isInBase = isHeroInBase(hero)
       unequipSkillSlot(hero, message.slot, isInBase)
+    })
+
+    // Max level handler (solo mode only)
+    this.onMessage('maxLevel', (client) => {
+      if (!this.isSoloMode) return
+      if (this.state.matchPhase !== 'playing') return
+      const hero = this.state.heroes.get(client.sessionId)
+      if (!hero) return
+      applyMaxLevel(hero)
     })
 
     // Skill activation handler

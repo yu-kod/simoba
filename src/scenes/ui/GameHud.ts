@@ -20,6 +20,16 @@ const TALENT_BUTTON_COLOR = 0x2c3e50
 const TALENT_BUTTON_BORDER = 0xf39c12
 const BADGE_COLOR = 0xe74c3c
 
+const MAX_LEVEL_BUTTON_WIDTH = 60
+const MAX_LEVEL_BUTTON_HEIGHT = 24
+const MAX_LEVEL_BUTTON_COLOR = 0x8e44ad
+const MAX_LEVEL_BUTTON_BORDER = 0xbb6bd9
+
+export interface GameHudOptions {
+  readonly onTalentButtonClick: () => void
+  readonly onMaxLevelClick?: () => void
+}
+
 /**
  * Base design dimensions for HUD layout.
  * computeHudLayout returns positions in this 1280x720 coordinate space.
@@ -48,6 +58,7 @@ export class GameHud {
   private readonly scene: Phaser.Scene
   private readonly cameraZoom: number
   private readonly onTalentButtonClick: () => void
+  private readonly onMaxLevelClick?: () => void
 
   // Talent button
   private readonly talentButtonGfx: Phaser.GameObjects.Graphics
@@ -57,14 +68,21 @@ export class GameHud {
   private talentButtonY: number
   private lastBadgeCount = 0
 
+  // Max level button (solo mode only)
+  private readonly maxLevelGfx?: Phaser.GameObjects.Graphics
+  private readonly maxLevelText?: Phaser.GameObjects.Text
+  private maxLevelButtonX = 0
+  private maxLevelButtonY = 0
+
   // Track current slot config to avoid unnecessary rebuilds
   private currentSlotKeys: string[] = []
 
-  constructor(scene: Phaser.Scene, cameraZoom: number, onTalentButtonClick: () => void) {
+  constructor(scene: Phaser.Scene, cameraZoom: number, options: GameHudOptions) {
     this.scene = scene
     this.scale = createUiScale(cameraZoom)
     this.cameraZoom = cameraZoom
-    this.onTalentButtonClick = onTalentButtonClick
+    this.onTalentButtonClick = options.onTalentButtonClick
+    this.onMaxLevelClick = options.onMaxLevelClick
 
     // Initial slots: 3 empty (Q, E, R)
     const initialSlots: SkillSlotConfig[] = [
@@ -159,6 +177,32 @@ export class GameHud {
     this.talentBadgeText.setResolution(cameraZoom)
     this.talentBadgeText.setVisible(false)
     this.container.add(this.talentBadgeText)
+
+    // Max level button (solo mode debug)
+    if (this.onMaxLevelClick) {
+      this.maxLevelButtonX = this.talentButtonX - MAX_LEVEL_BUTTON_WIDTH - 8
+      this.maxLevelButtonY = this.talentButtonY + (TALENT_BUTTON_SIZE - MAX_LEVEL_BUTTON_HEIGHT) / 2
+
+      this.maxLevelGfx = scene.add.graphics()
+      this.drawMaxLevelButton()
+      this.container.add(this.maxLevelGfx)
+
+      this.maxLevelText = createText(
+        scene,
+        this.maxLevelButtonX + MAX_LEVEL_BUTTON_WIDTH / 2,
+        this.maxLevelButtonY + MAX_LEVEL_BUTTON_HEIGHT / 2,
+        'MAX LV',
+        {
+          fontSize: this.scale.fontSize(10),
+          color: '#FFFFFF',
+          fontStyle: 'bold',
+          align: 'center',
+        },
+      )
+      this.maxLevelText.setOrigin(0.5)
+      this.maxLevelText.setResolution(cameraZoom)
+      this.container.add(this.maxLevelText)
+    }
   }
 
   get gameObject(): Phaser.GameObjects.Container {
@@ -214,6 +258,27 @@ export class GameHud {
     this.talentButtonGfx.fillRect(cx - barH / 2, cy - r * 0.35, barH, r * 0.7)
   }
 
+  private drawMaxLevelButton(): void {
+    if (!this.maxLevelGfx) return
+    this.maxLevelGfx.clear()
+    this.maxLevelGfx.fillStyle(MAX_LEVEL_BUTTON_COLOR, 0.85)
+    this.maxLevelGfx.fillRoundedRect(
+      this.maxLevelButtonX,
+      this.maxLevelButtonY,
+      MAX_LEVEL_BUTTON_WIDTH,
+      MAX_LEVEL_BUTTON_HEIGHT,
+      4,
+    )
+    this.maxLevelGfx.lineStyle(1.5, MAX_LEVEL_BUTTON_BORDER, 0.9)
+    this.maxLevelGfx.strokeRoundedRect(
+      this.maxLevelButtonX,
+      this.maxLevelButtonY,
+      MAX_LEVEL_BUTTON_WIDTH,
+      MAX_LEVEL_BUTTON_HEIGHT,
+      4,
+    )
+  }
+
   private updateTalentBadge(talentPoints: number): void {
     if (talentPoints === this.lastBadgeCount) return
     this.lastBadgeCount = talentPoints
@@ -232,7 +297,7 @@ export class GameHud {
     }
   }
 
-  /** Handle scene-level pointer click — returns true if talent button was hit. */
+  /** Handle scene-level pointer click — returns true if a HUD button was hit. */
   handlePointerDown(pointer: Phaser.Input.Pointer): boolean {
     const localX = pointer.x / this.cameraZoom
     const localY = pointer.y / this.cameraZoom
@@ -246,6 +311,19 @@ export class GameHud {
     if (dx * dx + dy * dy <= r * r) {
       this.onTalentButtonClick()
       return true
+    }
+
+    // Max level button hit test (rectangle)
+    if (this.onMaxLevelClick) {
+      if (
+        localX >= this.maxLevelButtonX
+        && localX <= this.maxLevelButtonX + MAX_LEVEL_BUTTON_WIDTH
+        && localY >= this.maxLevelButtonY
+        && localY <= this.maxLevelButtonY + MAX_LEVEL_BUTTON_HEIGHT
+      ) {
+        this.onMaxLevelClick()
+        return true
+      }
     }
     return false
   }

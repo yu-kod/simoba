@@ -30,6 +30,7 @@ export class LobbyScene extends Phaser.Scene {
   private lobbyState: LobbyState = 'menu'
   private networkClient: NetworkClient | null = null
   private selectedHeroType: HeroType = 'BLADE'
+  private isSoloMode = false
   private heroButtonGraphics: Map<HeroType, Phaser.GameObjects.Graphics> = new Map()
   private statusText!: Phaser.GameObjects.Text
   private errorText!: Phaser.GameObjects.Text
@@ -156,6 +157,7 @@ export class LobbyScene extends Phaser.Scene {
     if (this.lobbyState !== 'menu') return
 
     this.setState('connecting')
+    this.isSoloMode = true
     this.networkClient = new NetworkClient()
 
     try {
@@ -176,6 +178,7 @@ export class LobbyScene extends Phaser.Scene {
     if (this.lobbyState !== 'menu') return
 
     this.setState('connecting')
+    this.isSoloMode = false
     this.networkClient = new NetworkClient()
 
     try {
@@ -223,7 +226,7 @@ export class LobbyScene extends Phaser.Scene {
         ? { x: localHero.x as number, y: localHero.y as number }
         : undefined
 
-      this.scene.start('GameScene', { gameMode, localTeam, localPosition, heroType: this.selectedHeroType })
+      this.scene.start('GameScene', { gameMode, localTeam, localPosition, heroType: this.selectedHeroType, isSoloMode: this.isSoloMode })
     })
   }
 

@@ -56,6 +56,7 @@ export class GameScene extends Phaser.Scene {
   private localTeam: Team = 'blue'
   private localSpawnPosition: Position = { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
   private localHeroType: HeroType = 'BLADE'
+  private isSoloMode = false
 
   // Match end state
   private matchEnded = false
@@ -71,7 +72,7 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' })
   }
 
-  init(data?: { gameMode?: GameMode; localTeam?: Team; localPosition?: Position; heroType?: HeroType }): void {
+  init(data?: { gameMode?: GameMode; localTeam?: Team; localPosition?: Position; heroType?: HeroType; isSoloMode?: boolean }): void {
     if (!data?.gameMode) {
       logger.error('No gameMode provided, returning to LobbyScene')
       this.scene.start('LobbyScene')
@@ -81,6 +82,7 @@ export class GameScene extends Phaser.Scene {
     this.localTeam = data.localTeam ?? 'blue'
     this.localSpawnPosition = data.localPosition ?? { x: GAME_WIDTH / 4, y: WORLD_HEIGHT / 2 }
     this.localHeroType = data.heroType ?? 'BLADE'
+    this.isSoloMode = data.isSoloMode ?? false
 
     // Reset state from previous game (Phaser reuses scene instances — property initializers only run in constructor)
     this.matchEnded = false
@@ -164,8 +166,9 @@ export class GameScene extends Phaser.Scene {
     this.respawnText.setVisible(false)
 
     // Game HUD (skill bar, level badge, XP bar, HP bar)
-    this.gameHud = new GameHud(this, CAMERA_ZOOM, () => {
-      this.talentTreeOverlay.toggle()
+    this.gameHud = new GameHud(this, CAMERA_ZOOM, {
+      onTalentButtonClick: () => this.talentTreeOverlay.toggle(),
+      onMaxLevelClick: this.isSoloMode ? () => this.networkBridge.sendMaxLevel() : undefined,
     })
 
     // Talent tree overlay

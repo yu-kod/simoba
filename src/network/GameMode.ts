@@ -106,6 +106,9 @@ export interface GameMode {
   /** Send skill activation */
   sendUseSkill(slot: string, target: { x: number; y: number }): void
 
+  /** Send max level request (solo mode debug) */
+  sendMaxLevel(): void
+
   /** Register callback for server hero state sync */
   onServerHeroUpdate(callback: (state: ServerHeroState) => void): void
 

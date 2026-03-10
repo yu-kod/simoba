@@ -115,6 +115,10 @@ export class NetworkBridge {
     this.gameMode.sendUseSkill(slot, target)
   }
 
+  sendMaxLevel(): void {
+    this.gameMode.sendMaxLevel()
+  }
+
   dispose(): void {
     this.gameMode.dispose()
   }
