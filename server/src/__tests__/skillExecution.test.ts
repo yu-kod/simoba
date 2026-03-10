@@ -104,6 +104,12 @@ describe('executeSkill', () => {
     expect(hero.dashDamage).toBe(80)
   })
 
+  it('should not set dashInvulnerable for blade-charge (non-invulnerable dash)', () => {
+    const hero = createHero()
+    executeSkill(hero, 'player-1', 'Q', { x: 400, y: 200 }, new MapSchema<ProjectileSchema>(), new MapSchema<HeroSchema>(), tracker)
+    expect(hero.dashInvulnerable).toBe(false)
+  })
+
   it('should reject when hero is dead', () => {
     const hero = createHero()
     hero.dead = true
@@ -162,6 +168,12 @@ describe('executeSkill — bolt-dash', () => {
     const hero = createHero({ hp: 500, maxHp: 500, heroType: 'BOLT', skillSlotQ: 'bolt-dash' })
     executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 }, new MapSchema<ProjectileSchema>(), new MapSchema<HeroSchema>(), tracker)
     expect(hero.cooldownQ).toBe(6)
+  })
+
+  it('should not set dashInvulnerable for bolt-dash (non-invulnerable dash)', () => {
+    const hero = createHero({ hp: 500, maxHp: 500, heroType: 'BOLT', skillSlotQ: 'bolt-dash' })
+    executeSkill(hero, 'bolt-1', 'Q', { x: 400, y: 200 }, new MapSchema<ProjectileSchema>(), new MapSchema<HeroSchema>(), tracker)
+    expect(hero.dashInvulnerable).toBe(false)
   })
 })
 
