@@ -196,6 +196,18 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       },
     },
   },
+  'blade-block': {
+    id: 'blade-block',
+    targeting: 'self',
+    cooldown: 10,
+    effect: {
+      effectType: 'buff',
+      buffType: 'blockAmount',
+      value: 30,
+      duration: 3,
+      isDebuff: false,
+    },
+  },
   'blade-fortify': {
     id: 'blade-fortify',
     targeting: 'self',

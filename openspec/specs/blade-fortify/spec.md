@@ -11,8 +11,8 @@ The system SHALL define `blade-fortify` as a self-targeting buff skill with cool
 - **WHEN** Fortify is activated while an existing Fortify buff is active
 - **THEN** the buff duration SHALL be refreshed to 4s (not stacked)
 
-### Requirement: Damage reduction mechanic
-HeroSchema.applyDamage SHALL consult `damageReduction` status effects and reduce incoming damage accordingly.
+### Requirement: Damage mitigation pipeline
+HeroSchema.applyDamage SHALL apply damage mitigation in order: damageReduction (percentage) → blockAmount (flat subtraction) → clamp to 0.
 
 #### Scenario: Damage with active Fortify
 - **WHEN** a hero with 30% damageReduction takes 100 damage

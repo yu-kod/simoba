@@ -42,14 +42,16 @@ export class HeroSchema extends CombatEntitySchema {
   @type('boolean') isBot: boolean = false
 
   /**
-   * Override to apply damageReduction status effects before subtracting HP.
-   * damageReduction value is a fraction (e.g. 0.3 = 30% reduction).
+   * Override to apply damageReduction and blockAmount status effects before subtracting HP.
+   * Pipeline: raw → damageReduction (%) → blockAmount (flat) → clamp to 0.
    */
   override applyDamage(amount: number): void {
     if (this.dead) return
     const reduction = getStatusEffectValue(this, 'damageReduction')
     const reduced = reduction > 0 ? amount * (1 - Math.min(reduction, 1)) : amount
-    super.applyDamage(reduced)
+    const block = getStatusEffectValue(this, 'blockAmount')
+    const final = block > 0 ? Math.max(0, reduced - block) : reduced
+    super.applyDamage(final)
   }
   // Server-only: not synced to clients (no @type decorator)
   lastAttackerSessionId: string = ''
