@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
-import { getStatusEffectValue, tickBuffs } from '../game/StatusEffectSystem.js'
+import { getStatusEffectValue, getEffectiveStat, tickBuffs } from '../game/StatusEffectSystem.js'
 
 function createHero(): HeroSchema {
   const hero = new HeroSchema()
@@ -70,6 +70,37 @@ describe('getStatusEffectValue', () => {
     const hero = createHero()
     addEffect(hero, 'aura-haste', 'speed', 80, 3)
     expect(getStatusEffectValue(hero, 'attackSpeed')).toBe(0)
+  })
+})
+
+describe('getEffectiveStat', () => {
+  it('should return base value when no effects exist', () => {
+    const hero = createHero()
+    expect(getEffectiveStat(200, hero, 'speed')).toBe(200)
+  })
+
+  it('should apply buff to base value', () => {
+    const hero = createHero()
+    addEffect(hero, 'aura-haste', 'speed', 80, 3)
+    expect(getEffectiveStat(200, hero, 'speed')).toBe(280)
+  })
+
+  it('should apply debuff to base value', () => {
+    const hero = createHero()
+    addEffect(hero, 'aura-weaken', 'attackDamage', -15, 4, true)
+    expect(getEffectiveStat(50, hero, 'attackDamage')).toBe(35)
+  })
+
+  it('should clamp to 0 when debuff exceeds base', () => {
+    const hero = createHero()
+    addEffect(hero, 'aura-weaken', 'attackDamage', -60, 4, true)
+    expect(getEffectiveStat(50, hero, 'attackDamage')).toBe(0)
+  })
+
+  it('should not return negative values', () => {
+    const hero = createHero()
+    addEffect(hero, 'massive-debuff', 'speed', -300, 2, true)
+    expect(getEffectiveStat(200, hero, 'speed')).toBe(0)
   })
 })
 

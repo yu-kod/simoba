@@ -38,13 +38,13 @@ export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | Heal
 
 // ── Common fields shared by ALL skills ────────────────────────
 
-export type SkillTargeting = 'direction' | 'point' | 'self' | 'ally'
+export type SkillTargeting = 'direction' | 'point' | 'self' | 'ally' | 'enemy'
 
 export interface SkillDefinition {
   readonly id: string
   readonly targeting: SkillTargeting
   readonly cooldown: number       // seconds
-  readonly range?: number         // ally targeting range (px) — used by ally-targeting skills
+  readonly range?: number         // target selection range (px) — used by ally/enemy-targeting skills
   readonly effect: SkillEffectParams
 }
 
@@ -109,6 +109,19 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       value: 80,
       duration: 3,
       isDebuff: false,
+    },
+  },
+  'aura-weaken': {
+    id: 'aura-weaken',
+    targeting: 'enemy',
+    cooldown: 14,
+    range: 500,
+    effect: {
+      effectType: 'buff',
+      buffType: 'attackDamage',
+      value: -15,
+      duration: 4,
+      isDebuff: true,
     },
   },
 }

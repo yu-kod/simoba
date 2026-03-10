@@ -9,6 +9,7 @@ import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
+import { getEffectiveStat } from './StatusEffectSystem.js'
 
 let projectileIdCounter = 0
 
@@ -122,9 +123,11 @@ export function processHeroCombat(
     const heroType = hero.heroType as HeroType
     const def = HERO_DEFINITIONS[heroType]
 
+    const effectiveAttack = getEffectiveStat(hero.attackDamage, hero, 'attackDamage')
+
     if (def.projectileSpeed === 0) {
       // Melee: immediate damage
-      applyDamageToTarget(hero.attackTargetId, hero.attackDamage, heroes, towers, minions, heroId)
+      applyDamageToTarget(hero.attackTargetId, effectiveAttack, heroes, towers, minions, heroId)
 
       events.push({
         kind: 'attack',
@@ -140,7 +143,7 @@ export function processHeroCombat(
         kind: 'damage',
         event: {
           targetId: hero.attackTargetId,
-          amount: hero.attackDamage,
+          amount: effectiveAttack,
           sourceId: heroId,
         },
       })
@@ -154,7 +157,7 @@ export function processHeroCombat(
       proj.targetY = target.y
       proj.targetId = hero.attackTargetId
       proj.speed = def.projectileSpeed
-      proj.damage = hero.attackDamage
+      proj.damage = effectiveAttack
       proj.ownerId = heroId
       proj.team = hero.team
       projectiles.set(proj.id, proj)

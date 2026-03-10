@@ -15,6 +15,14 @@ export function getStatusEffectValue(hero: HeroSchema, buffType: string): number
 }
 
 /**
+ * Calculate the effective stat value after applying all matching status effects.
+ * Clamps to 0 to prevent negative stats.
+ */
+export function getEffectiveStat(base: number, hero: HeroSchema, buffType: string): number {
+  return Math.max(0, base + getStatusEffectValue(hero, buffType))
+}
+
+/**
  * Tick down all status effect durations for a hero.
  * Removes expired effects (remainingDuration <= 0).
  */

@@ -12,7 +12,7 @@ export interface SkillExecutionContext {
   readonly targetPosition: { readonly x: number; readonly y: number }
   readonly projectiles: MapSchema<ProjectileSchema>
   readonly heroes: MapSchema<HeroSchema>
-  /** Resolved target for ally-targeting skills (falls back to caster if no ally in range). */
+  /** Resolved target for ally/enemy-targeting skills. */
   readonly targetHero?: HeroSchema
 }
 

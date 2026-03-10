@@ -2,7 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { SkillEvent } from '@shared/messages'
-import { getSkillDefinition, type SkillDefinition } from '@shared/skills/skillDefinitions'
+import { getSkillDefinition } from '@shared/skills/skillDefinitions'
 import { getEffectHandler } from './skills/skillEffectRegistry.js'
 import { createServerLogger } from '@shared/logging'
 
@@ -45,24 +45,23 @@ function normalizeDirection(
 }
 
 /**
- * Resolve the target hero for ally-targeting skills.
- * Finds the nearest same-team alive hero within range of the click position.
- * Falls back to the caster if no ally is in range.
+ * Resolve the target hero for ally/enemy-targeting skills.
+ * Finds the nearest hero matching `filter` within `range` of the click position.
+ * Returns null if no matching hero is in range.
  */
-function resolveAllyTarget(
+export function resolveHeroTarget(
   hero: HeroSchema,
   casterId: string,
   target: { x: number; y: number },
   heroes: MapSchema<HeroSchema>,
   range: number,
-): HeroSchema {
+  filter: (candidate: HeroSchema, candidateId: string) => boolean,
+): HeroSchema | null {
   let bestHero: HeroSchema | null = null
   let bestDistSq = Infinity
 
   heroes.forEach((candidate, sid) => {
-    if (sid === casterId) return
-    if (candidate.team !== hero.team) return
-    if (candidate.dead) return
+    if (!filter(candidate, sid)) return
 
     const dx = candidate.x - target.x
     const dy = candidate.y - target.y
@@ -76,12 +75,7 @@ function resolveAllyTarget(
   if (bestHero && bestDistSq <= range * range) {
     return bestHero
   }
-  return hero
-}
-
-/** Extract range from skill definition for ally targeting. */
-function getAllyRange(def: SkillDefinition): number {
-  return def.range ?? 0
+  return null
 }
 
 /**
@@ -116,10 +110,17 @@ export function executeSkill(
   // Calculate direction from hero to target
   const direction = normalizeDirection(hero.x, hero.y, target.x, target.y)
 
-  // Resolve ally target if targeting type is 'ally'
+  // Resolve target hero for ally/enemy targeting
   let targetHero: HeroSchema | undefined
+  const range = def.range ?? 0
   if (def.targeting === 'ally' && heroes) {
-    targetHero = resolveAllyTarget(hero, sessionId, target, heroes, getAllyRange(def))
+    const allyFilter = (c: HeroSchema, sid: string) => sid !== sessionId && c.team === hero.team && !c.dead
+    targetHero = resolveHeroTarget(hero, sessionId, target, heroes, range, allyFilter) ?? hero
+  } else if (def.targeting === 'enemy' && heroes) {
+    const enemyFilter = (c: HeroSchema) => c.team !== hero.team && !c.dead
+    const resolved = resolveHeroTarget(hero, sessionId, target, heroes, range, enemyFilter)
+    if (!resolved) return null // No enemy in range — skill fails, no CD consumed
+    targetHero = resolved
   }
 
   // Dispatch to registered effect handler by effectType

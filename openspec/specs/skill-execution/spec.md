@@ -7,7 +7,7 @@
 ## Requirements
 
 ### Requirement: スキルメタデータ定義
-各スキルの共通パラメータ（`cooldown`, `range`, `targeting`）を共有定数テーブルとして定義しなければならない（SHALL）。`targeting` は `'direction' | 'point' | 'self' | 'ally'` のいずれかでなければならない（SHALL）。スキル定義はサーバーとクライアントの両方から参照可能な `shared/` 配下に配置しなければならない（SHALL）。`ally` ターゲティングのスキルは `range` フィールド（味方選択射程 px）を持たなければならない（SHALL）。
+各スキルの共通パラメータ（`cooldown`, `range`, `targeting`）を共有定数テーブルとして定義しなければならない（SHALL）。`targeting` は `'direction' | 'point' | 'self' | 'ally' | 'enemy'` のいずれかでなければならない（SHALL）。スキル定義はサーバーとクライアントの両方から参照可能な `shared/` 配下に配置しなければならない（SHALL）。`ally` および `enemy` ターゲティングのスキルは `range` フィールド（ターゲット選択射程 px）を持たなければならない（SHALL）。
 
 #### Scenario: スキル定義の参照
 - **WHEN** サーバーまたはクライアントがスキルID `blade-charge` のメタデータを取得する
@@ -16,6 +16,10 @@
 #### Scenario: ally ターゲティングスキルの range 参照
 - **WHEN** `aura-heal` のメタデータを取得する
 - **THEN** `range: 400` がスキル定義レベルで取得できる
+
+#### Scenario: enemy ターゲティングスキルの range 参照
+- **WHEN** `aura-weaken` のメタデータを取得する
+- **THEN** `range: 500` がスキル定義レベルで取得できる
 
 ### Requirement: useSkill メッセージ
 クライアントは `useSkill` メッセージ（`slot: 'Q' | 'E' | 'R'`, `target: { x: number, y: number }`）をサーバーに送信しなければならない（SHALL）。サーバーは受信時に以下を検証しなければならない（SHALL）：該当スロットにスキルが装備されていること、スロットのクールダウンが 0 であること、ヒーローが生存中であること。検証失敗時はメッセージを無視しなければならない（SHALL）。
@@ -90,7 +94,7 @@ GameHud のスキルスロット表示にクールダウン残り時間を表示
 - **THEN** Q スロットが通常表示に戻り、秒数表示が消える
 
 ### Requirement: SkillExecutionContext に heroes と targetHero を追加
-`SkillExecutionContext` に `heroes: MapSchema<HeroSchema>` と `targetHero?: HeroSchema` フィールドを追加しなければならない（SHALL）。`heroes` はルーム内の全ヒーロー参照で、味方ターゲット検索に使用されなければならない（SHALL）。`targetHero` は ally ターゲティングで解決された対象ヒーローでなければならない（SHALL）。
+`SkillExecutionContext` に `heroes: MapSchema<HeroSchema>` と `targetHero?: HeroSchema` フィールドを追加しなければならない（SHALL）。`heroes` はルーム内の全ヒーロー参照で、味方・敵ターゲット検索に使用されなければならない（SHALL）。`targetHero` は ally または enemy ターゲティングで解決された対象ヒーローでなければならない（SHALL）。
 
 #### Scenario: heroes が渡される
 - **WHEN** `executeSkill` が呼ばれる
@@ -117,3 +121,18 @@ GameHud のスキルスロット表示にクールダウン残り時間を表示
 #### Scenario: buff スキルの射程取得
 - **WHEN** ally ターゲティングで `aura-haste`（range: 400）のターゲット解決を行う
 - **THEN** `def.range` から 400 が取得される
+
+### Requirement: resolveEnemyTarget
+`executeSkill` 内で `targeting: 'enemy'` のスキルの場合、クリック座標から最寄りの **敵チーム** 生存ヒーローを `range` 以内で検索しなければならない（SHALL）。射程内に敵がいない場合は `null` を返さなければならない（SHALL）。`resolveEnemyTarget` で解決された敵ヒーローは `SkillExecutionContext.targetHero` として渡されなければならない（SHALL）。`targetHero` が `null`（射程外）の場合、`executeSkill` は `null` を返し、クールダウンは消費されない（SHALL NOT）。
+
+#### Scenario: 敵が射程内にいる
+- **WHEN** enemy ターゲティングで敵ヒーローがクリック位置から range 以内にいる
+- **THEN** その敵ヒーローが `targetHero` としてエフェクトハンドラに渡される
+
+#### Scenario: 敵が射程外
+- **WHEN** enemy ターゲティングで敵ヒーローがクリック位置から range 外にいる
+- **THEN** `executeSkill` は `null` を返し、クールダウンは消費されない
+
+#### Scenario: 味方を敵として選択しない
+- **WHEN** enemy ターゲティングで味方ヒーローのみがクリック位置付近にいる
+- **THEN** `resolveEnemyTarget` は `null` を返し、スキルが不発になる

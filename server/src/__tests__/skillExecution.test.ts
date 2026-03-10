@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
-import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.js'
+import { executeSkill, tickCooldowns, resolveHeroTarget } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
 
@@ -406,6 +406,192 @@ describe('executeSkill — aura-haste', () => {
 
     executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, undefined, heroes)
     expect(caster.cooldownQ).toBe(12)
+  })
+})
+
+describe('getSkillDefinition — aura-weaken', () => {
+  it('should return aura-weaken definition with correct params', () => {
+    const def = getSkillDefinition('aura-weaken')
+    expect(def).toBeDefined()
+    expect(def!.id).toBe('aura-weaken')
+    expect(def!.targeting).toBe('enemy')
+    expect(def!.cooldown).toBe(14)
+    expect(def!.range).toBe(500)
+    expect(def!.effect.effectType).toBe('buff')
+    if (def!.effect.effectType === 'buff') {
+      expect(def!.effect.buffType).toBe('attackDamage')
+      expect(def!.effect.value).toBe(-15)
+      expect(def!.effect.duration).toBe(4)
+      expect(def!.effect.isDebuff).toBe(true)
+    }
+  })
+})
+
+describe('resolveHeroTarget', () => {
+  it('should find nearest enemy within range', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue' })
+    const enemy = createHero({ x: 300, y: 100, team: 'red' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
+    const result = resolveHeroTarget(caster, 'caster-1', { x: 300, y: 100 }, heroes, 500, filter)
+    expect(result).toBe(enemy)
+  })
+
+  it('should find nearest ally (not self) within range', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue' })
+    const ally = createHero({ x: 200, y: 100, team: 'blue' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    const filter = (c: HeroSchema, sid: string) => sid !== 'caster-1' && c.team === caster.team && !c.dead
+    const result = resolveHeroTarget(caster, 'caster-1', { x: 200, y: 100 }, heroes, 400, filter)
+    expect(result).toBe(ally)
+  })
+
+  it('should return null when target is out of range', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue' })
+    const enemy = createHero({ x: 800, y: 100, team: 'red' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    // Click near caster — distance from click (100,100) to enemy (800,100) = 700 > range 500
+    const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
+    const result = resolveHeroTarget(caster, 'caster-1', { x: 100, y: 100 }, heroes, 500, filter)
+    expect(result).toBeNull()
+  })
+
+  it('should not select allies when filtering for enemies', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue' })
+    const ally = createHero({ x: 200, y: 100, team: 'blue' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
+    const result = resolveHeroTarget(caster, 'caster-1', { x: 200, y: 100 }, heroes, 500, filter)
+    expect(result).toBeNull()
+  })
+
+  it('should exclude dead heroes', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue' })
+    const enemy = createHero({ x: 200, y: 100, team: 'red', dead: true })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
+    const result = resolveHeroTarget(caster, 'caster-1', { x: 200, y: 100 }, heroes, 500, filter)
+    expect(result).toBeNull()
+  })
+
+  it('should pick nearest when multiple candidates exist', () => {
+    const caster = createHero({ x: 100, y: 100, team: 'blue' })
+    const farEnemy = createHero({ x: 400, y: 100, team: 'red' })
+    const nearEnemy = createHero({ x: 250, y: 100, team: 'red' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('far-1', farEnemy)
+    heroes.set('near-1', nearEnemy)
+
+    const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
+    const result = resolveHeroTarget(caster, 'caster-1', { x: 300, y: 100 }, heroes, 500, filter)
+    expect(result).toBe(nearEnemy)
+  })
+})
+
+describe('executeSkill — aura-weaken', () => {
+  function createAuraWeakenHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'AURA',
+      team: 'blue',
+      hp: 500,
+      maxHp: 500,
+      skillSlotQ: 'aura-weaken',
+      ...overrides,
+    })
+  }
+
+  it('should apply debuff to enemy within range', () => {
+    const caster = createAuraWeakenHero({ x: 100, y: 100 })
+    const enemy = createHero({ x: 300, y: 100, team: 'red' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 300, y: 100 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('aura-weaken')
+
+    const effect = enemy.statusEffects.get('aura-weaken')
+    expect(effect).toBeDefined()
+    expect(effect!.buffType).toBe('attackDamage')
+    expect(effect!.value).toBe(-15)
+    expect(effect!.remainingDuration).toBe(4)
+    expect(effect!.isDebuff).toBe(true)
+  })
+
+  it('should fail and not consume CD when enemy is out of range', () => {
+    const caster = createAuraWeakenHero({ x: 100, y: 100 })
+    const enemy = createHero({ x: 800, y: 100, team: 'red' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    // Click near caster — distance from click (100,100) to enemy (800,100) = 700 > range 500
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, undefined, heroes)
+    expect(event).toBeNull()
+    expect(caster.cooldownQ).toBe(0) // CD not consumed
+  })
+
+  it('should fail when only allies are nearby', () => {
+    const caster = createAuraWeakenHero({ x: 100, y: 100 })
+    const ally = createHero({ x: 200, y: 100, team: 'blue' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 200, y: 100 }, undefined, heroes)
+    expect(event).toBeNull()
+    expect(caster.cooldownQ).toBe(0)
+  })
+
+  it('should set cooldown to 14 seconds on success', () => {
+    const caster = createAuraWeakenHero({ x: 100, y: 100 })
+    const enemy = createHero({ x: 200, y: 100, team: 'red' })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 200, y: 100 }, undefined, heroes)
+    expect(caster.cooldownQ).toBe(14)
+  })
+
+  it('should not target dead enemies', () => {
+    const caster = createAuraWeakenHero({ x: 100, y: 100 })
+    const enemy = createHero({ x: 200, y: 100, team: 'red', dead: true })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 200, y: 100 }, undefined, heroes)
+    expect(event).toBeNull()
+    expect(caster.cooldownQ).toBe(0)
   })
 })
 
