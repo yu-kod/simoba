@@ -163,3 +163,28 @@ describe('HeroSchema — applyDamage with blockAmount', () => {
     expect(hero.hp).toBe(400)
   })
 })
+
+describe('HeroSchema — applyDamage with dashInvulnerable', () => {
+  it('should ignore damage when dashInvulnerable is true', () => {
+    const hero = createHero(500)
+    hero.dashInvulnerable = true
+    hero.applyDamage(100)
+    expect(hero.hp).toBe(500)
+  })
+
+  it('should apply damage normally when dashInvulnerable is false', () => {
+    const hero = createHero(500)
+    hero.dashInvulnerable = false
+    hero.applyDamage(100)
+    expect(hero.hp).toBe(400)
+  })
+
+  it('should ignore damage even with damageReduction and blockAmount active', () => {
+    const hero = createHero(500)
+    hero.dashInvulnerable = true
+    addDamageReduction(hero, 0.3)
+    addBlock(hero, 30)
+    hero.applyDamage(100)
+    expect(hero.hp).toBe(500) // invulnerable takes priority
+  })
+})

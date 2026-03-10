@@ -132,6 +132,24 @@ describe('ServerMovementSystem', () => {
     })
   })
 
+  describe('dash invulnerability cleanup', () => {
+    it('should clear dashInvulnerable when dash ends', () => {
+      const hero = createHero({ dashTimer: 0.05, dashDirX: 1, dashDirY: 0, dashSpeed: 1000, dashInvulnerable: true })
+      processMovement(hero, undefined, 0.1)
+
+      expect(hero.dashTimer).toBe(0)
+      expect(hero.dashInvulnerable).toBe(false)
+    })
+
+    it('should keep dashInvulnerable during active dash', () => {
+      const hero = createHero({ dashTimer: 0.3, dashDirX: 1, dashDirY: 0, dashSpeed: 1000, dashInvulnerable: true })
+      processMovement(hero, undefined, 0.1)
+
+      expect(hero.dashTimer).toBeCloseTo(0.2)
+      expect(hero.dashInvulnerable).toBe(true)
+    })
+  })
+
   describe('speed buff integration', () => {
     it('should use effective speed with buff applied', () => {
       const hero = createHero({ x: 500, y: 360, speed: 200 })

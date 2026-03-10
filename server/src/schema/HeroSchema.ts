@@ -39,6 +39,8 @@ export class HeroSchema extends CombatEntitySchema {
   dashSpeed: number = 0
   /** Contact damage dealt during this dash (set by effect handler, 0 = no damage) */
   dashDamage: number = 0
+  /** True during invulnerable dashes (e.g. Dodge Roll) — ignores incoming damage */
+  dashInvulnerable: boolean = false
   @type('boolean') isBot: boolean = false
 
   /**
@@ -47,6 +49,7 @@ export class HeroSchema extends CombatEntitySchema {
    */
   override applyDamage(amount: number): void {
     if (this.dead) return
+    if (this.dashInvulnerable) return
     const reduction = getStatusEffectValue(this, 'damageReduction')
     const reduced = reduction > 0 ? amount * (1 - Math.min(reduction, 1)) : amount
     const block = getStatusEffectValue(this, 'blockAmount')

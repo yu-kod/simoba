@@ -10,6 +10,7 @@ export const dashEffectHandler: SkillEffectHandler<DashEffectParams> = {
     hero.dashDirY = direction.y
     hero.dashSpeed = params.distance / params.duration
     hero.dashDamage = params.damage
+    hero.dashInvulnerable = params.invulnerable ?? false
     hero.facing = Math.atan2(direction.y, direction.x)
   },
 }

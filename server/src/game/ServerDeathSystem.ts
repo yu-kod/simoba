@@ -25,6 +25,7 @@ function respawnHero(hero: HeroSchema, spawn: SpawnPosition): void {
   hero.dashDirY = 0
   hero.dashSpeed = 0
   hero.dashDamage = 0
+  hero.dashInvulnerable = false
   hero.cooldownQ = 0
   hero.cooldownE = 0
   hero.cooldownR = 0
