@@ -50,8 +50,6 @@ function normalizeDirection(
  * Returns null if no matching hero is in range.
  */
 export function resolveHeroTarget(
-  hero: HeroSchema,
-  casterId: string,
   target: { x: number; y: number },
   heroes: MapSchema<HeroSchema>,
   range: number,
@@ -115,10 +113,10 @@ export function executeSkill(
   const range = def.range ?? 0
   if (def.targeting === 'ally' && heroes) {
     const allyFilter = (c: HeroSchema, sid: string) => sid !== sessionId && c.team === hero.team && !c.dead
-    targetHero = resolveHeroTarget(hero, sessionId, target, heroes, range, allyFilter) ?? hero
+    targetHero = resolveHeroTarget(target, heroes, range, allyFilter) ?? hero
   } else if (def.targeting === 'enemy' && heroes) {
     const enemyFilter = (c: HeroSchema) => c.team !== hero.team && !c.dead
-    const resolved = resolveHeroTarget(hero, sessionId, target, heroes, range, enemyFilter)
+    const resolved = resolveHeroTarget(target, heroes, range, enemyFilter)
     if (!resolved) return null // No enemy in range — skill fails, no CD consumed
     targetHero = resolved
   }

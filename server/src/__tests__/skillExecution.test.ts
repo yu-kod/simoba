@@ -437,7 +437,7 @@ describe('resolveHeroTarget', () => {
     heroes.set('enemy-1', enemy)
 
     const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
-    const result = resolveHeroTarget(caster, 'caster-1', { x: 300, y: 100 }, heroes, 500, filter)
+    const result = resolveHeroTarget({ x: 300, y: 100 }, heroes, 500, filter)
     expect(result).toBe(enemy)
   })
 
@@ -450,7 +450,7 @@ describe('resolveHeroTarget', () => {
     heroes.set('ally-1', ally)
 
     const filter = (c: HeroSchema, sid: string) => sid !== 'caster-1' && c.team === caster.team && !c.dead
-    const result = resolveHeroTarget(caster, 'caster-1', { x: 200, y: 100 }, heroes, 400, filter)
+    const result = resolveHeroTarget({ x: 200, y: 100 }, heroes, 400, filter)
     expect(result).toBe(ally)
   })
 
@@ -464,7 +464,7 @@ describe('resolveHeroTarget', () => {
 
     // Click near caster — distance from click (100,100) to enemy (800,100) = 700 > range 500
     const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
-    const result = resolveHeroTarget(caster, 'caster-1', { x: 100, y: 100 }, heroes, 500, filter)
+    const result = resolveHeroTarget({ x: 100, y: 100 }, heroes, 500, filter)
     expect(result).toBeNull()
   })
 
@@ -477,7 +477,7 @@ describe('resolveHeroTarget', () => {
     heroes.set('ally-1', ally)
 
     const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
-    const result = resolveHeroTarget(caster, 'caster-1', { x: 200, y: 100 }, heroes, 500, filter)
+    const result = resolveHeroTarget({ x: 200, y: 100 }, heroes, 500, filter)
     expect(result).toBeNull()
   })
 
@@ -490,7 +490,7 @@ describe('resolveHeroTarget', () => {
     heroes.set('enemy-1', enemy)
 
     const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
-    const result = resolveHeroTarget(caster, 'caster-1', { x: 200, y: 100 }, heroes, 500, filter)
+    const result = resolveHeroTarget({ x: 200, y: 100 }, heroes, 500, filter)
     expect(result).toBeNull()
   })
 
@@ -505,7 +505,7 @@ describe('resolveHeroTarget', () => {
     heroes.set('near-1', nearEnemy)
 
     const filter = (c: HeroSchema) => c.team !== caster.team && !c.dead
-    const result = resolveHeroTarget(caster, 'caster-1', { x: 300, y: 100 }, heroes, 500, filter)
+    const result = resolveHeroTarget({ x: 300, y: 100 }, heroes, 500, filter)
     expect(result).toBe(nearEnemy)
   })
 })
