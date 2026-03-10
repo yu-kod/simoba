@@ -341,6 +341,74 @@ describe('executeSkill — aura-heal', () => {
   })
 })
 
+describe('executeSkill — aura-haste', () => {
+  function createAuraHasteHero(overrides: Partial<Record<string, unknown>> = {}): HeroSchema {
+    return createHero({
+      heroType: 'AURA',
+      team: 'blue',
+      hp: 500,
+      maxHp: 500,
+      skillSlotQ: 'aura-haste',
+      ...overrides,
+    })
+  }
+
+  it('should return valid SkillEvent for aura-haste definition', () => {
+    const def = getSkillDefinition('aura-haste')
+    expect(def).toBeDefined()
+    expect(def!.targeting).toBe('ally')
+    expect(def!.cooldown).toBe(12)
+    expect(def!.range).toBe(400)
+    expect(def!.effect.effectType).toBe('buff')
+    if (def!.effect.effectType === 'buff') {
+      expect(def!.effect.buffType).toBe('speed')
+      expect(def!.effect.value).toBe(80)
+      expect(def!.effect.duration).toBe(3)
+      expect(def!.effect.isDebuff).toBe(false)
+    }
+  })
+
+  it('should apply speed buff to ally', () => {
+    const caster = createAuraHasteHero({ x: 100, y: 100 })
+    const ally = createAuraHasteHero({ x: 300, y: 100 })
+
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 300, y: 100 }, undefined, heroes)
+    expect(event).not.toBeNull()
+    expect(event!.skillId).toBe('aura-haste')
+
+    const effect = ally.statusEffects.get('aura-haste')
+    expect(effect).toBeDefined()
+    expect(effect!.buffType).toBe('speed')
+    expect(effect!.value).toBe(80)
+    expect(effect!.remainingDuration).toBe(3)
+  })
+
+  it('should fall back to self-buff when no ally in range', () => {
+    const caster = createAuraHasteHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, undefined, heroes)
+
+    const effect = caster.statusEffects.get('aura-haste')
+    expect(effect).toBeDefined()
+    expect(effect!.value).toBe(80)
+  })
+
+  it('should set cooldown to 12 seconds', () => {
+    const caster = createAuraHasteHero({ x: 100, y: 100 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    executeSkill(caster, 'caster-1', 'Q', { x: 100, y: 100 }, undefined, heroes)
+    expect(caster.cooldownQ).toBe(12)
+  })
+})
+
 describe('tickCooldowns', () => {
   it('should decrement cooldowns by dt', () => {
     const hero = createHero()

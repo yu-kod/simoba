@@ -32,6 +32,7 @@ import {
   unequipSkillSlot,
 } from '../game/ServerSkillSlotSystem.js'
 import { executeSkill, tickCooldowns } from '../game/ServerSkillExecutionSystem.js'
+import { tickBuffs } from '../game/StatusEffectSystem.js'
 import { processDashDamage, cleanupDashHitSets } from '../game/ServerDashDamageSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { TALENT_TREES } from '@shared/talents/index'
@@ -385,9 +386,10 @@ export class GameRoom extends Room<GameRoomState> {
       events.push(...heroEvents)
     })
 
-    // 1.5. Tick skill cooldowns
+    // 1.5. Tick skill cooldowns and buff durations
     heroes.forEach((hero) => {
       tickCooldowns(hero, deltaTime)
+      tickBuffs(hero, deltaTime)
     })
 
     // 2. Apply movement from inputs (respects dashTimer and attackPauseTimer)

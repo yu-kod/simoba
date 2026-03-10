@@ -28,6 +28,7 @@ function respawnHero(hero: HeroSchema, spawn: SpawnPosition): void {
   hero.cooldownQ = 0
   hero.cooldownE = 0
   hero.cooldownR = 0
+  hero.statusEffects.clear()
 }
 
 /**

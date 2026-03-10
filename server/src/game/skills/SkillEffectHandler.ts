@@ -7,6 +7,7 @@ import type { SkillEffectParams } from '@shared/skills/skillDefinitions'
 export interface SkillExecutionContext {
   readonly hero: HeroSchema
   readonly casterId: string
+  readonly skillId: string
   readonly direction: { readonly x: number; readonly y: number }
   readonly targetPosition: { readonly x: number; readonly y: number }
   readonly projectiles: MapSchema<ProjectileSchema>
