@@ -8,9 +8,10 @@ import { DEFAULT_TOWER } from '@shared/entities/Tower'
 import { WORLD_HEIGHT } from '@shared/constants'
 import type { InputMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
-import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerCombatManager.js'
+import { processHeroCombat } from '../game/ServerCombatManager.js'
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
-import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
+import { processTowerCombat } from '../game/ServerTowerSystem.js'
+import { ProjectileTracker } from '../game/ProjectileTracker.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
 
 const BLUE_SPAWN = { x: 320, y: 360 }
@@ -81,7 +82,8 @@ function runGameTick(
   towers: MapSchema<TowerSchema>,
   projectiles: MapSchema<ProjectileSchema>,
   playerInputs: Map<string, InputMessage>,
-  deltaTime: number
+  deltaTime: number,
+  tracker: ProjectileTracker,
 ): void {
   // 1. Movement
   heroes.forEach((hero, sessionId) => {
@@ -95,16 +97,16 @@ function runGameTick(
   // 2. Hero combat
   heroes.forEach((hero, heroId) => {
     const input = playerInputs.get(heroId)
-    processHeroCombat(hero, heroId, input, heroes, towers, projectiles, ProjectileSchema, deltaTime)
+    processHeroCombat(hero, heroId, input, heroes, towers, projectiles, ProjectileSchema, deltaTime, tracker)
   })
 
   // 3. Tower combat
   towers.forEach((tower, towerId) => {
-    processTowerCombat(tower, towerId, heroes, projectiles, ProjectileSchema, deltaTime)
+    processTowerCombat(tower, towerId, heroes, projectiles, ProjectileSchema, deltaTime, tracker)
   })
 
   // 4. Projectiles
-  processProjectiles(projectiles, heroes, towers, deltaTime)
+  processProjectiles(projectiles, heroes, towers, deltaTime, tracker)
 
   // 5. Death and respawn
   processDeathAndRespawn(heroes, getSpawnPosition, deltaTime)
@@ -119,9 +121,10 @@ describe('GameRoom integration', () => {
   let projectiles: MapSchema<ProjectileSchema>
   let playerInputs: Map<string, InputMessage>
 
+  let tracker: ProjectileTracker
+
   beforeEach(() => {
-    resetProjectileIdCounter()
-    resetTowerProjectileIdCounter()
+    tracker = new ProjectileTracker()
     heroes = new MapSchema<HeroSchema>()
     towers = new MapSchema<TowerSchema>()
     projectiles = new MapSchema<ProjectileSchema>()
@@ -143,7 +146,7 @@ describe('GameRoom integration', () => {
         facing: 0,
       })
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
 
       expect(p1.x).toBeGreaterThan(startX)
       expect(p1.lastProcessedSeq).toBe(1)
@@ -153,7 +156,7 @@ describe('GameRoom integration', () => {
       const p1 = heroes.get('p1')!
       const startX = p1.x
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
 
       expect(p1.x).toBe(startX)
     })
@@ -165,7 +168,7 @@ describe('GameRoom integration', () => {
         attackTargetId: null,
         facing: 0,
       })
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       expect(heroes.get('p1')!.lastProcessedSeq).toBe(5)
 
       playerInputs.set('p1', {
@@ -174,7 +177,7 @@ describe('GameRoom integration', () => {
         attackTargetId: null,
         facing: 0,
       })
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       expect(heroes.get('p1')!.lastProcessedSeq).toBe(10)
     })
 
@@ -190,7 +193,7 @@ describe('GameRoom integration', () => {
         facing: 0,
       })
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1, tracker)
 
       expect(p1.x).toBeGreaterThanOrEqual(0)
       expect(p1.y).toBeGreaterThanOrEqual(0)
@@ -214,7 +217,7 @@ describe('GameRoom integration', () => {
         facing: 0,
       })
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
 
       // First tick sets up attack target, may not deal damage yet (cooldown starts)
       // Run a few more ticks to allow cooldown to pass and damage to be dealt
@@ -225,7 +228,7 @@ describe('GameRoom integration', () => {
           attackTargetId: 'p2',
           facing: 0,
         })
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       }
 
       expect(p2.hp).toBeLessThan(initialHp)
@@ -253,7 +256,7 @@ describe('GameRoom integration', () => {
           attackTargetId: 'ally',
           facing: 0,
         })
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       }
 
       expect(ally.hp).toBe(initialHp)
@@ -278,7 +281,7 @@ describe('GameRoom integration', () => {
           attackTargetId: 'p2',
           facing: 0,
         })
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
         if (p2.dead) break
       }
 
@@ -294,7 +297,7 @@ describe('GameRoom integration', () => {
 
       // Run ticks until respawn timer expires
       for (let i = 0; i < 60; i++) {
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       }
 
       expect(p2.dead).toBe(false)
@@ -316,7 +319,7 @@ describe('GameRoom integration', () => {
         facing: 0,
       })
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       expect(p1.x).toBe(startX)
     })
   })
@@ -333,7 +336,7 @@ describe('GameRoom integration', () => {
 
       // Run enough ticks for tower to fire
       for (let i = 0; i < 120; i++) {
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       }
 
       // Tower should have created a projectile or dealt damage
@@ -351,7 +354,7 @@ describe('GameRoom integration', () => {
       const initialHp = p1.hp
 
       for (let i = 0; i < 120; i++) {
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       }
 
       expect(p1.hp).toBe(initialHp)
@@ -367,7 +370,7 @@ describe('GameRoom integration', () => {
         facing: 0,
       })
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       expect(playerInputs.size).toBe(0)
     })
 
@@ -390,7 +393,7 @@ describe('GameRoom integration', () => {
         facing: 0,
       })
 
-      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+      runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
 
       expect(p1.x).toBeGreaterThan(startX1)
       expect(p2.x).toBeLessThan(startX2)
@@ -406,7 +409,7 @@ describe('GameRoom integration', () => {
 
       // Run ticks — tower should fire projectile, which should travel and hit
       for (let i = 0; i < 180; i++) {
-        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60)
+        runGameTick(heroes, towers, projectiles, playerInputs, 1 / 60, tracker)
       }
 
       // Projectile should have hit and dealt damage

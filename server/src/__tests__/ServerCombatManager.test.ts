@@ -4,7 +4,8 @@ import { HeroSchema } from '../schema/HeroSchema.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
-import { processHeroCombat, resetProjectileIdCounter } from '../game/ServerCombatManager.js'
+import { processHeroCombat } from '../game/ServerCombatManager.js'
+import { ProjectileTracker } from '../game/ProjectileTracker.js'
 import type { InputMessage } from '@shared/messages'
 
 function createHero(id: string, overrides: Partial<Record<keyof HeroSchema, unknown>> = {}): HeroSchema {
@@ -41,12 +42,13 @@ describe('ServerCombatManager', () => {
   let heroes: MapSchema<HeroSchema>
   let towers: MapSchema<TowerSchema>
   let projectiles: MapSchema<ProjectileSchema>
+  let tracker: ProjectileTracker
 
   beforeEach(() => {
     heroes = new MapSchema<HeroSchema>()
     towers = new MapSchema<TowerSchema>()
     projectiles = new MapSchema<ProjectileSchema>()
-    resetProjectileIdCounter()
+    tracker = new ProjectileTracker()
   })
 
   describe('processHeroCombat', () => {
@@ -54,7 +56,7 @@ describe('ServerCombatManager', () => {
       const hero = createHero('hero-1', { dead: true, attackTargetId: 'enemy', attackCooldown: 1 })
       heroes.set('hero-1', hero)
 
-      processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(hero.attackTargetId).toBe('')
       expect(hero.attackCooldown).toBe(0)
@@ -64,7 +66,7 @@ describe('ServerCombatManager', () => {
       const hero = createHero('hero-1', { attackCooldown: 1.0 })
       heroes.set('hero-1', hero)
 
-      processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.5)
+      processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.5, tracker)
 
       expect(hero.attackCooldown).toBeCloseTo(0.5, 2)
     })
@@ -76,7 +78,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(attacker.attackTargetId).toBe('target')
     })
@@ -88,7 +90,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(attacker.attackTargetId).toBe('')
     })
@@ -100,7 +102,7 @@ describe('ServerCombatManager', () => {
       heroes.set('ally', ally)
 
       const input = createInput({ attackTargetId: 'ally' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(attacker.attackTargetId).toBe('')
     })
@@ -116,7 +118,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(target.hp).toBe(590) // 650 - 60
       expect(attacker.attackCooldown).toBeCloseTo(1 / 0.8, 2)
@@ -133,7 +135,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(projectiles.size).toBe(1)
       const proj = Array.from(projectiles.values())[0]!
@@ -156,7 +158,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(target.hp).toBe(650) // No damage
     })
@@ -166,7 +168,7 @@ describe('ServerCombatManager', () => {
       heroes.set('hero-1', hero)
 
       const input = createInput({ attackTargetId: null })
-      processHeroCombat(hero, 'hero-1', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(hero, 'hero-1', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(hero.attackTargetId).toBe('')
     })
@@ -183,7 +185,7 @@ describe('ServerCombatManager', () => {
 
       // Tick 1: first attack lands
       const input1 = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input1, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      processHeroCombat(attacker, 'attacker', input1, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
       expect(target.hp).toBe(590)
       expect(attacker.attackCooldown).toBeGreaterThan(0)
 
@@ -191,12 +193,12 @@ describe('ServerCombatManager', () => {
       // cooldown = 1/0.8 = 1.25s, need ceil(1.25/0.016) = 79 ticks to expire
       for (let i = 0; i < 78; i++) {
         const input = createInput({ attackTargetId: 'target', seq: i + 2 })
-        processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.016)
+        processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
       }
 
       // Tick 80: cooldown expired, second attack lands
       const finalInput = createInput({ attackTargetId: 'target', seq: 80 })
-      processHeroCombat(attacker, 'attacker', finalInput, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      processHeroCombat(attacker, 'attacker', finalInput, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
       expect(target.hp).toBe(530) // 590 - 60
     })
 
@@ -211,12 +213,12 @@ describe('ServerCombatManager', () => {
 
       // First: set target
       const input1 = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input1, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      processHeroCombat(attacker, 'attacker', input1, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
       expect(attacker.attackTargetId).toBe('target')
 
       // Next: send null to clear
       const input2 = createInput({ attackTargetId: null, seq: 2 })
-      processHeroCombat(attacker, 'attacker', input2, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      processHeroCombat(attacker, 'attacker', input2, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
       expect(attacker.attackTargetId).toBe('')
     })
 
@@ -227,7 +229,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(attacker.attackTargetId).toBe('')
     })
@@ -237,7 +239,7 @@ describe('ServerCombatManager', () => {
       heroes.set('attacker', attacker)
 
       const input = createInput({ attackTargetId: 'nonexistent' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(attacker.attackTargetId).toBe('')
     })
@@ -260,8 +262,8 @@ describe('ServerCombatManager', () => {
       const inputB = createInput({ attackTargetId: 'heroA' })
 
       // Simulate game loop: process both heroes in sequence (same tick)
-      processHeroCombat(heroA, 'heroA', inputA, heroes, towers, projectiles, ProjectileSchema, 0.016)
-      processHeroCombat(heroB, 'heroB', inputB, heroes, towers, projectiles, ProjectileSchema, 0.016)
+      processHeroCombat(heroA, 'heroA', inputA, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
+      processHeroCombat(heroB, 'heroB', inputB, heroes, towers, projectiles, ProjectileSchema, 0.016, tracker)
 
       // Both heroes should have taken damage
       expect(heroA.hp).toBe(590) // 650 - 60 from heroB
@@ -279,7 +281,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(events).toHaveLength(2)
       expect(events[0]).toEqual({
@@ -303,7 +305,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(events).toHaveLength(1)
       expect(events[0]).toEqual({
@@ -332,7 +334,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      const events = processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(target.hp).toBe(615) // 650 - (50 - 15) = 650 - 35
       expect(events[1]).toEqual({
@@ -360,7 +362,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(target.hp).toBe(650) // 0 damage
     })
@@ -384,7 +386,7 @@ describe('ServerCombatManager', () => {
       heroes.set('target', target)
 
       const input = createInput({ attackTargetId: 'target' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(projectiles.size).toBe(1)
       const proj = Array.from(projectiles.values())[0]!
@@ -395,7 +397,7 @@ describe('ServerCombatManager', () => {
       const hero = createHero('hero-1', { attackCooldown: 1.0 })
       heroes.set('hero-1', hero)
 
-      const events = processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.5)
+      const events = processHeroCombat(hero, 'hero-1', undefined, heroes, towers, projectiles, ProjectileSchema, 0.5, tracker)
       expect(events).toHaveLength(0)
     })
 
@@ -419,7 +421,7 @@ describe('ServerCombatManager', () => {
       towers.set('tower-red', tower)
 
       const input = createInput({ attackTargetId: 'tower-red' })
-      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1)
+      processHeroCombat(attacker, 'attacker', input, heroes, towers, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.hp).toBe(1440) // 1500 - 60
     })

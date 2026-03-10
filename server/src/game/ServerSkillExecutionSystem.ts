@@ -5,6 +5,7 @@ import type { SkillEvent } from '@shared/messages'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
 import { getEffectHandler } from './skills/skillEffectRegistry.js'
 import { createServerLogger } from '@shared/logging'
+import type { ProjectileTracker } from './ProjectileTracker.js'
 
 const logger = createServerLogger('skill')
 
@@ -85,8 +86,9 @@ export function executeSkill(
   sessionId: string,
   slot: SkillSlot,
   target: { x: number; y: number },
-  projectiles?: MapSchema<ProjectileSchema>,
-  heroes?: MapSchema<HeroSchema>,
+  projectiles: MapSchema<ProjectileSchema>,
+  heroes: MapSchema<HeroSchema>,
+  tracker: ProjectileTracker,
 ): SkillEvent | null {
   // Validation: hero must be alive
   if (hero.dead) return null
@@ -135,8 +137,9 @@ export function executeSkill(
       skillId,
       direction,
       targetPosition: target,
-      projectiles: projectiles ?? new MapSchema(),
-      heroes: heroes ?? new MapSchema(),
+      projectiles,
+      heroes,
+      projectileTracker: tracker,
       targetHero,
     },
     def.effect,

@@ -3,7 +3,8 @@ import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
-import { processTowerCombat, resetTowerProjectileIdCounter } from '../game/ServerTowerSystem.js'
+import { processTowerCombat } from '../game/ServerTowerSystem.js'
+import { ProjectileTracker } from '../game/ProjectileTracker.js'
 
 function createTower(id: string, overrides: Partial<Record<keyof TowerSchema, unknown>> = {}): TowerSchema {
   const tower = new TowerSchema()
@@ -43,11 +44,12 @@ function createHero(id: string, overrides: Partial<Record<keyof HeroSchema, unkn
 describe('ServerTowerSystem', () => {
   let heroes: MapSchema<HeroSchema>
   let projectiles: MapSchema<ProjectileSchema>
+  let tracker: ProjectileTracker
 
   beforeEach(() => {
     heroes = new MapSchema<HeroSchema>()
     projectiles = new MapSchema<ProjectileSchema>()
-    resetTowerProjectileIdCounter()
+    tracker = new ProjectileTracker()
   })
 
   describe('processTowerCombat', () => {
@@ -56,7 +58,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy', { team: 'red' })
       heroes.set('enemy', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackTargetId).toBe('')
       expect(projectiles.size).toBe(0)
@@ -67,7 +69,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy-1', { x: 700, y: 360, team: 'red' })
       heroes.set('enemy-1', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackTargetId).toBe('enemy-1')
     })
@@ -77,7 +79,7 @@ describe('ServerTowerSystem', () => {
       const ally = createHero('ally', { x: 700, y: 360, team: 'blue' })
       heroes.set('ally', ally)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackTargetId).toBe('')
     })
@@ -87,7 +89,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy', { x: 2000, y: 360, team: 'red' })
       heroes.set('enemy', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackTargetId).toBe('')
     })
@@ -97,7 +99,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy', { x: 700, y: 360, team: 'red' })
       heroes.set('enemy', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(projectiles.size).toBe(1)
       const proj = Array.from(projectiles.values())[0]!
@@ -116,7 +118,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy', { x: 700, y: 360, team: 'red' })
       heroes.set('enemy', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(projectiles.size).toBe(0)
     })
@@ -125,7 +127,7 @@ describe('ServerTowerSystem', () => {
       const tower = createTower('tower-1', { attackCooldown: 1.0 })
       heroes.set('enemy', createHero('enemy', { team: 'red' }))
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.5)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.5, tracker)
 
       expect(tower.attackCooldown).toBeCloseTo(0.5, 2)
     })
@@ -135,7 +137,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy', { x: 700, y: 360, team: 'red' })
       heroes.set('enemy', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackCooldown).toBeCloseTo(1 / 0.8, 2)
     })
@@ -145,7 +147,7 @@ describe('ServerTowerSystem', () => {
       const enemy = createHero('enemy', { x: 700, y: 360, team: 'red', dead: true, hp: 0 })
       heroes.set('enemy', enemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackTargetId).toBe('')
     })
@@ -157,7 +159,7 @@ describe('ServerTowerSystem', () => {
       heroes.set('far', farEnemy)
       heroes.set('close', closeEnemy)
 
-      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1)
+      processTowerCombat(tower, 'tower-1', heroes, projectiles, ProjectileSchema, 0.1, tracker)
 
       expect(tower.attackTargetId).toBe('close')
     })

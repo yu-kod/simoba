@@ -5,6 +5,7 @@ import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
+import type { ProjectileTracker } from './ProjectileTracker.js'
 
 interface TargetPosition {
   readonly x: number
@@ -35,28 +36,6 @@ function distanceSq(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1
   const dy = y2 - y1
   return dx * dx + dy * dy
-}
-
-// ── Server-side tracking for linear projectiles ────────────
-/** Cumulative distance traveled by each linear projectile */
-const distanceTraveled = new Map<string, number>()
-/** Set of entity IDs already hit by each piercing projectile */
-const hitEntityIds = new Map<string, Set<string>>()
-
-/** Clean up tracking data for a removed projectile */
-function cleanupProjectileTracking(projId: string): void {
-  distanceTraveled.delete(projId)
-  hitEntityIds.delete(projId)
-}
-
-/** Get or create the hit set for a piercing projectile */
-function getHitSet(projId: string): Set<string> {
-  let set = hitEntityIds.get(projId)
-  if (!set) {
-    set = new Set()
-    hitEntityIds.set(projId, set)
-  }
-  return set
 }
 
 // ── Homing projectile logic (existing behavior) ────────────
@@ -159,6 +138,7 @@ function processLinearProjectile(
   minions: MapSchema<MinionSchema> | undefined,
   events: CombatEventMessage[],
   toRemove: string[],
+  tracker: ProjectileTracker,
 ): void {
   // Move in direction
   const moveDistance = proj.speed * deltaTime
@@ -166,8 +146,8 @@ function processLinearProjectile(
   proj.y = proj.y + proj.dirY * moveDistance
 
   // Track cumulative distance
-  const traveled = (distanceTraveled.get(projId) ?? 0) + moveDistance
-  distanceTraveled.set(projId, traveled)
+  const traveled = tracker.getDistanceTraveled(projId) + moveDistance
+  tracker.setDistanceTraveled(projId, traveled)
 
   // Range check
   if (proj.maxRange > 0 && traveled >= proj.maxRange) {
@@ -176,7 +156,7 @@ function processLinearProjectile(
   }
 
   // Collision with all enemy entities
-  const hitSet = getHitSet(projId)
+  const hitSet = tracker.getHitSet(projId)
   const enemies = collectEnemyEntities(proj.team, heroes, towers, minions)
 
   for (const enemy of enemies) {
@@ -216,6 +196,7 @@ export function processProjectiles(
   heroes: MapSchema<HeroSchema>,
   towers: MapSchema<TowerSchema>,
   deltaTime: number,
+  tracker: ProjectileTracker,
   minions?: MapSchema<MinionSchema>,
 ): CombatEventMessage[] {
   const events: CombatEventMessage[] = []
@@ -223,7 +204,7 @@ export function processProjectiles(
 
   projectiles.forEach((proj, projId) => {
     if (proj.mode === 'linear') {
-      processLinearProjectile(proj, projId, heroes, towers, deltaTime, minions, events, toRemove)
+      processLinearProjectile(proj, projId, heroes, towers, deltaTime, minions, events, toRemove, tracker)
     } else {
       processHomingProjectile(proj, projId, heroes, towers, deltaTime, minions, events, toRemove)
     }
@@ -231,14 +212,8 @@ export function processProjectiles(
 
   for (const id of toRemove) {
     projectiles.delete(id)
-    cleanupProjectileTracking(id)
+    tracker.cleanupTracking(id)
   }
 
   return events
-}
-
-/** Reset server-side tracking maps. For testing only. */
-export function resetProjectileTracking(): void {
-  distanceTraveled.clear()
-  hitEntityIds.clear()
 }

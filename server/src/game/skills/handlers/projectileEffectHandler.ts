@@ -2,19 +2,13 @@ import { ProjectileSchema } from '../../../schema/ProjectileSchema.js'
 import type { SkillEffectHandler, SkillExecutionContext } from '../SkillEffectHandler.js'
 import type { ProjectileEffectParams } from '@shared/skills/skillDefinitions'
 
-let skillProjectileIdCounter = 0
-
-export function resetSkillProjectileIdCounter(): void {
-  skillProjectileIdCounter = 0
-}
-
 export const projectileEffectHandler: SkillEffectHandler<ProjectileEffectParams> = {
   effectType: 'projectile',
   execute(ctx: SkillExecutionContext, params: ProjectileEffectParams): void {
-    const { hero, casterId, direction, projectiles } = ctx
+    const { hero, casterId, direction, projectiles, projectileTracker } = ctx
 
     const proj = new ProjectileSchema()
-    proj.id = `skill-proj-${++skillProjectileIdCounter}`
+    proj.id = projectileTracker.nextSkillProjectileId()
     proj.x = hero.x
     proj.y = hero.y
     proj.speed = params.speed
