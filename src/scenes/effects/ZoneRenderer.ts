@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import type { ServerZoneState } from '@/network/GameMode'
 import { getZoneVisual } from '@shared/zone/zoneVisuals'
 
-const ZONE_DEPTH = 3
+const ZONE_DEPTH = -1
 
 /**
  * Renders all active zones each frame.
