@@ -64,7 +64,14 @@ export interface ZoneEffectParams {
   }
 }
 
-export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams | ZoneEffectParams
+export interface StrikeEffectParams {
+  readonly effectType: 'strike'
+  readonly damage: number               // base melee damage
+  readonly executeThreshold?: number    // HP ratio (0-1) below which bonus damage applies (omit for plain strikes)
+  readonly executeBonusDamage?: number  // additional damage when target HP% ≤ threshold
+}
+
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams | ZoneEffectParams | StrikeEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -324,6 +331,18 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       additionalBuffs: [
         { buffType: 'attackSpeed', value: 0.5 },
       ],
+    },
+  },
+  'blade-execute': {
+    id: 'blade-execute',
+    targeting: 'enemy',
+    cooldown: 20,
+    range: 150,
+    effect: {
+      effectType: 'strike',
+      damage: 100,
+      executeThreshold: 0.3,
+      executeBonusDamage: 150,
     },
   },
 }
