@@ -9,24 +9,24 @@ describe('ZONE_VISUALS registry', () => {
   it('should have an entry for aura-slow-field', () => {
     const visual = ZONE_VISUALS['aura-slow-field']
     expect(visual).toBeDefined()
-    expect(visual.color).toBe(0x9b59b6)
-    expect(visual.alpha).toBeGreaterThan(0)
-    expect(visual.alpha).toBeLessThanOrEqual(1)
-    expect(visual.borderWidth).toBeGreaterThan(0)
+    expect(visual!.color).toBe(0x9b59b6)
+    expect(visual!.alpha).toBeGreaterThan(0)
+    expect(visual!.alpha).toBeLessThanOrEqual(1)
+    expect(visual!.borderWidth).toBeGreaterThan(0)
   })
 
   it('should have an entry for bolt-trap with allyOnly', () => {
     const visual = ZONE_VISUALS['bolt-trap']
     expect(visual).toBeDefined()
-    expect(visual.color).toBe(0xf1c40f)
-    expect(visual.alpha).toBeGreaterThan(0)
-    expect(visual.alpha).toBeLessThanOrEqual(1)
-    expect(visual.allyOnly).toBe(true)
+    expect(visual!.color).toBe(0xf1c40f)
+    expect(visual!.alpha).toBeGreaterThan(0)
+    expect(visual!.alpha).toBeLessThanOrEqual(1)
+    expect(visual!.allyOnly).toBe(true)
   })
 
   it('should not have allyOnly on aura-slow-field', () => {
     const visual = ZONE_VISUALS['aura-slow-field']
-    expect(visual.allyOnly).toBeUndefined()
+    expect(visual!.allyOnly).toBeUndefined()
   })
 
   it('should have valid alpha values for all entries', () => {
