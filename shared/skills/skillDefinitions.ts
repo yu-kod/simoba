@@ -175,7 +175,7 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       zoneDuration: 4,
       zoneEffect: {
         buffType: 'damageReduction',
-        value: 0.30,
+        value: 0.3,
         isDebuff: false,
         target: 'ally',
       },

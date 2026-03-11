@@ -41,7 +41,7 @@ function createBarrierZone(
   zone.casterId = casterId
   zone.skillId = 'aura-barrier'
   zone.buffType = 'damageReduction'
-  zone.value = 0.30
+  zone.value = 0.3
   zone.isDebuff = false
   zone.target = 'ally'
   return zone
@@ -67,7 +67,7 @@ describe('getSkillDefinition — aura-barrier', () => {
       expect(def!.effect.zoneRadius).toBe(180)
       expect(def!.effect.zoneDuration).toBe(4)
       expect(def!.effect.zoneEffect.buffType).toBe('damageReduction')
-      expect(def!.effect.zoneEffect.value).toBe(0.30)
+      expect(def!.effect.zoneEffect.value).toBe(0.3)
       expect(def!.effect.zoneEffect.target).toBe('ally')
     }
   })
@@ -136,7 +136,7 @@ describe('tickZones — Barrier damage reduction', () => {
     const effect = ally.statusEffects.get('zone-1')
     expect(effect).toBeDefined()
     expect(effect!.buffType).toBe('damageReduction')
-    expect(effect!.value).toBe(0.30)
+    expect(effect!.value).toBe(0.3)
     expect(effect!.isDebuff).toBe(false)
   })
 
@@ -164,6 +164,29 @@ describe('tickZones — Barrier damage reduction', () => {
     tickZones(zones, heroes, 0.016)
 
     expect(farAlly.statusEffects.get('zone-1')).toBeUndefined()
+  })
+
+  it('should expire damageReduction after ally leaves zone radius', () => {
+    const ally = createHero({ x: 600, y: 400 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('ally-1', ally)
+
+    const zones = new MapSchema<ZoneSchema>()
+    zones.set('zone-1', createBarrierZone('caster-1', 'blue', 600, 400))
+
+    // Ally inside zone — gets DR
+    tickZones(zones, heroes, 0.016)
+    expect(ally.statusEffects.get('zone-1')).toBeDefined()
+
+    // Ally moves outside zone radius
+    ally.x = 900
+    tickZones(zones, heroes, 0.016)
+
+    // Effect has short duration (ZONE_EFFECT_DURATION = 0.1s), not refreshed
+    const effect = ally.statusEffects.get('zone-1')
+    expect(effect).toBeDefined()
+    // Duration was set to ZONE_EFFECT_DURATION (0.1s) last time in range, not refreshed
+    expect(effect!.remainingDuration).toBeLessThanOrEqual(0.1)
   })
 
   it('should remain at fixed position (not follow caster)', () => {
