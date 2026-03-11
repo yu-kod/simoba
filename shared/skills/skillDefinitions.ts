@@ -35,6 +35,7 @@ export interface BuffEffectParams {
   readonly additionalBuffs?: readonly {
     readonly buffType: string
     readonly value: number
+    readonly isDebuff?: boolean  // override parent isDebuff for this specific buff
   }[]
 }
 
@@ -357,7 +358,7 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       isDebuff: false,
       additionalBuffs: [
         { buffType: 'attackSpeed', value: 0.4 },
-        { buffType: 'speed', value: -60 },
+        { buffType: 'speed', value: -60, isDebuff: true },
       ],
     },
   },

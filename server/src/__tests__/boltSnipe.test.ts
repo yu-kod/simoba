@@ -56,7 +56,7 @@ describe('getSkillDefinition — bolt-snipe', () => {
       expect(extras).toBeDefined()
       expect(extras).toHaveLength(2)
       expect(extras![0]).toEqual({ buffType: 'attackSpeed', value: 0.4 })
-      expect(extras![1]).toEqual({ buffType: 'speed', value: -60 })
+      expect(extras![1]).toEqual({ buffType: 'speed', value: -60, isDebuff: true })
     }
   })
 })
@@ -88,12 +88,13 @@ describe('executeSkill — bolt-snipe', () => {
     expect(asBuff!.value).toBe(0.4)
     expect(asBuff!.remainingDuration).toBe(5)
 
-    // Additional: speed (negative = penalty)
+    // Additional: speed (negative = penalty, isDebuff = true)
     const speedBuff = caster.statusEffects.get('bolt-snipe:speed')
     expect(speedBuff).toBeDefined()
     expect(speedBuff!.buffType).toBe('speed')
     expect(speedBuff!.value).toBe(-60)
     expect(speedBuff!.remainingDuration).toBe(5)
+    expect(speedBuff!.isDebuff).toBe(true)
   })
 
   it('should set cooldown to 16 seconds', () => {
@@ -135,8 +136,10 @@ describe('executeSkill — bolt-snipe', () => {
     // Second activation
     executeSkill(caster, 'caster-1', 'Q', { x: 400, y: 300 }, new MapSchema<ProjectileSchema>(), heroes, tracker, new MapSchema<ZoneSchema>())
 
-    // Duration should be refreshed to full
+    // Duration should be refreshed to full for all three buffs
     expect(caster.statusEffects.get('bolt-snipe')!.remainingDuration).toBe(5)
+    expect(caster.statusEffects.get('bolt-snipe:attackSpeed')!.remainingDuration).toBe(5)
+    expect(caster.statusEffects.get('bolt-snipe:speed')!.remainingDuration).toBe(5)
   })
 })
 
