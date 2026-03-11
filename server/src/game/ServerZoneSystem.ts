@@ -16,7 +16,7 @@ function shouldAffect(zone: ZoneSchema, hero: HeroSchema): boolean {
 
 /**
  * Tick all zones: decrement duration, apply effects to heroes in range, remove expired zones.
- * Supports follow zones (track caster position) and tick damage (sustained AoE).
+ * Supports follow zones (track caster position), tick damage (sustained AoE), and tick heal (sustained ally heal).
  */
 export function tickZones(
   zones: MapSchema<ZoneSchema>,
@@ -42,12 +42,12 @@ export function tickZones(
 
     const radiusSq = zone.radius * zone.radius
 
-    // Tick damage timer
-    let tickDamageThisTick = false
-    if (zone.tickDamage > 0 && zone.tickInterval > 0) {
+    // Tick timer (shared by tickDamage and tickHeal)
+    let tickFiredThisTick = false
+    if ((zone.tickDamage > 0 || zone.tickHeal > 0) && zone.tickInterval > 0) {
       zone.tickTimer -= dt
       if (zone.tickTimer <= 0) {
-        tickDamageThisTick = true
+        tickFiredThisTick = true
         zone.tickTimer += zone.tickInterval
       }
     }
@@ -71,9 +71,14 @@ export function tickZones(
       }
 
       // Tick damage (sustained damage zones like Whirlwind)
-      if (tickDamageThisTick) {
+      if (tickFiredThisTick && zone.tickDamage > 0) {
         hero.applyDamage(zone.tickDamage)
         hero.lastAttackerSessionId = zone.casterId
+      }
+
+      // Tick heal (sustained heal zones like Sanctuary)
+      if (tickFiredThisTick && zone.tickHeal > 0) {
+        hero.hp = Math.min(hero.hp + zone.tickHeal, hero.maxHp)
       }
 
       // Apply or refresh status effect (skip for expired zones)
@@ -96,7 +101,7 @@ export function tickZones(
     })
 
     // Tick damage to enemy minions
-    if (tickDamageThisTick && minions) {
+    if (tickFiredThisTick && zone.tickDamage > 0 && minions) {
       minions.forEach((minion) => {
         if (minion.dead) return
         if (minion.team === zone.team) return

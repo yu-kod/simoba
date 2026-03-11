@@ -28,6 +28,13 @@ export const ZONE_VISUALS: Record<string, ZoneVisualDef> = {
     borderAlpha: 0.7,
     borderWidth: 2,
   },
+  'aura-sanctuary': {
+    color: 0x3498db,
+    alpha: 0.2,
+    borderColor: 0xf1c40f,
+    borderAlpha: 0.6,
+    borderWidth: 2,
+  },
   'bolt-trap': {
     color: 0xf1c40f,
     alpha: 0.15,

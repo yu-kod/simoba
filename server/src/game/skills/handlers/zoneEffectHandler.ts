@@ -32,6 +32,7 @@ export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
     zone.triggerOnce = params.triggerOnce ?? false
     zone.effectDuration = params.zoneEffect.duration ?? 0
     zone.tickDamage = params.tickDamage ?? 0
+    zone.tickHeal = params.tickHeal ?? 0
     zone.tickInterval = params.tickInterval ?? 0
     zone.tickTimer = 0 // first tick fires immediately
 
