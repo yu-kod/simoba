@@ -124,6 +124,30 @@ function collectEnemyEntities(
   return candidates
 }
 
+/** Find nearest enemy hero within bounce range (heroes only — design decision, see bolt-ricochet design.md §3). */
+function findNearestUnhitHero(
+  x: number,
+  y: number,
+  projTeam: string,
+  hitSet: Set<string>,
+  heroes: MapSchema<HeroSchema>,
+  bounceRange: number,
+): EntityCandidate | null {
+  let nearest: EntityCandidate | null = null
+  let nearestDistSq = bounceRange * bounceRange
+
+  heroes.forEach((h, id) => {
+    if (h.team === projTeam || h.dead || hitSet.has(id)) return
+    const dSq = distanceSq(x, y, h.x, h.y)
+    if (dSq <= nearestDistSq) {
+      nearestDistSq = dSq
+      nearest = { id, x: h.x, y: h.y, radius: h.radius, dead: h.dead, team: h.team }
+    }
+  })
+
+  return nearest
+}
+
 function processLinearProjectile(
   proj: ProjectileSchema,
   projId: string,
@@ -163,6 +187,27 @@ function processLinearProjectile(
       hitSet.add(enemy.id)
       applyDamageToTarget(enemy.id, proj.damage, heroes, towers, minions, proj.ownerId)
       events.push({ kind: 'damage', event: { targetId: enemy.id, amount: proj.damage, sourceId: proj.ownerId } })
+
+      // Bounce takes priority over pierce
+      if (proj.bounceRemaining > 0) {
+        const nextTarget = findNearestUnhitHero(proj.x, proj.y, proj.team, hitSet, heroes, proj.bounceRange)
+        if (nextTarget) {
+          const dx = nextTarget.x - proj.x
+          const dy = nextTarget.y - proj.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist === 0) {
+            toRemove.push(projId)
+          } else {
+            proj.bounceRemaining = proj.bounceRemaining - 1
+            proj.dirX = dx / dist
+            proj.dirY = dy / dist
+            tracker.setDistanceTraveled(projId, 0)
+          }
+        } else {
+          toRemove.push(projId)
+        }
+        return
+      }
 
       // Decrement pierce
       if (proj.pierceRemaining > 0) {

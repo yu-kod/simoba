@@ -19,6 +19,8 @@ export interface ProjectileEffectParams {
   readonly visualType: string       // key into PROJECTILE_VISUALS (e.g. 'circle', 'diamond')
   readonly projectileCount?: number // number of projectiles to spawn (default 1)
   readonly spreadAngle?: number     // total fan spread angle in radians (used when projectileCount > 1)
+  readonly bounceCount?: number     // number of bounces (0 = no bounce)
+  readonly bounceRange?: number     // max distance to search for next bounce target (px)
 }
 
 export interface HealEffectParams {
@@ -344,6 +346,23 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       damage: 100,
       executeThreshold: 0.3,
       executeBonusDamage: 150,
+    },
+  },
+  'bolt-ricochet': {
+    id: 'bolt-ricochet',
+    targeting: 'direction',
+    cooldown: 8,
+    effect: {
+      effectType: 'projectile',
+      damage: 50,
+      speed: 700,
+      range: 500,
+      radius: 5,
+      pierceCount: 0,
+      homing: false,
+      visualType: 'diamond',
+      bounceCount: 3,
+      bounceRange: 300,
     },
   },
   'bolt-snipe': {
