@@ -31,4 +31,10 @@ export class ProjectileSchema extends Schema {
   @type('float32') maxRange: number = 0
   /** Remaining pierce count (0 = remove on first hit) */
   @type('int16') pierceRemaining: number = 0
+
+  // ── Bounce fields ─────────────────────────────────────────
+  /** Remaining bounce count (0 = no bouncing) */
+  @type('int16') bounceRemaining: number = 0
+  /** Max distance to search for next bounce target (px) */
+  @type('float32') bounceRange: number = 0
 }

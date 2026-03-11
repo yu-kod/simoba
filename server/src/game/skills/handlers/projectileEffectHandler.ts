@@ -31,6 +31,8 @@ function createProjectile(
   proj.maxRange = params.range
   proj.pierceRemaining = params.pierceCount
   proj.visualType = params.visualType
+  proj.bounceRemaining = params.bounceCount ?? 0
+  proj.bounceRange = params.bounceRange ?? 0
 
   projectiles.set(proj.id, proj)
 }

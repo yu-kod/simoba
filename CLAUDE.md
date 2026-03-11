@@ -56,6 +56,7 @@ All game/tech specs live in `openspec/specs/`:
 - **File size** — 200-400 lines typical, 800 max. Split when larger.
 - **Feature-based organization** — Organize by feature/domain (`domain/systems/`, `scenes/effects/`), not by type (`models/`, `utils/`).
 - **No hardcoded balance values** — Game balance numbers (damage, timers, XP, growth rates, etc.) must be centralized in constant tables for easy tuning later.
+- **Interface 変更時はモック更新必須** — `GameMode`, `ServerHeroState`, `HeroState` 等の共有インターフェースにフィールドを追加・変更した場合、テストファイルのモック/ファクトリ関数も同時に更新する。`npx tsc --noEmit` で CI 前に検証。
 
 ## Git Workflow
 
