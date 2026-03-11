@@ -25,4 +25,13 @@ export class ZoneSchema extends Schema {
   @type('boolean') triggerOnce: boolean = false
   /** Duration for the applied status effect (seconds). Used by trigger zones. */
   @type('float32') effectDuration: number = 0
+  /** Session ID of the hero this zone follows (empty = fixed position). Synced to clients for rendering. */
+  @type('string') followHeroId: string = ''
+  // Server-only fields (not synced to clients)
+  /** Damage per tick for sustained damage zones (0 = no tick damage) */
+  tickDamage: number = 0
+  /** Seconds between tick damage applications */
+  tickInterval: number = 0
+  /** Countdown timer for next tick damage application */
+  tickTimer: number = 0
 }

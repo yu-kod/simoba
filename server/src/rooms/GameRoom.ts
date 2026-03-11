@@ -398,7 +398,7 @@ export class GameRoom extends Room<GameRoomState> {
     })
 
     // 1.5. Tick zones (apply effects before buff tick so zone debuffs are included)
-    tickZones(this.state.zones, heroes, deltaTime)
+    tickZones(this.state.zones, heroes, deltaTime, minions)
 
     // 1.6. Tick skill cooldowns and buff durations
     heroes.forEach((hero) => {

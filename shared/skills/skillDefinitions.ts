@@ -49,6 +49,9 @@ export interface ZoneEffectParams {
   readonly zoneDuration: number     // zone duration (seconds)
   readonly triggerDamage?: number   // damage on trigger (0 = no trigger damage)
   readonly triggerOnce?: boolean    // true = zone removed after first trigger
+  readonly tickDamage?: number     // damage per tick (0 = no tick damage)
+  readonly tickInterval?: number   // seconds between tick damage applications
+  readonly followCaster?: boolean  // true = zone follows caster position each tick
   readonly zoneEffect: {
     readonly buffType: string       // effect category ('speed', etc.)
     readonly value: number          // effect amount (negative = debuff)
@@ -207,6 +210,25 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       duration: 0.15,
       damage: 0,
       invulnerable: true,
+    },
+  },
+  'blade-whirlwind': {
+    id: 'blade-whirlwind',
+    targeting: 'self',
+    cooldown: 12,
+    effect: {
+      effectType: 'zone',
+      zoneRadius: 120,
+      zoneDuration: 3,
+      tickDamage: 30,
+      tickInterval: 0.5,
+      followCaster: true,
+      zoneEffect: {
+        buffType: 'speed',
+        value: -40,
+        isDebuff: true,
+        target: 'enemy',
+      },
     },
   },
   'blade-block': {

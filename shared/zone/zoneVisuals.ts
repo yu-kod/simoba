@@ -21,6 +21,13 @@ export const ZONE_VISUALS: Record<string, ZoneVisualDef> = {
     borderAlpha: 0.6,
     borderWidth: 2,
   },
+  'blade-whirlwind': {
+    color: 0xe74c3c,
+    alpha: 0.25,
+    borderColor: 0xf39c12,
+    borderAlpha: 0.7,
+    borderWidth: 2,
+  },
   'bolt-trap': {
     color: 0xf1c40f,
     alpha: 0.15,

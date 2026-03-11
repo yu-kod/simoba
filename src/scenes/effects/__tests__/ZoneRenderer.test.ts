@@ -44,9 +44,12 @@ function createZone(overrides: Partial<ServerZoneState> = {}): ServerZoneState {
     radius: 200,
     skillId: 'aura-slow-field',
     team: 'blue',
+    followHeroId: '',
     ...overrides,
   }
 }
+
+const noopResolver = () => null
 
 describe('ZoneRenderer', () => {
   let mockScene: ReturnType<typeof createMockScene>
@@ -54,7 +57,7 @@ describe('ZoneRenderer', () => {
 
   beforeEach(() => {
     mockScene = createMockScene()
-    renderer = new ZoneRenderer(mockScene as unknown as Phaser.Scene, 'blue')
+    renderer = new ZoneRenderer(mockScene as unknown as Phaser.Scene, 'blue', noopResolver)
   })
 
   it('should draw nothing when no zones exist', () => {
@@ -135,6 +138,47 @@ describe('ZoneRenderer', () => {
       renderer.draw()
 
       expect(mockScene._graphics.fillCircle).toHaveBeenCalledWith(300, 100, 200)
+    })
+  })
+
+  describe('follow zone rendering', () => {
+    it('should draw follow zone at hero interpolated position', () => {
+      const heroResolver = (id: string) =>
+        id === 'hero-1' ? { x: 600, y: 400 } : null
+
+      const followRenderer = new ZoneRenderer(
+        mockScene as unknown as Phaser.Scene, 'blue', heroResolver
+      )
+
+      followRenderer.add(createZone({
+        id: 'zone-follow',
+        x: 100, y: 100, // server position (stale)
+        radius: 120,
+        skillId: 'blade-whirlwind',
+        followHeroId: 'hero-1',
+      }))
+      followRenderer.draw()
+
+      // Should use hero's interpolated position, not zone's server position
+      expect(mockScene._graphics.fillCircle).toHaveBeenCalledWith(600, 400, 120)
+    })
+
+    it('should fall back to server position when hero not found', () => {
+      const followRenderer = new ZoneRenderer(
+        mockScene as unknown as Phaser.Scene, 'blue', noopResolver
+      )
+
+      followRenderer.add(createZone({
+        id: 'zone-follow',
+        x: 100, y: 100,
+        radius: 120,
+        skillId: 'blade-whirlwind',
+        followHeroId: 'hero-missing',
+      }))
+      followRenderer.draw()
+
+      // Falls back to server zone position
+      expect(mockScene._graphics.fillCircle).toHaveBeenCalledWith(100, 100, 120)
     })
   })
 })

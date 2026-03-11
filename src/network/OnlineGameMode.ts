@@ -215,6 +215,7 @@ export class OnlineGameMode implements GameMode {
         radius: zone.radius as number,
         skillId: zone.skillId as string,
         team: zone.team as string,
+        followHeroId: (zone.followHeroId as string) ?? '',
       }
       for (const cb of this.serverZoneAddCallbacks) cb(state)
     })

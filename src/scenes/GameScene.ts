@@ -136,7 +136,10 @@ export class GameScene extends Phaser.Scene {
 
     this.meleeSwing = new MeleeSwingRenderer(this)
     this.projectileRenderer = new ProjectileRenderer(this)
-    this.zoneRenderer = new ZoneRenderer(this, this.localTeam)
+    this.zoneRenderer = new ZoneRenderer(this, this.localTeam, (heroId) => {
+      const entity = this.entityManager.getEntity(heroId)
+      return entity ? entity.position : null
+    })
 
     const localRenderer = this.entityRenderers.get(this.entityManager.localHeroId)!
     this.cameras.main.startFollow(localRenderer.gameObject, true, CAMERA_LERP, CAMERA_LERP)

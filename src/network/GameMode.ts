@@ -70,6 +70,7 @@ export interface ServerZoneState {
   readonly radius: number
   readonly skillId: string // key into ZONE_VISUALS
   readonly team: string
+  readonly followHeroId: string // session ID of the hero this zone follows (empty = fixed)
 }
 
 /** Server-synced tower state */

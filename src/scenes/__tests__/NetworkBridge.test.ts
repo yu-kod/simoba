@@ -83,7 +83,7 @@ describe('NetworkBridge', () => {
 
       const zoneState: ServerZoneState = {
         id: 'zone-1', x: 300, y: 100, radius: 200,
-        skillId: 'aura-slow-field', team: 'blue',
+        skillId: 'aura-slow-field', team: 'blue', followHeroId: '',
       }
       gm._triggerServerZoneAdd(zoneState)
       expect(onAdded).toHaveBeenCalledWith(zoneState)
