@@ -38,7 +38,7 @@ export const buffEffectHandler: SkillEffectHandler<BuffEffectParams> = {
     if (params.additionalBuffs) {
       for (const extra of params.additionalBuffs) {
         const key = `${ctx.skillId}:${extra.buffType}`
-        applyBuff(target, key, extra.buffType, extra.value, params.duration, params.isDebuff)
+        applyBuff(target, key, extra.buffType, extra.value, params.duration, extra.isDebuff ?? params.isDebuff)
       }
     }
   },

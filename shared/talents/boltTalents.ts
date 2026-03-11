@@ -304,6 +304,14 @@ export const BOLT_TALENT_TREE: TalentTreeDefinition = {
       effects: [{ type: 'stat_modifier', stat: 'attackDamage', value: 8, mode: 'percent' }],
     },
     {
+      id: 'bolt-snipe',
+      name: 'Snipe',
+      description: 'Unlock Snipe skill — sniper stance',
+      cost: 2,
+      prerequisites: ['bolt-eagle-eye'],
+      effects: [{ type: 'grant_skill', skillId: 'bolt-snipe' }],
+    },
+    {
       id: 'bolt-rain',
       name: 'Arrow Rain',
       description: 'Unlock Rain skill',
