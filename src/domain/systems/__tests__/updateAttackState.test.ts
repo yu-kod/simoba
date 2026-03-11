@@ -33,6 +33,10 @@ function makeHero(overrides: Partial<HeroState> = {}): HeroState {
     skillSlotQ: '',
     skillSlotE: '',
     skillSlotR: '',
+    cooldownQ: 0,
+    cooldownE: 0,
+    cooldownR: 0,
+    dashTimer: 0,
     ...overrides,
   }
 }
