@@ -168,6 +168,20 @@ describe('executeSkill — blade-execute', () => {
     expect(enemy.hp).toBe(650) // no damage
   })
 
+  it('should not deal damage to already dead enemy', () => {
+    const caster = createHero()
+    const enemy = createEnemy({ x: 450, y: 300, dead: true })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    // enemy targeting filters out dead enemies, so skill should fail
+    const event = executeSkill(caster, 'caster-1', 'Q', { x: 450, y: 300 }, new MapSchema<ProjectileSchema>(), heroes, tracker, new MapSchema<ZoneSchema>())
+
+    expect(event).toBeNull()
+    expect(enemy.hp).toBe(650) // untouched
+  })
+
   it('should clamp damage so HP does not go below 0', () => {
     const caster = createHero()
     const enemy = createEnemy({ x: 450, y: 300, hp: 50 }) // 50/650 = 7.7% < 30%
