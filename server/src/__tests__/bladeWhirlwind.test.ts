@@ -318,6 +318,44 @@ describe('tickZones — tick damage', () => {
   })
 })
 
+// ── Task 5.3b: Enemy speed debuff (zone status effect) tests ──
+
+describe('tickZones — enemy speed debuff', () => {
+  it('should apply speed debuff to enemy hero in radius', () => {
+    const caster = createHero({ x: 500, y: 300 })
+    const enemy = createHero({ x: 550, y: 300, team: 'red', hp: 500, maxHp: 500 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('enemy-1', enemy)
+
+    const zones = new MapSchema<ZoneSchema>()
+    zones.set('zone-1', createWhirlwindZone('caster-1', 'blue', 500, 300))
+
+    tickZones(zones, heroes, 0.016)
+
+    const effect = enemy.statusEffects.get('zone-1')
+    expect(effect).toBeDefined()
+    expect(effect!.buffType).toBe('speed')
+    expect(effect!.value).toBe(-40)
+    expect(effect!.isDebuff).toBe(true)
+  })
+
+  it('should not apply speed debuff to ally hero in radius', () => {
+    const caster = createHero({ x: 500, y: 300 })
+    const ally = createHero({ x: 550, y: 300, team: 'blue', hp: 650 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    heroes.set('ally-1', ally)
+
+    const zones = new MapSchema<ZoneSchema>()
+    zones.set('zone-1', createWhirlwindZone('caster-1', 'blue', 500, 300))
+
+    tickZones(zones, heroes, 0.016)
+
+    expect(ally.statusEffects.get('zone-1')).toBeUndefined()
+  })
+})
+
 // ── Task 5.4: Speed debuff tests ──
 
 describe('executeSkill — blade-whirlwind speed debuff', () => {
