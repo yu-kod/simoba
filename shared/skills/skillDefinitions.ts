@@ -164,6 +164,23 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       radius: 200,
     },
   },
+  'aura-barrier': {
+    id: 'aura-barrier',
+    targeting: 'point',
+    cooldown: 14,
+    range: 500,
+    effect: {
+      effectType: 'zone',
+      zoneRadius: 180,
+      zoneDuration: 4,
+      zoneEffect: {
+        buffType: 'damageReduction',
+        value: 0.30,
+        isDebuff: false,
+        target: 'ally',
+      },
+    },
+  },
   'aura-slow-field': {
     id: 'aura-slow-field',
     targeting: 'point',
