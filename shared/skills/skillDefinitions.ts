@@ -345,6 +345,22 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       executeBonusDamage: 150,
     },
   },
+  'bolt-snipe': {
+    id: 'bolt-snipe',
+    targeting: 'self',
+    cooldown: 16,
+    effect: {
+      effectType: 'buff',
+      buffType: 'attackDamage',
+      value: 20,
+      duration: 5,
+      isDebuff: false,
+      additionalBuffs: [
+        { buffType: 'attackSpeed', value: 0.4 },
+        { buffType: 'speed', value: -60 },
+      ],
+    },
+  },
 }
 
 export function getSkillDefinition(skillId: string): SkillDefinition | undefined {
