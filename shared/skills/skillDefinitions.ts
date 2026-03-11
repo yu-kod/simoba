@@ -50,7 +50,8 @@ export interface ZoneEffectParams {
   readonly triggerDamage?: number   // damage on trigger (0 = no trigger damage)
   readonly triggerOnce?: boolean    // true = zone removed after first trigger
   readonly tickDamage?: number     // damage per tick (0 = no tick damage)
-  readonly tickInterval?: number   // seconds between tick damage applications
+  readonly tickHeal?: number       // healing per tick to allies (0 = no tick heal)
+  readonly tickInterval?: number   // seconds between tick damage/heal applications
   readonly followCaster?: boolean  // true = zone follows caster position each tick
   readonly zoneEffect: {
     readonly buffType: string       // effect category ('speed', etc.)
@@ -228,6 +229,25 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
         value: -40,
         isDebuff: true,
         target: 'enemy',
+      },
+    },
+  },
+  'aura-sanctuary': {
+    id: 'aura-sanctuary',
+    targeting: 'self',
+    cooldown: 20,
+    effect: {
+      effectType: 'zone',
+      zoneRadius: 160,
+      zoneDuration: 5,
+      tickHeal: 15,
+      tickInterval: 1.0,
+      followCaster: true,
+      zoneEffect: {
+        buffType: 'damageReduction',
+        value: 0.25,
+        isDebuff: false,
+        target: 'ally',
       },
     },
   },

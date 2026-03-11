@@ -30,6 +30,8 @@ export class ZoneSchema extends Schema {
   // Server-only fields (not synced to clients)
   /** Damage per tick for sustained damage zones (0 = no tick damage) */
   tickDamage: number = 0
+  /** Healing per tick for sustained heal zones (0 = no tick heal) */
+  tickHeal: number = 0
   /** Seconds between tick damage applications */
   tickInterval: number = 0
   /** Countdown timer for next tick damage application */
