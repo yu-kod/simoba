@@ -207,6 +207,22 @@ describe('tickZones — Sanctuary tick healing', () => {
     expect(ally.hp).toBe(515) // 500 + 15
   })
 
+  it('should heal the caster themselves (same team)', () => {
+    const caster = createHero({ x: 400, y: 300, hp: 500, maxHp: 650 })
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+
+    const zones = new MapSchema<ZoneSchema>()
+    zones.set('zone-1', createSanctuaryZone('caster-1', 'blue', 400, 300))
+
+    tickZones(zones, heroes, 1.0)
+
+    expect(caster.hp).toBe(515) // 500 + 15 — caster is ally to own zone
+    const effect = caster.statusEffects.get('zone-1')
+    expect(effect).toBeDefined()
+    expect(effect!.buffType).toBe('damageReduction')
+  })
+
   it('should not heal enemies', () => {
     const caster = createHero({ x: 400, y: 300 })
     const enemy = createHero({ x: 450, y: 300, team: 'red', hp: 500, maxHp: 650 })
