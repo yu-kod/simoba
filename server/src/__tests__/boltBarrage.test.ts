@@ -7,6 +7,7 @@ import { executeSkill } from '../game/ServerSkillExecutionSystem.js'
 import { registerAllEffectHandlers } from '../game/skills/handlers/index.js'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
 import { ProjectileTracker } from '../game/ProjectileTracker.js'
+import { projectileEffectHandler } from '../game/skills/handlers/projectileEffectHandler.js'
 
 let tracker: ProjectileTracker
 
@@ -160,6 +161,53 @@ describe('executeSkill — bolt-barrage', () => {
     const ids = [...projectiles.values()].map(p => p.id)
     const uniqueIds = new Set(ids)
     expect(uniqueIds.size).toBe(5)
+  })
+})
+
+// ── Edge cases ──
+
+describe('projectileEffectHandler — edge cases', () => {
+  it('should spawn overlapping projectiles when spreadAngle is 0 with count > 1', () => {
+    const caster = createHero()
+    const heroes = new MapSchema<HeroSchema>()
+    heroes.set('caster-1', caster)
+    const projectiles = new MapSchema<ProjectileSchema>()
+    const zones = new MapSchema<ZoneSchema>()
+
+    // Use handler directly with spreadAngle=0
+    const ctx = {
+      hero: caster,
+      casterId: 'caster-1',
+      skillId: 'test-zero-spread',
+      direction: { x: 1, y: 0 },
+      targetPosition: { x: 500, y: 300 },
+      projectiles,
+      heroes,
+      zones,
+      projectileTracker: tracker,
+    }
+    const params = {
+      effectType: 'projectile' as const,
+      damage: 10,
+      speed: 500,
+      range: 300,
+      radius: 4,
+      pierceCount: 0,
+      homing: false,
+      visualType: 'circle',
+      projectileCount: 3,
+      spreadAngle: 0,
+    }
+
+    projectileEffectHandler.execute(ctx, params)
+
+    expect(projectiles.size).toBe(3)
+    const projs = [...projectiles.values()]
+    // All projectiles should fire in the same direction
+    for (const p of projs) {
+      expect(p.dirX).toBeCloseTo(1, 5)
+      expect(p.dirY).toBeCloseTo(0, 5)
+    }
   })
 })
 

@@ -48,6 +48,9 @@ export const projectileEffectHandler: SkillEffectHandler<ProjectileEffectParams>
 
     // Multi-projectile: fan spread centered on cursor direction
     const totalSpread = params.spreadAngle ?? 0
+    if (totalSpread === 0) {
+      console.warn(`[projectileEffectHandler] projectileCount=${count} but spreadAngle is 0 — all projectiles will overlap`)
+    }
     const baseAngle = Math.atan2(ctx.direction.y, ctx.direction.x)
 
     for (let i = 0; i < count; i++) {
