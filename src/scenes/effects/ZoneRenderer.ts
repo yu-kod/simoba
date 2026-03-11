@@ -4,20 +4,26 @@ import { getZoneVisual } from '@shared/zone/zoneVisuals'
 
 const ZONE_DEPTH = -1
 
+/** Resolves the current rendered position of a hero by session ID. */
+export type HeroPositionResolver = (heroId: string) => { x: number; y: number } | null
+
 /**
  * Renders all active zones each frame.
  * Visual style is determined by skillId via ZONE_VISUALS registry.
  * Zones with allyOnly skip rendering when the local player is on the enemy team.
+ * Follow zones derive their position from the hero's interpolated coordinates.
  */
 export class ZoneRenderer {
   private readonly graphics: Phaser.GameObjects.Graphics
   private readonly zones = new Map<string, ServerZoneState>()
   private readonly localTeam: string
+  private readonly getHeroPosition: HeroPositionResolver
 
-  constructor(scene: Phaser.Scene, localTeam: string) {
+  constructor(scene: Phaser.Scene, localTeam: string, getHeroPosition: HeroPositionResolver) {
     this.graphics = scene.add.graphics()
     this.graphics.setDepth(ZONE_DEPTH)
     this.localTeam = localTeam
+    this.getHeroPosition = getHeroPosition
   }
 
   add(state: ServerZoneState): void {
@@ -37,14 +43,24 @@ export class ZoneRenderer {
       // allyOnly zones are hidden from the enemy team
       if (visual.allyOnly && zone.team !== this.localTeam) continue
 
+      // Follow zones use the hero's interpolated position for lag-free rendering
+      let { x, y } = zone
+      if (zone.followHeroId !== '') {
+        const heroPos = this.getHeroPosition(zone.followHeroId)
+        if (heroPos) {
+          x = heroPos.x
+          y = heroPos.y
+        }
+      }
+
       // Fill
       this.graphics.fillStyle(visual.color, visual.alpha)
-      this.graphics.fillCircle(zone.x, zone.y, zone.radius)
+      this.graphics.fillCircle(x, y, zone.radius)
 
       // Border
       if (visual.borderWidth > 0) {
         this.graphics.lineStyle(visual.borderWidth, visual.borderColor, visual.borderAlpha)
-        this.graphics.strokeCircle(zone.x, zone.y, zone.radius)
+        this.graphics.strokeCircle(x, y, zone.radius)
       }
     }
   }
