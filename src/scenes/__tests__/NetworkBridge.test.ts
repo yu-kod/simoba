@@ -32,6 +32,9 @@ function createMockGameMode(): GameMode & {
     sendAssignSkillSlot: vi.fn(),
     sendSwapSkillSlots: vi.fn(),
     sendUnequipSkillSlot: vi.fn(),
+    sendUseSkill: vi.fn(),
+    sendMaxLevel: vi.fn(),
+    onSkillEvent: vi.fn(),
     onMatchEnd: vi.fn(),
     dispose: vi.fn(),
     _triggerServerHeroUpdate: (s) => heroUpdateCb?.(s),
@@ -51,6 +54,7 @@ const HERO_STATE: ServerHeroState = {
   xp: 0, level: 1, talentPoints: 0,
   acquiredTalents: [], ownedSkills: [],
   skillSlotQ: '', skillSlotE: '', skillSlotR: '',
+  cooldownQ: 0, cooldownE: 0, cooldownR: 0, dashTimer: 0,
 }
 
 describe('NetworkBridge', () => {
