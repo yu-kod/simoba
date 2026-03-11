@@ -17,6 +17,8 @@ export interface ProjectileEffectParams {
   readonly pierceCount: number      // max enemies to pierce (0 = single hit)
   readonly homing: boolean          // true = track target, false = straight line
   readonly visualType: string       // key into PROJECTILE_VISUALS (e.g. 'circle', 'diamond')
+  readonly projectileCount?: number // number of projectiles to spawn (default 1)
+  readonly spreadAngle?: number     // total fan spread angle in radians (used when projectileCount > 1)
 }
 
 export interface HealEffectParams {
@@ -266,6 +268,23 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
         isDebuff: false,
         target: 'ally',
       },
+    },
+  },
+  'bolt-barrage': {
+    id: 'bolt-barrage',
+    targeting: 'direction',
+    cooldown: 10,
+    effect: {
+      effectType: 'projectile',
+      damage: 25,
+      speed: 700,
+      range: 450,
+      radius: 4,
+      pierceCount: 0,
+      homing: false,
+      visualType: 'circle',
+      projectileCount: 5,
+      spreadAngle: 0.436, // ~25 degrees in radians
     },
   },
   'blade-block': {
