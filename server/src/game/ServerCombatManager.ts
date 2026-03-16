@@ -11,6 +11,7 @@ import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { applyDamageToTarget } from './combatUtils.js'
 import { getEffectiveStat } from './StatusEffectSystem.js'
 import type { ProjectileTracker } from './ProjectileTracker.js'
+import { createHomingProjectile } from './projectileFactory.js'
 
 interface CombatTarget {
   id: string
@@ -146,18 +147,16 @@ export function processHeroCombat(
       })
     } else {
       // Ranged: spawn projectile
-      const proj = new ProjectileSchemaClass()
-      proj.id = tracker.nextCombatProjectileId()
-      proj.x = hero.x
-      proj.y = hero.y
-      proj.targetX = target.x
-      proj.targetY = target.y
-      proj.targetId = hero.attackTargetId
-      proj.speed = def.projectileSpeed
-      proj.damage = effectiveAttack
-      proj.ownerId = heroId
-      proj.team = hero.team
-      projectiles.set(proj.id, proj)
+      createHomingProjectile(
+        ProjectileSchemaClass,
+        tracker.nextCombatProjectileId(),
+        hero,
+        { id: hero.attackTargetId, x: target.x, y: target.y },
+        def.projectileSpeed,
+        effectiveAttack,
+        heroId,
+        projectiles,
+      )
 
       // Brief movement pause when firing while moving
       hero.attackPauseTimer = RANGED_ATTACK_PAUSE_DURATION
