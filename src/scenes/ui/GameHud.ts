@@ -31,11 +31,6 @@ export interface GameHudOptions {
   readonly onMaxLevelClick?: () => void
 }
 
-/**
- * Base design dimensions for HUD layout.
- * computeHudLayout returns positions in this 1280x720 coordinate space.
- * The container follows the camera worldView so it appears screen-fixed.
- */
 /** Build a SkillSlotConfig from hero state for a given slot. */
 function slotConfigFromHero(hero: HeroState, key: 'Q' | 'E' | 'R'): SkillSlotConfig {
   const slotMap = { Q: hero.skillSlotQ, E: hero.skillSlotE, R: hero.skillSlotR }
