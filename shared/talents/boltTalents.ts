@@ -373,6 +373,14 @@ export const BOLT_TALENT_TREE: TalentTreeDefinition = {
       prerequisites: ['bolt-minefield'],
       effects: [{ type: 'modify_basic_attack', property: 'trapSlowDuration', value: 50 }],
     },
+    {
+      id: 'bolt-turret',
+      name: 'Turret',
+      description: 'Unlock Turret skill — deploy auto-attacking turret',
+      cost: 2,
+      prerequisites: ['bolt-minefield'],
+      effects: [{ type: 'grant_skill', skillId: 'bolt-turret' }],
+    },
     // Marksman
     {
       id: 'bolt-overwatch',

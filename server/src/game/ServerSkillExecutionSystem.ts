@@ -2,6 +2,7 @@ import { MapSchema } from '@colyseus/schema'
 import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { ZoneSchema } from '../schema/ZoneSchema.js'
+import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { SkillEvent } from '@shared/messages'
 import { getSkillDefinition } from '@shared/skills/skillDefinitions'
 import { getEffectHandler } from './skills/skillEffectRegistry.js'
@@ -91,6 +92,7 @@ export function executeSkill(
   heroes: MapSchema<HeroSchema>,
   tracker: ProjectileTracker,
   zones: MapSchema<ZoneSchema> = new MapSchema<ZoneSchema>(),
+  towers: MapSchema<TowerSchema> = new MapSchema<TowerSchema>(),
 ): SkillEvent | null {
   // Validation: hero must be alive
   if (hero.dead) return null
@@ -148,6 +150,7 @@ export function executeSkill(
       projectiles,
       heroes,
       zones,
+      towers,
       projectileTracker: tracker,
       targetHero,
     },

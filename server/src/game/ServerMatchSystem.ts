@@ -11,7 +11,8 @@ export function checkTowerDestroyed(
   endMatch: (winnerTeam: string) => void,
 ): void {
   towers.forEach((tower) => {
-    if (tower.dead) {
+    // Skip summoned turrets — only permanent map towers trigger match end
+    if (tower.dead && tower.ownerId === '') {
       const winner = tower.team === 'blue' ? 'red' : 'blue'
       endMatch(winner)
     }

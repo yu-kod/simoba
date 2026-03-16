@@ -122,6 +122,17 @@ GameHud のスキルスロット表示にクールダウン残り時間を表示
 - **WHEN** ally ターゲティングで `aura-haste`（range: 400）のターゲット解決を行う
 - **THEN** `def.range` から 400 が取得される
 
+### Requirement: SkillExecutionContext includes towers
+`SkillExecutionContext` SHALL include a `towers` field of type `MapSchema<TowerSchema>` to allow skill handlers to spawn tower-type entities (turrets).
+
+#### Scenario: Turret handler accesses towers from context
+- **WHEN** a turret effect handler is executed
+- **THEN** it SHALL access `ctx.towers` to add the spawned turret entity
+
+#### Scenario: Existing handlers unaffected
+- **WHEN** a non-turret skill handler is executed
+- **THEN** the `towers` field SHALL be available but not used
+
 ### Requirement: resolveEnemyTarget
 `executeSkill` 内で `targeting: 'enemy'` のスキルの場合、クリック座標から最寄りの **敵チーム** 生存ヒーローを `range` 以内で検索しなければならない（SHALL）。射程内に敵がいない場合は `null` を返さなければならない（SHALL）。`resolveEnemyTarget` で解決された敵ヒーローは `SkillExecutionContext.targetHero` として渡されなければならない（SHALL）。`targetHero` が `null`（射程外）の場合、`executeSkill` は `null` を返し、クールダウンは消費されない（SHALL NOT）。
 

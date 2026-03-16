@@ -287,7 +287,7 @@ describe('processProjectiles — bounce', () => {
     expect(proj.dirX).toBeCloseTo(dx / dist, 1)
   })
 
-  it('should remove projectile when bounceRemaining reaches 0', () => {
+  it('should remove projectile immediately when bounceRemaining is 0 (no bounce configured)', () => {
     const heroes = new MapSchema<HeroSchema>()
     const towers = new MapSchema<TowerSchema>()
     const projectiles = new MapSchema<ProjectileSchema>()
@@ -309,7 +309,7 @@ describe('processProjectiles — bounce', () => {
     proj.team = 'blue'
     proj.mode = 'linear'
     proj.maxRange = 500
-    proj.bounceRemaining = 0 // no bounces left
+    proj.bounceRemaining = 0 // no bounces configured
     proj.bounceRange = 300
     proj.pierceRemaining = 0
     proj.radius = 5
@@ -319,6 +319,55 @@ describe('processProjectiles — bounce', () => {
 
     expect(events).toHaveLength(1)
     expect(projectiles.size).toBe(0) // removed — bounceRemaining was 0
+  })
+
+  it('should deal damage and remove after final bounce target is hit', () => {
+    const heroes = new MapSchema<HeroSchema>()
+    const towers = new MapSchema<TowerSchema>()
+    const projectiles = new MapSchema<ProjectileSchema>()
+
+    // Two enemies close together
+    const enemy1 = createEnemy('enemy-1', 200, 100)
+    const enemy2 = createEnemy('enemy-2', 250, 100)
+    heroes.set('enemy-1', enemy1)
+    heroes.set('enemy-2', enemy2)
+
+    const proj = new ProjectileSchema()
+    proj.id = 'last-bounce'
+    proj.x = 170
+    proj.y = 100
+    proj.dirX = 1
+    proj.dirY = 0
+    proj.speed = 1000
+    proj.damage = 50
+    proj.ownerId = 'caster'
+    proj.team = 'blue'
+    proj.mode = 'linear'
+    proj.maxRange = 500
+    proj.bounceRemaining = 1 // only 1 bounce
+    proj.bounceRange = 300
+    proj.pierceRemaining = 0
+    proj.radius = 5
+    projectiles.set(proj.id, proj)
+
+    // Tick 1: hit enemy1, bounce to enemy2 (bounceRemaining → 0)
+    const events1 = processProjectiles(projectiles, heroes, towers, 0.05, tracker)
+    expect(events1).toHaveLength(1)
+    expect(events1[0].event.targetId).toBe('enemy-1')
+    expect(proj.bounceRemaining).toBe(0)
+    expect(projectiles.size).toBe(1) // still alive, heading to enemy2
+
+    // Tick 2+: move toward enemy2 and hit it
+    // Multiple small ticks to reach enemy2
+    let events2: ReturnType<typeof processProjectiles> = []
+    for (let i = 0; i < 20; i++) {
+      events2 = processProjectiles(projectiles, heroes, towers, 0.01, tracker)
+      if (events2.length > 0) break
+    }
+
+    expect(events2).toHaveLength(1)
+    expect(events2[0].event.targetId).toBe('enemy-2')
+    expect(projectiles.size).toBe(0) // removed after hitting final target
   })
 
   it('should remove projectile when bounce target is out of bounceRange', () => {

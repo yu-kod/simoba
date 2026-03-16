@@ -33,6 +33,9 @@ function createProjectile(
   proj.visualType = params.visualType
   proj.bounceRemaining = params.bounceCount ?? 0
   proj.bounceRange = params.bounceRange ?? 0
+  if (proj.bounceRemaining > 0 && proj.bounceRange <= 0) {
+    console.warn(`[projectileEffectHandler] bounceCount=${params.bounceCount} but bounceRange is 0 or missing — projectile will never bounce`)
+  }
 
   projectiles.set(proj.id, proj)
 }
