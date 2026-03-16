@@ -2,6 +2,7 @@ import type { MapSchema } from '@colyseus/schema'
 import type { HeroSchema } from '../../schema/HeroSchema.js'
 import type { ProjectileSchema } from '../../schema/ProjectileSchema.js'
 import type { ZoneSchema } from '../../schema/ZoneSchema.js'
+import type { TowerSchema } from '../../schema/TowerSchema.js'
 import type { SkillEffectParams } from '@shared/skills/skillDefinitions'
 import type { ProjectileTracker } from '../../game/ProjectileTracker.js'
 
@@ -15,6 +16,7 @@ export interface SkillExecutionContext {
   readonly projectiles: MapSchema<ProjectileSchema>
   readonly heroes: MapSchema<HeroSchema>
   readonly zones: MapSchema<ZoneSchema>
+  readonly towers: MapSchema<TowerSchema>
   readonly projectileTracker: ProjectileTracker
   /** Resolved target for ally/enemy-targeting skills. */
   readonly targetHero?: HeroSchema

@@ -74,7 +74,18 @@ export interface StrikeEffectParams {
   readonly executeBonusDamage?: number  // additional damage when target HP% ≤ threshold
 }
 
-export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams | ZoneEffectParams | StrikeEffectParams
+export interface TurretEffectParams {
+  readonly effectType: 'turret'
+  readonly hp: number                // turret max HP
+  readonly duration: number          // lifetime in seconds
+  readonly attackDamage: number      // damage per hit
+  readonly attackSpeed: number       // attacks per second
+  readonly attackRange: number       // targeting range (px)
+  readonly radius: number            // collision/render radius (px)
+  readonly projectileSpeed: number   // homing projectile speed (px/sec)
+}
+
+export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams | ZoneEffectParams | StrikeEffectParams | TurretEffectParams
 
 // ── Common fields shared by ALL skills ────────────────────────
 
@@ -363,6 +374,22 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       visualType: 'diamond',
       bounceCount: 3,
       bounceRange: 300,
+    },
+  },
+  'bolt-turret': {
+    id: 'bolt-turret',
+    targeting: 'point',
+    cooldown: 20,
+    range: 400,
+    effect: {
+      effectType: 'turret',
+      hp: 200,
+      duration: 10,
+      attackDamage: 25,
+      attackSpeed: 1.5,
+      attackRange: 250,
+      radius: 18,
+      projectileSpeed: 600,
     },
   },
   'bolt-snipe': {

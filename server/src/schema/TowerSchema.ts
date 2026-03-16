@@ -13,4 +13,10 @@ export class TowerSchema extends CombatEntitySchema {
   @type('float32') attackSpeed: number = 0
   @type('float32') projectileSpeed: number = 0
   @type('float32') projectileRadius: number = 0
+
+  // ── Summoned turret fields ────────────────────────────
+  /** Remaining lifetime in seconds (0 = permanent map tower) */
+  @type('float32') remainingDuration: number = 0
+  /** Session ID of the hero that summoned this turret ('' = map tower) */
+  @type('string') ownerId: string = ''
 }

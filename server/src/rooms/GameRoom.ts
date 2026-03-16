@@ -12,6 +12,7 @@ import { processMovement } from '../game/ServerMovementSystem.js'
 import { processHeroCombat } from '../game/ServerCombatManager.js'
 import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat } from '../game/ServerTowerSystem.js'
+import { processTurretLifetime } from '../game/ServerTurretLifetime.js'
 import { ProjectileTracker } from '../game/ProjectileTracker.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
 import { isHeroInBase, processBaseRegen } from '../game/ServerBaseRegenSystem.js'
@@ -191,7 +192,7 @@ export class GameRoom extends Room<GameRoomState> {
       if (!isValidUseSkillMessage(message)) return
       const hero = this.state.heroes.get(client.sessionId)
       if (!hero) return
-      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes, this.projectileTracker, this.state.zones)
+      const event = executeSkill(hero, client.sessionId, message.slot, message.target, this.state.projectiles, this.state.heroes, this.projectileTracker, this.state.zones, this.state.towers)
       if (event) {
         this.broadcast('skill', event)
       }
@@ -453,6 +454,9 @@ export class GameRoom extends Room<GameRoomState> {
       )
       events.push(...towerEvents)
     })
+
+    // 3b. Process turret lifetime
+    processTurretLifetime(towers, deltaTime)
 
     // 4. Process projectiles
     const projectileEvents = processProjectiles(projectiles, heroes, towers, deltaTime, this.projectileTracker, minions)

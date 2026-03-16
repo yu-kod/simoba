@@ -6,6 +6,7 @@ import { buffEffectHandler } from './buffEffectHandler.js'
 import { aoeEffectHandler } from './aoeEffectHandler.js'
 import { zoneEffectHandler } from './zoneEffectHandler.js'
 import { strikeEffectHandler } from './strikeEffectHandler.js'
+import { turretEffectHandler } from './turretEffectHandler.js'
 
 let registered = false
 
@@ -20,6 +21,7 @@ export function registerAllEffectHandlers(): void {
   registerEffectHandler(aoeEffectHandler)
   registerEffectHandler(zoneEffectHandler)
   registerEffectHandler(strikeEffectHandler)
+  registerEffectHandler(turretEffectHandler)
 }
 
 /** Reset registration state and clear registry. For testing only. */
