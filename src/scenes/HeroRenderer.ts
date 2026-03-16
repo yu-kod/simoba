@@ -3,13 +3,7 @@ import type { HeroState } from '@/domain/entities/Hero'
 import type { HeroType } from '@/domain/types'
 import { HpBarRenderer } from '@/scenes/ui/HpBarRenderer'
 import { drawHexPath } from '@/scenes/ui/drawHexPath'
-
-/** Type-specific body colors (not team colors — team is shown via HP bar) */
-const HERO_COLORS: Record<HeroType, number> = {
-  BLADE: 0xe74c3c, // red — aggressive melee fighter
-  BOLT: 0x3498db, // blue — precise ranged attacker
-  AURA: 0x2ecc71, // green — supportive healer
-}
+import { HERO_COLORS, DIAMOND_ASPECT_RATIO, FLASH_DURATION_MS, FLASH_COLOR } from '@/scenes/effects/entityColors'
 
 const FACING_INDICATOR_SIZE = 6
 const FACING_INDICATOR_OFFSET = 1.3 // multiplier of radius
@@ -17,9 +11,6 @@ const BODY_FILL_ALPHA = 0.3
 const BODY_STROKE_WIDTH = 2
 const TYPE_INDICATOR_ALPHA = 0.8
 const TYPE_INDICATOR_SCALE = 0.6
-const DIAMOND_ASPECT_RATIO = 0.6
-const FLASH_DURATION_MS = 100
-const FLASH_COLOR = 0xffffff
 
 export class HeroRenderer {
   private readonly container: Phaser.GameObjects.Container

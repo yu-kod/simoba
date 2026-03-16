@@ -8,15 +8,8 @@ import { TALENT_TREES } from '@shared/talents/index'
 import { drawHexPath } from './drawHexPath'
 import { SkillSlotPanel, type SkillSlotCallbacks } from './SkillSlotPanel'
 import { DESIGN_WIDTH, DESIGN_HEIGHT } from './uiConstants'
+import { HERO_COLORS, DIAMOND_ASPECT_RATIO } from '@/scenes/effects/entityColors'
 const OVERLAY_DEPTH = 1500
-
-// Hero body colors (match HeroRenderer)
-const HERO_COLORS: Record<HeroType, number> = {
-  BLADE: 0xe74c3c,
-  BOLT: 0x3498db,
-  AURA: 0x2ecc71,
-} as const
-const DIAMOND_ASPECT_RATIO = 0.6
 
 // Tree layout — fan shape (start marker at bottom, branches expand upward)
 // Tree occupies left portion (0–900px), skill panel occupies right (920–1280px)

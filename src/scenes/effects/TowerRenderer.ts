@@ -2,19 +2,12 @@ import Phaser from 'phaser'
 import type { TowerState } from '@/domain/entities/Tower'
 import type { Team } from '@/domain/types'
 import { HpBarRenderer } from '@/scenes/ui/HpBarRenderer'
-
-const TOWER_COLORS: Record<Team, number> = {
-  blue: 0x3498db,
-  red: 0xe74c3c,
-  neutral: 0x95a5a6,
-}
+import { TEAM_COLORS, FLASH_DURATION_MS, FLASH_COLOR } from './entityColors'
 
 const BODY_FILL_ALPHA = 0.4
 const BODY_STROKE_WIDTH = 3
 const INNER_SQUARE_SCALE = 0.5
 const INNER_SQUARE_ALPHA = 0.7
-const FLASH_DURATION_MS = 100
-const FLASH_COLOR = 0xffffff
 
 export class TowerRenderer {
   private readonly container: Phaser.GameObjects.Container
@@ -28,7 +21,7 @@ export class TowerRenderer {
   constructor(scene: Phaser.Scene, tower: TowerState, isAlly: boolean) {
     this.radius = tower.radius
     this.team = tower.team
-    const color = TOWER_COLORS[tower.team]
+    const color = TEAM_COLORS[tower.team]
 
     this.container = scene.add.container(tower.position.x, tower.position.y)
 
@@ -67,7 +60,7 @@ export class TowerRenderer {
     if (this.flashTimer >= FLASH_DURATION_MS) {
       this.isFlashing = false
       this.bodyGraphics.clear()
-      this.drawBody(TOWER_COLORS[this.team])
+      this.drawBody(TEAM_COLORS[this.team])
     }
   }
 
