@@ -10,9 +10,12 @@ export function checkTowerDestroyed(
   towers: MapSchema<TowerSchema>,
   endMatch: (winnerTeam: string) => void,
 ): void {
+  let found = false
   towers.forEach((tower) => {
+    if (found) return
     // Skip summoned turrets — only permanent map towers trigger match end
     if (tower.dead && tower.ownerId === '') {
+      found = true
       const winner = tower.team === 'blue' ? 'red' : 'blue'
       endMatch(winner)
     }

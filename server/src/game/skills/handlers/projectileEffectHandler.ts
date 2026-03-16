@@ -1,6 +1,9 @@
 import { ProjectileSchema } from '../../../schema/ProjectileSchema.js'
 import type { SkillEffectHandler, SkillExecutionContext } from '../SkillEffectHandler.js'
 import type { ProjectileEffectParams } from '@shared/skills/skillDefinitions'
+import { createServerLogger } from '@shared/logging'
+
+const logger = createServerLogger('projectile')
 
 function createProjectile(
   ctx: SkillExecutionContext,
@@ -34,7 +37,7 @@ function createProjectile(
   proj.bounceRemaining = params.bounceCount ?? 0
   proj.bounceRange = params.bounceRange ?? 0
   if (proj.bounceRemaining > 0 && proj.bounceRange <= 0) {
-    console.warn(`[projectileEffectHandler] bounceCount=${params.bounceCount} but bounceRange is 0 or missing — projectile will never bounce`)
+    logger.warn('bounceCount set but bounceRange is 0 or missing — projectile will never bounce', { bounceCount: params.bounceCount })
   }
 
   projectiles.set(proj.id, proj)
@@ -54,7 +57,7 @@ export const projectileEffectHandler: SkillEffectHandler<ProjectileEffectParams>
     // Multi-projectile: fan spread centered on cursor direction
     const totalSpread = params.spreadAngle ?? 0
     if (totalSpread === 0) {
-      console.warn(`[projectileEffectHandler] projectileCount=${count} but spreadAngle is 0 — all projectiles will overlap`)
+      logger.warn('projectileCount > 1 but spreadAngle is 0 — all projectiles will overlap', { projectileCount: count })
     }
     const baseAngle = Math.atan2(ctx.direction.y, ctx.direction.x)
 
