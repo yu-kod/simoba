@@ -43,11 +43,11 @@ export const BASES = {
 export const TICK_RATE_MS = 16.6 // ~60 Hz
 
 // Spawn positions
-export const BLUE_SPAWN = { x: 320, y: 360 } as const
-export const RED_SPAWN = { x: 2880, y: 360 } as const
+export const BLUE_SPAWN = { x: 320, y: WORLD_HEIGHT / 2 } as const
+export const RED_SPAWN = { x: 2880, y: WORLD_HEIGHT / 2 } as const
 
 // Tower positions
-export const TOWER_DISTANCE_FROM_EDGE = 600
+const TOWER_DISTANCE_FROM_EDGE = 600
 export const TOWER_BLUE_POS = { x: TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 } as const
 export const TOWER_RED_POS = { x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 } as const
 
@@ -67,7 +67,7 @@ export const BASE_HP_REGEN_PER_SEC = 200 // HP recovered per second while inside
 // Ranged attack pause — brief stop when firing a ranged attack while moving
 export const RANGED_ATTACK_PAUSE_DURATION = 0.15 // seconds
 
-// Zone effect — default duration for continuous zone effects (e.g. slow field aura)
+/** Duration set on zone-applied status effects. Short so they expire quickly when leaving the zone. */
 export const ZONE_EFFECT_DURATION = 0.1 // seconds
 
 // Hero kill
