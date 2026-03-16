@@ -39,18 +39,18 @@ export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
     const id = ctx.projectileTracker.nextZoneId()
     ctx.zones.set(id, zone)
 
-    // Apply self speed debuff for follow zones (e.g. Whirlwind slows the caster)
-    if (params.followCaster && params.zoneEffect.isDebuff) {
+    // Apply self-debuff to caster (e.g. Whirlwind slows the caster)
+    if (params.selfEffect) {
       const effectKey = ctx.skillId
       const existing = ctx.hero.statusEffects.get(effectKey)
       if (existing) {
-        existing.remainingDuration = params.zoneDuration
+        existing.remainingDuration = params.selfEffect.duration
       } else {
         const effect = new StatusEffectSchema()
         effect.id = effectKey
-        effect.buffType = params.zoneEffect.buffType
-        effect.value = params.zoneEffect.value
-        effect.remainingDuration = params.zoneDuration
+        effect.buffType = params.selfEffect.buffType
+        effect.value = params.selfEffect.value
+        effect.remainingDuration = params.selfEffect.duration
         effect.isDebuff = true
         ctx.hero.statusEffects.set(effectKey, effect)
       }

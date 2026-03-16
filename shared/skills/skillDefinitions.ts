@@ -58,6 +58,11 @@ export interface ZoneEffectParams {
   readonly tickHeal?: number       // healing per tick to allies (0 = no tick heal)
   readonly tickInterval?: number   // seconds between tick damage/heal applications
   readonly followCaster?: boolean  // true = zone follows caster position each tick
+  readonly selfEffect?: {          // optional debuff applied to caster when followCaster is true
+    readonly buffType: string
+    readonly value: number
+    readonly duration: number      // seconds
+  }
   readonly zoneEffect: {
     readonly buffType: string       // effect category ('speed', etc.)
     readonly value: number          // effect amount (negative = debuff)
@@ -265,6 +270,11 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       tickDamage: 30,
       tickInterval: 0.5,
       followCaster: true,
+      selfEffect: {
+        buffType: 'speed',
+        value: -40,
+        duration: 3,
+      },
       zoneEffect: {
         buffType: 'speed',
         value: -40,
