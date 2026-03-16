@@ -83,6 +83,7 @@ export interface TurretEffectParams {
   readonly attackRange: number       // targeting range (px)
   readonly radius: number            // collision/render radius (px)
   readonly projectileSpeed: number   // homing projectile speed (px/sec)
+  readonly projectileRadius: number  // projectile collision radius (px)
 }
 
 export type SkillEffectParams = DashEffectParams | ProjectileEffectParams | HealEffectParams | BuffEffectParams | AoEEffectParams | ZoneEffectParams | StrikeEffectParams | TurretEffectParams
@@ -390,6 +391,7 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
       attackRange: 250,
       radius: 18,
       projectileSpeed: 600,
+      projectileRadius: 4,
     },
   },
   'bolt-snipe': {

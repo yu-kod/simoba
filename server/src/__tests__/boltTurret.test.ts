@@ -215,7 +215,7 @@ describe('checkTowerDestroyed — turret safety', () => {
     turret.dead = true
     turret.remainingDuration = 5
     turret.ownerId = 'caster-1'
-    towers.set('zone-1', turret)
+    towers.set('turret-1', turret)
 
     let matchEnded = false
     checkTowerDestroyed(towers, () => { matchEnded = true })

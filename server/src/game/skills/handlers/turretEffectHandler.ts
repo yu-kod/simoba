@@ -18,7 +18,7 @@ export const turretEffectHandler: SkillEffectHandler<TurretEffectParams> = {
     turret.attackSpeed = params.attackSpeed
     turret.attackRange = params.attackRange
     turret.projectileSpeed = params.projectileSpeed
-    turret.projectileRadius = 4
+    turret.projectileRadius = params.projectileRadius
     turret.remainingDuration = params.duration
     turret.ownerId = ctx.casterId
 
