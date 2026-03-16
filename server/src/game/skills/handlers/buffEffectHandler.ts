@@ -1,29 +1,6 @@
 import type { SkillEffectHandler, SkillExecutionContext } from '../SkillEffectHandler.js'
 import type { BuffEffectParams } from '@shared/skills/skillDefinitions'
-import { StatusEffectSchema } from '../../../schema/StatusEffectSchema.js'
-
-function applyBuff(
-  target: { statusEffects: import('@colyseus/schema').MapSchema<StatusEffectSchema> },
-  key: string,
-  buffType: string,
-  value: number,
-  duration: number,
-  isDebuff: boolean,
-): void {
-  const existing = target.statusEffects.get(key)
-  if (existing) {
-    existing.remainingDuration = duration
-    existing.value = value
-  } else {
-    const effect = new StatusEffectSchema()
-    effect.id = key
-    effect.buffType = buffType
-    effect.value = value
-    effect.remainingDuration = duration
-    effect.isDebuff = isDebuff
-    target.statusEffects.set(key, effect)
-  }
-}
+import { applyBuff } from '../../statusEffectUtils.js'
 
 export const buffEffectHandler: SkillEffectHandler<BuffEffectParams> = {
   effectType: 'buff',

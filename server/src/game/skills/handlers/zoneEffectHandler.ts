@@ -1,7 +1,7 @@
 import type { SkillEffectHandler, SkillExecutionContext } from '../SkillEffectHandler.js'
 import type { ZoneEffectParams } from '@shared/skills/skillDefinitions'
 import { ZoneSchema } from '../../../schema/ZoneSchema.js'
-import { StatusEffectSchema } from '../../../schema/StatusEffectSchema.js'
+import { applyBuff } from '../../statusEffectUtils.js'
 
 export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
   effectType: 'zone',
@@ -41,19 +41,7 @@ export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
 
     // Apply self-debuff to caster (e.g. Whirlwind slows the caster)
     if (params.selfEffect) {
-      const effectKey = ctx.skillId
-      const existing = ctx.hero.statusEffects.get(effectKey)
-      if (existing) {
-        existing.remainingDuration = params.selfEffect.duration
-      } else {
-        const effect = new StatusEffectSchema()
-        effect.id = effectKey
-        effect.buffType = params.selfEffect.buffType
-        effect.value = params.selfEffect.value
-        effect.remainingDuration = params.selfEffect.duration
-        effect.isDebuff = true
-        ctx.hero.statusEffects.set(effectKey, effect)
-      }
+      applyBuff(ctx.hero, ctx.skillId, params.selfEffect.buffType, params.selfEffect.value, params.selfEffect.duration, true)
     }
   },
 }
