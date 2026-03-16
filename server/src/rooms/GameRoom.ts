@@ -5,7 +5,7 @@ import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
-import { WORLD_WIDTH, WORLD_HEIGHT, MINION_WAVE_INTERVAL } from '@shared/constants'
+import { MINION_WAVE_INTERVAL, TICK_RATE_MS, BLUE_SPAWN, RED_SPAWN, TOWER_BLUE_POS, TOWER_RED_POS } from '@shared/constants'
 import type { HeroType } from '@shared/types'
 import type { InputMessage, CombatEventMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
@@ -47,15 +47,6 @@ import { createServerLogger } from '@shared/logging'
 const logger = createServerLogger('room')
 
 export const MAX_PLAYERS = 2
-
-export const BLUE_SPAWN = { x: 320, y: 360 } as const
-export const RED_SPAWN = { x: 2880, y: 360 } as const
-
-const TOWER_DISTANCE_FROM_EDGE = 600
-const TOWER_BLUE_POS = { x: TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 }
-const TOWER_RED_POS = { x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 }
-
-const TICK_RATE_MS = 16.6 // ~60 Hz
 
 /** Initialize a HeroSchema with all fields from definition and spawn. */
 function initHeroFields(id: string, team: string, heroType: HeroType): HeroSchema {

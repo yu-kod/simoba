@@ -5,7 +5,7 @@ import { TowerSchema } from '../schema/TowerSchema.js'
 import { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
-import { WORLD_HEIGHT } from '@shared/constants'
+import { WORLD_HEIGHT, BLUE_SPAWN, RED_SPAWN } from '@shared/constants'
 import type { InputMessage } from '@shared/messages'
 import { processMovement } from '../game/ServerMovementSystem.js'
 import { processHeroCombat } from '../game/ServerCombatManager.js'
@@ -13,9 +13,6 @@ import { processProjectiles } from '../game/ServerProjectileSystem.js'
 import { processTowerCombat } from '../game/ServerTowerSystem.js'
 import { ProjectileTracker } from '../game/ProjectileTracker.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
-
-const BLUE_SPAWN = { x: 320, y: 360 }
-const RED_SPAWN = { x: 2880, y: 360 }
 
 function getSpawnPosition(team: string): { x: number; y: number } {
   return team === 'blue' ? BLUE_SPAWN : RED_SPAWN

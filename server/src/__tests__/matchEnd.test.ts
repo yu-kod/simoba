@@ -3,15 +3,11 @@ import { GameRoomState } from '../schema/GameRoomState.js'
 import { TowerSchema } from '../schema/TowerSchema.js'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { checkTowerDestroyed, endMatch, endMatchByDisconnect } from '../game/ServerMatchSystem.js'
-import { MAX_PLAYERS, BLUE_SPAWN, RED_SPAWN } from '../rooms/GameRoom.js'
+import { MAX_PLAYERS } from '../rooms/GameRoom.js'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import { DEFAULT_TOWER } from '@shared/entities/Tower'
-import { WORLD_WIDTH, WORLD_HEIGHT } from '@shared/constants'
+import { BLUE_SPAWN, RED_SPAWN, TOWER_BLUE_POS, TOWER_RED_POS } from '@shared/constants'
 import type { HeroType } from '@shared/types'
-
-const TOWER_DISTANCE_FROM_EDGE = 600
-const TOWER_BLUE_POS = { x: TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 }
-const TOWER_RED_POS = { x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 }
 
 function createTower(id: string, team: string, pos: { x: number; y: number }): TowerSchema {
   const tower = new TowerSchema()

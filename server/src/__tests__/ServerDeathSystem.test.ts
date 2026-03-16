@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { MapSchema } from '@colyseus/schema'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { processDeathAndRespawn } from '../game/ServerDeathSystem.js'
-import { RESPAWN_TIMES, HERO_KILL_XP_REWARD, XP_THRESHOLDS } from '@shared/constants'
+import { RESPAWN_TIMES, HERO_KILL_XP_REWARD, XP_THRESHOLDS, BLUE_SPAWN, RED_SPAWN } from '@shared/constants'
 
 function createHero(id: string, overrides: Partial<Record<keyof HeroSchema, unknown>> = {}): HeroSchema {
   const hero = new HeroSchema()
@@ -26,9 +26,6 @@ function createLethalHero(id: string, overrides: Partial<Record<keyof HeroSchema
   hero.applyDamage(hero.hp)
   return hero
 }
-
-const BLUE_SPAWN = { x: 320, y: 360 }
-const RED_SPAWN = { x: 2880, y: 360 }
 
 function getSpawnPosition(team: string): { x: number; y: number } {
   return team === 'blue' ? BLUE_SPAWN : RED_SPAWN

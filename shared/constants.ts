@@ -39,8 +39,21 @@ export const BASES = {
   red: { x: WORLD_WIDTH - BASE_WIDTH, y: BASE_Y, width: BASE_WIDTH, height: BASE_HEIGHT },
 } as const
 
+// Tick rate
+export const TICK_RATE_MS = 16.6 // ~60 Hz
+
+// Spawn positions
+export const BLUE_SPAWN = { x: 320, y: WORLD_HEIGHT / 2 } as const
+export const RED_SPAWN = { x: 2880, y: WORLD_HEIGHT / 2 } as const
+
+// Tower positions
+const TOWER_DISTANCE_FROM_EDGE = 600
+export const TOWER_BLUE_POS = { x: TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 } as const
+export const TOWER_RED_POS = { x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIGHT / 2 } as const
+
 // Camera (client-only but harmless to share)
 export const CAMERA_LERP = 0.1
+export const FREE_CAMERA_SPEED = 400
 
 // Entity
 export const DEFAULT_ENTITY_RADIUS = 20
@@ -54,6 +67,9 @@ export const BASE_HP_REGEN_PER_SEC = 200 // HP recovered per second while inside
 // Ranged attack pause — brief stop when firing a ranged attack while moving
 export const RANGED_ATTACK_PAUSE_DURATION = 0.15 // seconds
 
+/** Duration set on zone-applied status effects. Short so they expire quickly when leaving the zone. */
+export const ZONE_EFFECT_DURATION = 0.1 // seconds
+
 // Hero kill
 export const HERO_KILL_XP_REWARD = 150 // XP granted to killer on hero kill
 
@@ -63,6 +79,7 @@ export const MINION_XP_REWARD = 20 // total XP per minion kill
 export const XP_GRANT_RANGE = 500 // px radius for proximity XP
 export const MINION_DEATH_CLEANUP_DELAY = 200 // ms before removing dead minion
 export const MINION_DETECTION_RANGE = 200 // px — range to detect enemies and start chasing
+export const MINION_SEPARATION_MIN_DIST = 2 // px — minimum distance between edges
 
 // Minion spawn positions
 export const BLUE_MELEE_X = 150

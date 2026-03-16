@@ -5,6 +5,7 @@ import {
   WORLD_WIDTH,
   WORLD_HEIGHT,
   CAMERA_LERP,
+  FREE_CAMERA_SPEED,
 } from '@/domain/constants'
 import { type HeroState } from '@/domain/entities/Hero'
 import { isHero, isMinion, isTower } from '@/domain/entities/typeGuards'
@@ -36,8 +37,6 @@ import { getMatchEndDisplay } from '@/scenes/matchEndDisplay'
 import { createClientLogger } from '@shared/logging'
 
 const logger = createClientLogger('scene')
-
-const FREE_CAMERA_SPEED = 400
 
 export class GameScene extends Phaser.Scene {
   private entityManager!: EntityManager
