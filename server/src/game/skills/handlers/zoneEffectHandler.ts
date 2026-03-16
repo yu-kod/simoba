@@ -39,9 +39,10 @@ export const zoneEffectHandler: SkillEffectHandler<ZoneEffectParams> = {
     const id = ctx.projectileTracker.nextZoneId()
     ctx.zones.set(id, zone)
 
-    // Apply self-debuff to caster (e.g. Whirlwind slows the caster)
+    // Apply self-effect to caster (e.g. Whirlwind slows the caster)
     if (params.selfEffect) {
-      applyBuff(ctx.hero, ctx.skillId, params.selfEffect.buffType, params.selfEffect.value, params.selfEffect.duration, true)
+      const selfIsDebuff = (params.selfEffect as { isDebuff?: boolean }).isDebuff ?? true
+      applyBuff(ctx.hero, ctx.skillId, params.selfEffect.buffType, params.selfEffect.value, params.selfEffect.duration, selfIsDebuff)
     }
   },
 }
