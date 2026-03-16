@@ -1,11 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { HeroSchema } from '../schema/HeroSchema.js'
 import { GameRoomState } from '../schema/GameRoomState.js'
-import {
-  MAX_PLAYERS,
-  BLUE_SPAWN,
-  RED_SPAWN,
-} from '../rooms/GameRoom.js'
+import { MAX_PLAYERS } from '../rooms/GameRoom.js'
+import { BLUE_SPAWN, RED_SPAWN } from '@shared/constants'
 import { HERO_DEFINITIONS } from '@shared/entities/Hero'
 import type { HeroType } from '@shared/types'
 

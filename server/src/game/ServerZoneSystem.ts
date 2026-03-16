@@ -4,9 +4,7 @@ import type { ZoneSchema } from '../schema/ZoneSchema.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
 import { StatusEffectSchema } from '../schema/StatusEffectSchema.js'
 import { distanceSq } from '@shared/math/distanceSq'
-
-/** Duration set on zone-applied status effects. Short so they expire quickly when leaving the zone. */
-export const ZONE_EFFECT_DURATION = 0.1
+import { ZONE_EFFECT_DURATION } from '@shared/constants'
 
 function shouldAffect(zone: ZoneSchema, hero: HeroSchema): boolean {
   if (zone.target === 'enemy') return hero.team !== zone.team

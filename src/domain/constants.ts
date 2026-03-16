@@ -9,4 +9,5 @@ export {
   CAMERA_LERP,
   DEFAULT_ENTITY_RADIUS,
   BASES,
+  FREE_CAMERA_SPEED,
 } from '@shared/constants'

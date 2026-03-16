@@ -14,6 +14,7 @@ import {
   MELEE_Y_OFFSETS,
   RANGED_Y,
   getWaveConfig,
+  MINION_SEPARATION_MIN_DIST,
 } from '@shared/constants'
 import { grantXpAndLevelUp } from './xpUtils.js'
 import type { MinionSchema } from '../schema/MinionSchema.js'
@@ -379,8 +380,6 @@ function applyDamageById(
 // "Later" is determined by lexicographic ID comparison (IDs encode wave + index).
 // Displacement is perpendicular to the lane (Y axis) to avoid disrupting march.
 
-const SEPARATION_MIN_DIST = 2 // px — minimum distance between edges
-
 export function applyMinionSeparation(
   minions: MapSchema<MinionSchema>,
 ): void {
@@ -406,7 +405,7 @@ function separateTeam(team: MinionSchema[]): void {
       const dx = b.x - a.x
       const dy = b.y - a.y
       const distSq = dx * dx + dy * dy
-      const minDist = a.radius + b.radius + SEPARATION_MIN_DIST
+      const minDist = a.radius + b.radius + MINION_SEPARATION_MIN_DIST
       const minDistSq = minDist * minDist
 
       if (distSq >= minDistSq) continue
