@@ -6,6 +6,7 @@ import type { MinionSchema } from '../schema/MinionSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
 import type { ProjectileTracker } from './ProjectileTracker.js'
+import { createHomingProjectile } from './projectileFactory.js'
 
 /**
  * Select the nearest alive enemy (minion or hero) within the tower's attack range.
@@ -129,18 +130,16 @@ export function processTowerCombat(
     tower.attackCooldown = 1 / tower.attackSpeed
 
     // Towers always use projectiles
-    const proj = new ProjectileSchemaClass()
-    proj.id = tracker.nextTowerProjectileId()
-    proj.x = tower.x
-    proj.y = tower.y
-    proj.targetX = target.x
-    proj.targetY = target.y
-    proj.targetId = target.id
-    proj.speed = tower.projectileSpeed
-    proj.damage = tower.attackDamage
-    proj.ownerId = towerId
-    proj.team = tower.team
-    projectiles.set(proj.id, proj)
+    createHomingProjectile(
+      ProjectileSchemaClass,
+      tracker.nextTowerProjectileId(),
+      tower,
+      target,
+      tower.projectileSpeed,
+      tower.attackDamage,
+      towerId,
+      projectiles,
+    )
 
     events.push({
       kind: 'attack',

@@ -57,6 +57,34 @@ const TOWER_RED_POS = { x: WORLD_WIDTH - TOWER_DISTANCE_FROM_EDGE, y: WORLD_HEIG
 
 const TICK_RATE_MS = 16.6 // ~60 Hz
 
+/** Initialize a HeroSchema with all fields from definition and spawn. */
+function initHeroFields(id: string, team: string, heroType: HeroType): HeroSchema {
+  const hero = new HeroSchema()
+  const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
+  const def = HERO_DEFINITIONS[heroType]
+
+  hero.id = id
+  hero.x = spawn.x
+  hero.y = spawn.y
+  hero.facing = 0
+  hero.team = team
+  hero.heroType = heroType
+  hero.hp = def.base.maxHp
+  hero.maxHp = def.base.maxHp
+  hero.speed = def.base.speed
+  hero.attackDamage = def.base.attackDamage
+  hero.attackRange = def.base.attackRange
+  hero.attackSpeed = def.base.attackSpeed
+  hero.radius = def.radius
+  hero.dead = false
+  hero.attackCooldown = 0
+  hero.attackTargetId = ''
+  hero.respawnTimer = 0
+  hero.lastProcessedSeq = 0
+
+  return hero
+}
+
 function isValidInputMessage(message: unknown): message is InputMessage {
   if (typeof message !== 'object' || message === null) return false
   const msg = message as Record<string, unknown>
@@ -229,7 +257,6 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   private createHero(id: string, heroTypeOption?: unknown): HeroSchema {
-    const hero = new HeroSchema()
     // Assign to the team with fewer players (blue breaks ties)
     let blueCount = 0
     let redCount = 0
@@ -238,61 +265,18 @@ export class GameRoom extends Room<GameRoomState> {
       else redCount++
     })
     const team = blueCount <= redCount ? 'blue' : 'red'
-    const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
     const heroType: HeroType = isValidHeroType(heroTypeOption)
       ? heroTypeOption as HeroType
       : 'BLADE'
-    const def = HERO_DEFINITIONS[heroType]
 
-    hero.id = id
-    hero.x = spawn.x
-    hero.y = spawn.y
-    hero.facing = 0
-    hero.team = team
-    hero.heroType = heroType
-    hero.hp = def.base.maxHp
-    hero.maxHp = def.base.maxHp
-    hero.speed = def.base.speed
-    hero.attackDamage = def.base.attackDamage
-    hero.attackRange = def.base.attackRange
-    hero.attackSpeed = def.base.attackSpeed
-    hero.radius = def.radius
-    hero.dead = false
-    hero.attackCooldown = 0
-    hero.attackTargetId = ''
-    hero.respawnTimer = 0
-    hero.lastProcessedSeq = 0
-
-    return hero
+    return initHeroFields(id, team, heroType)
   }
 
   /** Add a bot hero to the given team. */
   private addBotHero(team: string, index: number): void {
     const botId = `bot-${team}-${index}`
-    const hero = new HeroSchema()
-    const spawn = team === 'blue' ? BLUE_SPAWN : RED_SPAWN
-    const def = HERO_DEFINITIONS['BLADE']
-
-    hero.id = botId
-    hero.x = spawn.x
-    hero.y = spawn.y
-    hero.facing = 0
-    hero.team = team
-    hero.heroType = 'BLADE'
-    hero.hp = def.base.maxHp
-    hero.maxHp = def.base.maxHp
-    hero.speed = def.base.speed
-    hero.attackDamage = def.base.attackDamage
-    hero.attackRange = def.base.attackRange
-    hero.attackSpeed = def.base.attackSpeed
-    hero.radius = def.radius
-    hero.dead = false
-    hero.attackCooldown = 0
-    hero.attackTargetId = ''
-    hero.respawnTimer = 0
-    hero.lastProcessedSeq = 0
+    const hero = initHeroFields(botId, team, 'BLADE')
     hero.isBot = true
-
     this.state.heroes.set(botId, hero)
   }
 

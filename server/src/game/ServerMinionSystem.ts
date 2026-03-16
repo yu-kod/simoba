@@ -21,6 +21,7 @@ import type { HeroSchema } from '../schema/HeroSchema.js'
 import type { TowerSchema } from '../schema/TowerSchema.js'
 import type { ProjectileSchema } from '../schema/ProjectileSchema.js'
 import type { CombatEventMessage } from '@shared/messages'
+import { createHomingProjectile } from './projectileFactory.js'
 
 
 /** Per-room mutable context for the minion system (avoids module-level globals). */
@@ -319,18 +320,16 @@ function fireAttack(
     })
   } else {
     // Ranged: spawn projectile
-    const proj = new ProjectileSchemaClass()
-    proj.id = `minion-proj-${++ctx.minionProjectileIdCounter}`
-    proj.x = minion.x
-    proj.y = minion.y
-    proj.targetX = target.x
-    proj.targetY = target.y
-    proj.targetId = target.id
-    proj.speed = minion.projectileSpeed
-    proj.damage = minion.attackDamage
-    proj.ownerId = minionId
-    proj.team = minion.team
-    projectiles.set(proj.id, proj)
+    createHomingProjectile(
+      ProjectileSchemaClass,
+      `minion-proj-${++ctx.minionProjectileIdCounter}`,
+      minion,
+      target,
+      minion.projectileSpeed,
+      minion.attackDamage,
+      minionId,
+      projectiles,
+    )
 
     events.push({
       kind: 'attack',
