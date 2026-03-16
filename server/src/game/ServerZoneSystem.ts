@@ -76,7 +76,7 @@ export function tickZones(
 
       // Tick heal (sustained heal zones like Sanctuary)
       if (tickFiredThisTick && zone.tickHeal > 0) {
-        hero.hp = Math.min(hero.hp + zone.tickHeal, hero.maxHp)
+        hero.applyHeal(zone.tickHeal)
       }
 
       // Apply or refresh status effect (skip for expired zones)

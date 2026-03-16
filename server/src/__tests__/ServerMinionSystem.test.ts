@@ -505,8 +505,8 @@ describe('processMinionDeaths', () => {
     // First call: detect death, start timer
     processMinionDeaths(ctx, minions, heroes, 0)
 
-    // Tick enough time to expire the timer (MINION_DEATH_CLEANUP_DELAY is in ms, deltaTime in seconds)
-    processMinionDeaths(ctx, minions, heroes, MINION_DEATH_CLEANUP_DELAY / 1000 + 0.01)
+    // Tick enough time to expire the timer (both in seconds now)
+    processMinionDeaths(ctx, minions, heroes, MINION_DEATH_CLEANUP_DELAY + 0.01)
 
     expect(minions.has('m1')).toBe(false)
     expect(ctx.deathTimers.has('m1')).toBe(false)

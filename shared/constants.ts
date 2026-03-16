@@ -77,7 +77,7 @@ export const HERO_KILL_XP_REWARD = 150 // XP granted to killer on hero kill
 export const MINION_WAVE_INTERVAL = 30 // seconds between waves
 export const MINION_XP_REWARD = 20 // total XP per minion kill
 export const XP_GRANT_RANGE = 500 // px radius for proximity XP
-export const MINION_DEATH_CLEANUP_DELAY = 200 // ms before removing dead minion
+export const MINION_DEATH_CLEANUP_DELAY = 0.2 // seconds before removing dead minion
 export const MINION_DETECTION_RANGE = 200 // px — range to detect enemies and start chasing
 export const MINION_SEPARATION_MIN_DIST = 2 // px — minimum distance between edges
 

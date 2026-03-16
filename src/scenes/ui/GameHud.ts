@@ -9,6 +9,7 @@ import { SkillSlotRenderer } from './SkillSlotRenderer'
 import { LevelBadge } from './LevelBadge'
 import { HudHpBar } from './HudHpBar'
 import { drawHexPath } from './drawHexPath'
+import { DESIGN_WIDTH, DESIGN_HEIGHT } from './uiConstants'
 
 const HUD_DEPTH = 1100
 const PANEL_BG_COLOR = 0x1a1a2e
@@ -35,9 +36,6 @@ export interface GameHudOptions {
  * computeHudLayout returns positions in this 1280x720 coordinate space.
  * The container follows the camera worldView so it appears screen-fixed.
  */
-const DESIGN_WIDTH = 1280
-const DESIGN_HEIGHT = 720
-
 /** Build a SkillSlotConfig from hero state for a given slot. */
 function slotConfigFromHero(hero: HeroState, key: 'Q' | 'E' | 'R'): SkillSlotConfig {
   const slotMap = { Q: hero.skillSlotQ, E: hero.skillSlotE, R: hero.skillSlotR }

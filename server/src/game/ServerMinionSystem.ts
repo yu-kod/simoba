@@ -483,7 +483,7 @@ export function processMinionDeaths(
 
   // Tick death timers and cleanup
   for (const [id, remaining] of ctx.deathTimers) {
-    const newRemaining = remaining - deltaTime * 1000
+    const newRemaining = remaining - deltaTime
     if (newRemaining <= 0) {
       minions.delete(id)
       ctx.deathTimers.delete(id)
