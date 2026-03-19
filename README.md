@@ -2,6 +2,8 @@
 
 Browser-based casual MOBA x .io game. 2v2 micro arena, max 5 min per match.
 
+**[Docs (仕様サイト)](https://yu-kod.github.io/simoba/)**
+
 ## Tech Stack
 
 - **Frontend:** Phaser.js 3.x + Vite + TypeScript
