@@ -2,26 +2,26 @@
 layout: home
 hero:
   name: MOBA.io Specs
-  text: 2v2 Micro Arena
-  tagline: Browser-based casual MOBA x .io game specification docs
+  text: 2v2 マイクロアリーナ
+  tagline: ブラウザベース カジュアル MOBA x .io ゲーム仕様ドキュメント
   actions:
     - theme: brand
-      text: Game Mechanics
+      text: ゲームメカニクス
       link: /game-mechanics
     - theme: alt
-      text: Heroes
+      text: ヒーロー一覧
       link: /heroes
 features:
-  - title: Combat
-    details: Attack system, projectiles, skill execution
+  - title: 戦闘
+    details: 攻撃システム、弾丸、スキル実行
     link: /game/
-  - title: Skills
-    details: AURA / BLADE / BOLT hero skills (20 specs)
+  - title: スキル
+    details: AURA / BLADE / BOLT ヒーロースキル（20件）
     link: /game/
-  - title: Systems
-    details: Hero, progression, entity, match, core systems
+  - title: システム
+    details: ヒーロー、成長、エンティティ、マッチ、基盤
     link: /game/
-  - title: Infra
-    details: AWS, CI/CD, deploy workflows, logging
+  - title: インフラ
+    details: AWS、CI/CD、デプロイ、ロギング
     link: /infra/
 ---
