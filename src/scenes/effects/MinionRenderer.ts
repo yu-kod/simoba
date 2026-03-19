@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import type { MinionState } from '@shared/entities/Minion'
+import type { Team } from '@/domain/types'
 import { HpBarRenderer } from '@/scenes/ui/HpBarRenderer'
 import { TEAM_COLORS, FLASH_DURATION_MS, FLASH_COLOR } from './entityColors'
 

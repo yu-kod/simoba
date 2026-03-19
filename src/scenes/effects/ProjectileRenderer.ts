@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import type { ProjectileState } from '@/domain/projectile/ProjectileState'
 import type { ServerProjectileState } from '@/network/GameMode'
+import type { Team } from '@/domain/types'
 import {
   PROJECTILE_VISUALS,
   type ProjectileVisualType,
