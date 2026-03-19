@@ -20,8 +20,8 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Overview', link: '/' },
-      { text: 'Game', link: '/game/combat/attack-system/' },
-      { text: 'Infra', link: '/infra/ci-testing/' },
+      { text: 'Game', link: '/game/' },
+      { text: 'Infra', link: '/infra/' },
     ],
 
     sidebar: [
@@ -60,6 +60,7 @@ export default defineConfig({
               spec('game/skills/aura-nova', 'Nova'),
               spec('game/skills/aura-sanctuary', 'Sanctuary'),
               spec('game/skills/aura-weaken', 'Weaken'),
+              // slow-field は aura-slow-field スキル（AURA ヒーロー用）
               spec('game/skills/slow-field', 'Slow Field'),
             ],
           },
@@ -85,6 +86,7 @@ export default defineConfig({
               spec('game/skills/bolt-snipe', 'Snipe'),
               spec('game/skills/bolt-trap', 'Trap'),
               spec('game/skills/bolt-turret', 'Turret'),
+              // pierce-shot は BOLT ヒーローの基本射撃強化スキル
               spec('game/skills/pierce-shot', 'Pierce Shot'),
             ],
           },

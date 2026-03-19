@@ -14,14 +14,14 @@ hero:
 features:
   - title: Combat
     details: Attack system, projectiles, skill execution
-    link: /game/combat/attack-system/
+    link: /game/
   - title: Skills
     details: AURA / BLADE / BOLT hero skills (20 specs)
-    link: /game/skills/aura-barrier/
+    link: /game/
   - title: Systems
     details: Hero, progression, entity, match, core systems
-    link: /game/hero/hero-stats/
+    link: /game/
   - title: Infra
     details: AWS, CI/CD, deploy workflows, logging
-    link: /infra/game-server-infra/
+    link: /infra/
 ---
