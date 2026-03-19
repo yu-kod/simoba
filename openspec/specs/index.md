@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: MOBA.io Specs
+  name: SIMOBA Specs
   text: 2v2 マイクロアリーナ
   tagline: ブラウザベース カジュアル MOBA x .io ゲーム仕様ドキュメント
   actions:

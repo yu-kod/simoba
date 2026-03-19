@@ -20,7 +20,7 @@
 - [x] サーバー権威制ゲームロジック
 - [x] クライアント側予測 + 補間
 - [x] タレントツリーシステムとスキルスロット
-- [ ] ECS on EC2 デプロイ
+- [x] ECS on EC2 デプロイ
 
 **技術:** Phaser.js + Vite + TypeScript + Colyseus。S3 + CloudFront（クライアント）+ ECS on EC2（サーバー）にデプロイ。
 

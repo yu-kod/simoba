@@ -78,17 +78,6 @@ Quick Cast モードでは、スキルキーを離した瞬間にマウス位置
 - **WHEN** Quick Cast モードでスキルキーを押下中に右クリック
 - **THEN** `targeting.phase` は `cancelled` に遷移し、キーリリース時にスキルは発火されない
 
-### Requirement: ドッジダッシュ入力
-入力システムは Space キーの押下を検出し `InputState.dodge` として提供しなければならない（SHALL）。
-
-#### Scenario: Space 押下
-- **WHEN** Space キーを押下
-- **THEN** `dodge` は `true` を返す
-
-#### Scenario: Space 未押下
-- **WHEN** Space キーが未押下
-- **THEN** `dodge` は `false` を返す
-
 ### Requirement: InputState の Phaser 非依存性
 `InputState` 型および入力状態の変換ロジック（移動方向の正規化、エイム方向の算出）は Phaser に依存してはならない（SHALL NOT）。Phaser 固有の処理はアダプター層に限定しなければならない（SHALL）。
 
@@ -104,7 +93,7 @@ Quick Cast モードでは、スキルキーを離した瞬間にマウス位置
 `updateOnlineInput` は読み取り（gather）→ 計算（compute）→ 書き込み（apply）の3フェーズ構造で実装しなければならない（SHALL）。gather フェーズで取得したスナップショットは compute・apply フェーズを通じて一貫して使用しなければならない（SHALL）。gather フェーズ完了後に `updateEntity` を呼び出して取得済みの参照を stale にしてはならない（SHALL NOT）。
 
 - **gather**: `localHero` スナップショット、入力状態（movement, aim, attack）を読み取る
-- **compute**: attackTarget 判定、facing 計算、inputMsg 構築、prediction 位置計算を実行する。このフェーズは gather の出力のみに依存しなければならない（SHALL）
+- **compute**: attackTarget 判定、facing 計算、inputMsg 構築を実行する。このフェーズは gather の出力のみに依存しなければならない（SHALL）
 - **apply**: `updateEntity` を1回だけ呼び出し、`networkBridge.sendInput` で入力を送信する
 
 #### Scenario: gather で取得した localHero が compute/apply で stale にならない
@@ -116,6 +105,6 @@ Quick Cast モードでは、スキルキーを離した瞬間にマウス位置
 - **THEN** `updateEntity` は apply フェーズで1回だけ呼び出される
 
 #### Scenario: compute フェーズが純粋計算である
-- **WHEN** attackTarget, facing, prediction を計算する
+- **WHEN** attackTarget, facing を計算する
 - **THEN** 計算は gather フェーズの出力値のみに依存し、EntityManager への書き込みは行わない
 

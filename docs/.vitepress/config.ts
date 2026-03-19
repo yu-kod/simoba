@@ -5,7 +5,7 @@ function spec(dir: string, label: string): { text: string; link: string } {
 }
 
 export default defineConfig({
-  title: 'MOBA.io Specs',
+  title: 'SIMOBA Specs',
   description: '2v2 Micro Arena — Game Specification Docs',
   lang: 'ja',
   srcDir: '../openspec/specs',
