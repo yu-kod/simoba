@@ -43,11 +43,11 @@ GitHub Actions による CI テストワークフロー（ユニットテスト�
 
 ### Requirement: Node.js version consistency
 
-CI ワークフローは Node.js 18 を使用しなければならない (SHALL)。`package.json` の `engines.node` と一致させる。
+CI ワークフローは Node.js 22 を使用しなければならない（SHALL）。`package.json` の `engines.node`（>= 18）を満たす LTS バージョンを使用する。
 
 #### Scenario: CI uses correct Node version
 - **WHEN** ワークフローが Node.js をセットアップする
-- **THEN** Node.js 18.x が使用される
+- **THEN** Node.js 22.x が使用される
 
 ### Requirement: Lint CI job
 

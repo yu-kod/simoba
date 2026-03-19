@@ -130,27 +130,16 @@
 - **WHEN** ヒーロー、タワー、ミニオンにそれぞれダメージが適用される
 - **THEN** 3つとも同一の `updateEntity` + `applyDamage` 経路で処理される（分岐なし）
 
-### Requirement: 攻撃中の facing 制御
-攻撃中（`attackTargetId` が設定済み）はヒーローの facing をターゲット方向に固定しなければならない（SHALL）。移動方向ではなくターゲット方向を優先しなければならない（SHALL）。
+### Requirement: 攻撃中の移動
+攻撃中も WASD 移動が可能でなければならない（SHALL）。移動入力があっても攻撃ループは継続しなければならない（SHALL）。facing の方向はクライアントのエイム（マウス方向）に従い、攻撃ターゲット方向への自動ロックは行わない。
 
-#### Scenario: 攻撃中にターゲット方向を向く
-- **WHEN** ヒーローが攻撃中で、ターゲットがヒーローの右方向にいる
-- **THEN** facing が 0（右方向のラジアン）に更新される
-
-#### Scenario: 攻撃中に移動しても facing はターゲット方向
-- **WHEN** ヒーローが攻撃中（`canMoveWhileAttacking === true`）で WASD で上方向に移動している
-- **THEN** facing は移動方向ではなくターゲット方向に固定される
-
-### Requirement: 移動中攻撃フラグ
-`HeroDefinition` に `canMoveWhileAttacking: boolean` を定義しなければならない（SHALL）。`true` の場合は攻撃中も WASD 移動が可能、`false` の場合は攻撃中に WASD 入力があると移動を優先して攻撃をキャンセルしなければならない（SHALL）。
-
-#### Scenario: canMoveWhileAttacking が true のヒーローが攻撃中に移動する
-- **WHEN** BLADE（`canMoveWhileAttacking === true`）が攻撃中に WASD で移動入力がある
+#### Scenario: 攻撃中に移動する
+- **WHEN** ヒーローが攻撃中に WASD で移動入力がある
 - **THEN** 移動が実行され、攻撃ループも継続する
 
-#### Scenario: canMoveWhileAttacking が false のヒーローが攻撃中に移動する
-- **WHEN** `canMoveWhileAttacking === false` のヒーローが攻撃中に WASD で移動入力がある
-- **THEN** 移動が優先され、`attackTargetId` が `null` に戻り攻撃がキャンセルされる
+#### Scenario: 攻撃中の facing はエイム方向に従う
+- **WHEN** ヒーローが攻撃中で、マウスが上方向を指している
+- **THEN** facing はマウス方向（エイム方向）に設定される
 
 ### Requirement: 攻撃エフェクトの抽象化
 攻撃エフェクトは共通インターフェース `AttackEffectRenderer` で抽象化し、差し替え可能でなければならない（SHALL）。エフェクトのパラメータはダメージ判定パラメータとは独立に定義しなければならない（SHALL）。ダメージ判定はエフェクトの有無や状態に一切依存してはならない（SHALL NOT）。近接攻撃には `MeleeSwingRenderer` を使用し、遠距離攻撃にはプロジェクタイルの飛翔自体がエフェクトとなるため `play()` 呼び出しは不要でなければならない（SHALL）。

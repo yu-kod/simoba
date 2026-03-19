@@ -133,8 +133,8 @@ GameHud のスキルスロット表示にクールダウン残り時間を表示
 - **WHEN** a non-turret skill handler is executed
 - **THEN** the `towers` field SHALL be available but not used
 
-### Requirement: resolveEnemyTarget
-`executeSkill` 内で `targeting: 'enemy'` のスキルの場合、クリック座標から最寄りの **敵チーム** 生存ヒーローを `range` 以内で検索しなければならない（SHALL）。射程内に敵がいない場合は `null` を返さなければならない（SHALL）。`resolveEnemyTarget` で解決された敵ヒーローは `SkillExecutionContext.targetHero` として渡されなければならない（SHALL）。`targetHero` が `null`（射程外）の場合、`executeSkill` は `null` を返し、クールダウンは消費されない（SHALL NOT）。
+### Requirement: enemy ターゲティング解決
+`targeting: 'enemy'` のスキルの場合、クリック座標から最寄りの **敵チーム** 生存ヒーローを `range` 以内で検索しなければならない（SHALL）。射程内に敵がいない場合はスキル発動を中止しなければならない（SHALL）。解決された敵ヒーローは `SkillExecutionContext.targetHero` としてエフェクトハンドラに渡されなければならない（SHALL）。ターゲットが見つからない場合、クールダウンは消費されない（SHALL NOT）。
 
 #### Scenario: 敵が射程内にいる
 - **WHEN** enemy ターゲティングで敵ヒーローがクリック位置から range 以内にいる
@@ -142,8 +142,8 @@ GameHud のスキルスロット表示にクールダウン残り時間を表示
 
 #### Scenario: 敵が射程外
 - **WHEN** enemy ターゲティングで敵ヒーローがクリック位置から range 外にいる
-- **THEN** `executeSkill` は `null` を返し、クールダウンは消費されない
+- **THEN** スキル発動が中止され、クールダウンは消費されない
 
 #### Scenario: 味方を敵として選択しない
 - **WHEN** enemy ターゲティングで味方ヒーローのみがクリック位置付近にいる
-- **THEN** `resolveEnemyTarget` は `null` を返し、スキルが不発になる
+- **THEN** ターゲットが見つからず、スキルが不発になる

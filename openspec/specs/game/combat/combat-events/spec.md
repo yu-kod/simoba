@@ -81,13 +81,13 @@
 - **THEN** InputBuffer.clear() と MovementPredictor.setPosition() が呼ばれる
 
 #### Scenario: Hero respawn prediction reset
-- **WHEN** handleServerHeroUpdate で `dead` が true → false に変化する
-- **THEN** MovementPredictor.setPosition() がリスポーン位置で呼ばれる
+- **WHEN** サーバーからヒーローの `dead` が true → false に変化する
+- **THEN** クライアント側の位置予測がリスポーン位置でリセットされる
 
-### Requirement: attackCooldown listener removed
-OnlineGameMode の `$(hero).listen('attackCooldown', ...)` を削除する。メレースイング検知は AttackEvent に移行済みのため不要。
+### Requirement: attackCooldown のクライアント監視不要
+クライアントは `attackCooldown` フィールドの変化を個別に監視しない（SHALL NOT）。メレースイング検知は AttackEvent ベースで行う。
 
 #### Scenario: attackCooldown changes on server
 - **WHEN** サーバーでヒーローの attackCooldown が変化する
-- **THEN** クライアントに通知が発生しない（リスナー削除済み）
+- **THEN** クライアントに個別の通知は発生しない（AttackEvent で代替）
 

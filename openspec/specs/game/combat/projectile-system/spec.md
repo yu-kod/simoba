@@ -93,7 +93,7 @@ GameScene の update ループにプロジェクタイルの更新・描画を�
 - **THEN** `applyDamage` でターゲットの HP が減少し、ヒットフラッシュが再生される
 
 ### Requirement: 直進（linear）プロジェクタイルモード
-`ProjectileSchema` に飛行モードを示す `mode` フィールド（`'homing' | 'linear'`、デフォルト `'homing'`）を追加しなければならない（SHALL）。`mode: 'linear'` のプロジェクタイルは `dirX`, `dirY` 方向に毎フレーム `speed * deltaTime` 分だけ直進しなければならない（SHALL）。`targetId` による追尾は行わない。
+`ProjectileSchema` に飛行モードを示す `mode` フィールド（`'homing' | 'linear'`、デフォルト `'homing'`）を追加しなければならない（SHALL）。`mode: 'linear'` のプロジェクタイルは `dirX`, `dirY` 方向に毎フレーム `speed * deltaTime` 分だけ直進しなければならない（SHALL）。linear モードでは `targetId` は無視され、追尾は行わない。
 
 #### Scenario: linear モードのプロジェクタイルが直進する
 - **WHEN** mode='linear', dirX=1, dirY=0, speed=800 のプロジェクタイルが deltaTime=0.016 で更新される

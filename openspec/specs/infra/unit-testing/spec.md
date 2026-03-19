@@ -7,7 +7,7 @@ Vitest によるユニットテストの設定、ディレクトリ構成、カ�
 
 ### Requirement: Vitest configuration
 
-プロジェクトは `vitest.config.ts` を持ち、`vite.config.ts` のエイリアス設定（`@/*`）を `mergeConfig` で継承しなければならない (SHALL)。テスト環境は `node` とする。`globals: true` で `describe`, `it`, `expect` をインポート不要にしなければならない (SHALL)。
+プロジェクトは `vitest.config.ts` を持ち、`vite.config.ts` のエイリアス設定（`@/*`）を `mergeConfig` で継承しなければならない（SHALL）。テスト環境は `happy-dom` とする（Phaser 等の DOM API を使用するテストに対応）。`globals: true` で `describe`, `it`, `expect` をインポート不要にしなければならない（SHALL）。
 
 #### Scenario: Vitest config inherits Vite aliases
 - **WHEN** テストファイル内で `import { gameConfig } from '@/config/gameConfig'` を記述する

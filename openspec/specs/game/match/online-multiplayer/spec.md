@@ -6,34 +6,34 @@ Colyseus によるオンラインマルチプレイヤー（GameRoom、state同�
 ## Requirements
 
 ### Requirement: ゲーム開始通知
-GameRoom は全プレイヤーが揃った時点で `GameRoomState.gameStarted` フラグを `true` に設定しなければならない（SHALL）。ゲーム開始の通知にはメッセージブロードキャスト（`broadcast('gameStart')`）を使用してはならない（SHALL NOT）。クライアントは `room.onStateChange` で `gameStarted` フラグを監視し、`true` になった時点でゲーム開始処理を行わなければならない（SHALL）。
+GameRoom は全プレイヤーが揃った時点で `GameRoomState.matchPhase` を `'playing'` に設定しなければならない（SHALL）。ゲーム開始の通知にはメッセージブロードキャスト（`broadcast('gameStart')`）を使用してはならない（SHALL NOT）。クライアントは `matchPhase` の状態変化を監視し、`'playing'` になった時点でゲーム開始処理を行わなければならない（SHALL）。
 
-#### Scenario: 2人揃った時に gameStarted フラグが true になる
+#### Scenario: 2人揃った時に matchPhase が playing になる
 - **WHEN** 2人目のプレイヤーが GameRoom に参加する
-- **THEN** `GameRoomState.gameStarted` が `true` に設定される
+- **THEN** `GameRoomState.matchPhase` が `'playing'` に設定される
 - **THEN** `broadcast('gameStart')` は呼び出されない
 
-#### Scenario: 1人だけの場合は gameStarted が false のまま
+#### Scenario: 1人だけの場合は matchPhase が waiting のまま
 - **WHEN** 1人目のプレイヤーが GameRoom に参加する
-- **THEN** `GameRoomState.gameStarted` は `false` のままである
+- **THEN** `GameRoomState.matchPhase` は `'waiting'` のままである
 
-#### Scenario: 2人目のクライアントが gameStarted を検知する
-- **WHEN** 2人目のプレイヤーの `joinOrCreate` が解決し、`room.onStateChange` を登録する
-- **THEN** 次の state patch で `gameStarted === true` を検知し、ゲーム開始処理が実行される
+#### Scenario: 2人目のクライアントが matchPhase を検知する
+- **WHEN** 2人目のプレイヤーの `joinOrCreate` が解決し、state 監視を登録する
+- **THEN** 次の state patch で `matchPhase === 'playing'` を検知し、ゲーム開始処理が実行される
 
-#### Scenario: 1人目のクライアントも gameStarted を検知する
-- **WHEN** 1人目のプレイヤーが待機中に `gameStarted` が `true` に変わる
-- **THEN** `onStateChange` コールバックが発火し、ゲーム開始処理が実行される
+#### Scenario: 1人目のクライアントも matchPhase を検知する
+- **WHEN** 1人目のプレイヤーが待機中に `matchPhase` が `'playing'` に変わる
+- **THEN** state 変更コールバックが発火し、ゲーム開始処理が実行される
 
-### Requirement: GameRoomState の gameStarted スキーマフィールド
-`GameRoomState` は `gameStarted: boolean` フィールドを Colyseus の `@type('boolean')` デコレータ付きで持たなければならない（SHALL）。初期値は `false` でなければならない（SHALL）。
+### Requirement: GameRoomState の matchPhase スキーマフィールド
+`GameRoomState` は `matchPhase: string` フィールドを Colyseus の `@type('string')` デコレータ付きで持たなければならない（SHALL）。取りうる値は `'waiting'`、`'playing'`、`'finished'`。初期値は `'waiting'` でなければならない（SHALL）。
 
 #### Scenario: Room 作成時の初期状態
 - **WHEN** GameRoom が `onCreate` で初期化される
-- **THEN** `GameRoomState.gameStarted` は `false` である
+- **THEN** `GameRoomState.matchPhase` は `'waiting'` である
 
 #### Scenario: スキーマフィールドがバイナリ同期される
-- **WHEN** サーバーが `gameStarted` を `true` に設定する
+- **WHEN** サーバーが `matchPhase` を `'playing'` に設定する
 - **THEN** Colyseus のバイナリ差分同期により、全接続中クライアントに変更が伝播される
 
 ### Requirement: Colyseus サーバーセットアップ
@@ -82,10 +82,10 @@ Colyseus の `@type()` デコレータを使用して、Room 状態スキーマ�
 - **THEN** Colyseus のパッチにそのヒーローの差分が含まれない（毎 tick 全ヒーローに書き込むフィールドを持たない）
 
 ### Requirement: クライアント接続管理
-`NetworkClient` クラスを提供し、Colyseus サーバーへの接続・Room 参加・切断を管理しなければならない（SHALL）。接続状態（`disconnected`、`connecting`、`connected`）を保持しなければならない（SHALL）。
+ネットワーククライアントを提供し、Colyseus サーバーへの接続・Room 参加・切断を管理しなければならない（SHALL）。接続状態（`disconnected`、`connecting`、`connected`）を保持しなければならない（SHALL）。
 
 #### Scenario: サーバーに接続して Room に参加する
-- **WHEN** LobbyScene でオンライン対戦が選択され `NetworkClient.connect()` を呼び出す
+- **WHEN** LobbyScene でオンライン対戦が選択され接続を開始する
 - **THEN** Colyseus サーバーに WebSocket 接続し、`game` Room に参加する
 
 #### Scenario: 接続状態が更新される
@@ -93,17 +93,16 @@ Colyseus の `@type()` デコレータを使用して、Room 状態スキーマ�
 - **THEN** 状態が `disconnected` → `connecting` → `connected` と遷移する
 
 #### Scenario: 接続失敗時にロビーでエラー表示する
-- **WHEN** サーバーが起動していない状態で `NetworkClient.connect()` を呼び出す
+- **WHEN** サーバーが起動していない状態で接続を開始する
 - **THEN** 接続状態が `disconnected` に戻り、LobbyScene でエラーメッセージが表示される
 
 ### Requirement: プレイヤー位置・facing の同期
 ローカルプレイヤーの `position` と `facing` をサーバーに送信しなければならない（SHALL）。送信レートはフレームレートより低い固定間隔（20Hz）でなければならない（SHALL）。リモートプレイヤーの状態変更を受信して描画に反映しなければならない（SHALL）。
 
-`handleServerHeroUpdate` はサーバー権威モードで状態適用を実行しなければならない（SHALL）:
-
-- `applyServerHeroNonPositionState` で position/facing 以外の全フィールド（type, radius, hp, maxHp, dead, attackTargetId, respawnTimer）を適用する。position と facing は `InterpolationBuffer` 経由で毎フレーム適用される
-
-ローカルヒーローの facing はクライアントが即座に反映し、InterpolationBuffer の facing は無視しなければならない（SHALL）。リモートヒーローの facing は InterpolationBuffer から補間した値を使用しなければならない（SHALL）。
+サーバーから受信したヒーロー状態の適用は以下のルールに従う:
+- position と facing 以外の全フィールド（type, radius, hp, maxHp, dead, attackTargetId, respawnTimer 等）は即座に適用する
+- position と facing は `InterpolationBuffer` 経由で毎フレーム補間して適用する
+- ローカルヒーローの facing はクライアントが計算した値を即座に反映し、サーバーからの補間値は無視する
 
 #### Scenario: ローカルプレイヤーの位置を送信する
 - **WHEN** ローカルプレイヤーが移動する
@@ -111,23 +110,19 @@ Colyseus の `@type()` デコレータを使用して、Room 状態スキーマ�
 
 #### Scenario: リモートプレイヤーの位置を受信して描画する
 - **WHEN** サーバーからリモートプレイヤーの position/facing 更新を受信する
-- **THEN** スナップショットが InterpolationBuffer に push され、毎フレーム補間位置で HeroRenderer が描画される
+- **THEN** スナップショットが InterpolationBuffer に push され、毎フレーム補間位置で描画される
 
 #### Scenario: リモートプレイヤーが参加したときに描画が開始される
 - **WHEN** リモートプレイヤーが Room に参加する
-- **THEN** リモートプレイヤー用の HeroRenderer と InterpolationBuffer が生成され、マップ上に表示される
+- **THEN** リモートプレイヤー用の描画オブジェクトと InterpolationBuffer が生成され、マップ上に表示される
 
 #### Scenario: リモートプレイヤーが退室したときに描画が停止される
 - **WHEN** リモートプレイヤーが Room から退室する
-- **THEN** リモートプレイヤーの HeroRenderer と InterpolationBuffer が破棄され、マップから消える
+- **THEN** リモートプレイヤーの描画オブジェクトと InterpolationBuffer が破棄され、マップから消える
 
 #### Scenario: ローカルヒーローの facing が即座に反映される
 - **WHEN** ローカルプレイヤーがマウスを動かして aim 方向を変える
 - **THEN** facing はサーバー往復遅延なく即座に反映され、InterpolationBuffer の facing 値は無視される
-
-#### Scenario: ローカルヒーローの初回 ID リマップが ensureEntityExists で実行される
-- **WHEN** ローカルヒーローの sessionId が EntityManager の localHeroId と異なる状態で初回更新を受信する
-- **THEN** ensureEntityExists ステップで remapLocalHeroToSession が実行される
 
 ### Requirement: 攻撃・ダメージの同期
 攻撃開始イベントをサーバー経由で相手に送信しなければならない（SHALL）。ダメージイベント（近接の即時ダメージ、プロジェクタイル命中ダメージ）を同期しなければならない（SHALL）。HP 変更を Room 状態スキーマで同期しなければならない（SHALL）。
