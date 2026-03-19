@@ -1,69 +1,69 @@
-# Game Mechanics
+# ゲームメカニクス
 
-## Map
+## マップ
 
-- **Layout:** Horizontal single-lane. Blue base (left) ↔ Red base (right).
-- **World size:** 3200x720 (px). Camera follows player within this world.
-- **Towers:** 1 per team (positioned between base and lane center).
-- **Boss:** 1 at center of the lane (spawns at 4:00).
-- **Bushes:** 2-3 along lane edges (top/bottom). Break line of sight for ambush plays.
-- **No jungle.** Minimal map cognition load.
+- **レイアウト:** 水平シングルレーン。青チーム拠点（左）↔ 赤チーム拠点（右）。
+- **ワールドサイズ:** 3200x720（px）。カメラはこのワールド内でプレイヤーを追従。
+- **タワー:** チームごとに1本（拠点とレーン中央の間に配置）。
+- **ボス:** レーン中央に1体（4:00 にスポーン）。
+- **ブッシュ:** レーン端（上下）に2〜3箇所。視線を遮り、待ち伏せプレイに利用。
+- **ジャングルなし。** マップ認知負荷を最小限に。
 
-## Players
+## プレイヤー
 
-- **Format:** 2v2
-- **Roles:** Front-line + Back-line (minimum viable role split)
-- **Disconnect:** Bot replaces disconnected player. Mid-match join OK.
+- **フォーマット:** 2v2
+- **ロール:** フロントライン + バックライン（最小限のロール分担）
+- **切断時:** Bot が切断プレイヤーを代替。試合中の参加も可。
 
-## Minions
+## ミニオン
 
-- Auto-spawn at fixed intervals from each base.
-- Walk the lane automatically.
-- **No last-hitting.** XP gained by proximity when enemy minions die.
-- Player decision: push lane or hold lane.
+- 各拠点から固定間隔で自動スポーン。
+- レーンを自動で歩行。
+- **ラストヒットなし。** 敵ミニオンが死亡した際、近接していれば XP を獲得。
+- プレイヤーの判断: レーンをプッシュするか、ホールドするか。
 
-## Growth System
+## 成長システム
 
-- **Max level:** 30. No items.
-- **Level up:** Grants 1 talent point. Player spends points on a hero-specific talent tree (45-55 nodes per hero).
-- **Talent node costs:** 1, 2, or 3 points. ~30-40% of nodes acquirable per match.
-- **XP curve:** Segmented — early levels fast, mid linear, late steep. Typical match reaches Lv15-25.
-- **Lv3:** Ultimate unlocked.
-- **Lv5:** Ultimate enhanced.
-- Zero build knowledge required. Different builds possible each match.
+- **最大レベル:** 30。アイテムなし。
+- **レベルアップ:** タレントポイントを1付与。プレイヤーはヒーロー固有のタレントツリー（ヒーローごとに45〜55ノード）にポイントを配分。
+- **タレントノードコスト:** 1、2、または3ポイント。1マッチで全ノードの約30〜40% を取得可能。
+- **XP カーブ:** セグメント式 — 序盤は高速、中盤は線形、終盤は急勾配。通常の試合ではLv15〜25に到達。
+- **Lv3:** アルティメット解放。
+- **Lv5:** アルティメット強化。
+- ビルド知識ゼロで開始可能。毎試合異なるビルドが可能。
 
-## Match Flow
+## 試合フロー
 
-- Match ends when a tower is destroyed (no time limit).
-- Target match length is ~5-10 minutes, but not enforced by a timer.
-- Future: tempo events (e.g. boss spawn, minion buffs) may be added via player-driven triggers, not time-based.
+- タワーが破壊されると試合終了（制限時間なし）。
+- 目標試合時間は約5〜10分だが、タイマーによる強制はなし。
+- 将来: テンポイベント（ボススポーン、ミニオンバフなど）は時間ベースではなくプレイヤー主導のトリガーで追加予定。
 
-## Controls
+## 操作方法
 
-| Input | Action |
-|-------|--------|
-| WASD | Movement |
-| Mouse | Aim direction |
-| Right click | Basic attack |
-| Q | Skill 1 |
-| E | Skill 2 |
-| R | Ultimate (unlocked at Lv3) |
-| Space | Dodge dash (long cooldown) |
-| Left click | Confirm skill target (Normal Cast mode) |
+| 入力 | アクション |
+|------|-----------|
+| WASD | 移動 |
+| マウス | エイム方向 |
+| 右クリック | 通常攻撃 |
+| Q | スキル1 |
+| E | スキル2 |
+| R | アルティメット（Lv3 で解放） |
+| Space | 回避ダッシュ（長クールダウン） |
+| 左クリック | スキルターゲット確定（ノーマルキャストモード） |
 
-### Skill Targeting Modes
+### スキルターゲティングモード
 
-- **Normal Cast**: Press skill key to enter targeting mode, left click to confirm and fire, right click to cancel.
-- **Quick Cast**: Skill fires at mouse position when key is released. Right click during key hold cancels.
+- **ノーマルキャスト**: スキルキーを押してターゲティングモードに入り、左クリックで確定・発射、右クリックでキャンセル。
+- **クイックキャスト**: キーを離した時点でマウス位置にスキルが発射。キーホールド中に右クリックでキャンセル。
 
-## Universal Mechanics
+## ユニバーサルメカニクス
 
-These mechanics are shared by all heroes and are not counted as hero abilities:
+全ヒーロー共通のメカニクス。ヒーローアビリティにはカウントしない:
 
-- **Dodge Dash (Space):** Short invincibility-frame dash in movement direction. Long cooldown (~10s). Universal escape/engage tool.
+- **回避ダッシュ（Space）:** 移動方向への短い無敵フレーム付きダッシュ。長クールダウン（約10秒）。全ヒーロー共通の離脱/突入ツール。
 
-## Visual Style
+## ビジュアルスタイル
 
-- **Geometric / .io style.** Characters = circles + polygons.
-- **No image assets.** Pure Canvas/WebGL drawing.
-- Top-down 2D view.
+- **ジオメトリック / .io スタイル。** キャラクター = 円 + ポリゴン。
+- **画像アセットなし。** 純粋な Canvas/WebGL 描画。
+- トップダウン 2D ビュー。

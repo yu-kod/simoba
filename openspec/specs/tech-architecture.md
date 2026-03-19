@@ -1,78 +1,78 @@
-# Tech Architecture
+# 技術アーキテクチャ
 
-## Frontend
+## フロントエンド
 
-- **Engine:** Phaser.js 3.x
-- **Build Tool:** Vite 6.x (dev server + bundler)
-- **Rendering:** 2D top-down (Canvas / WebGL)
-- **Resolution:** 1280x720 (Scale.FIT + CENTER_BOTH)
-- **Physics:** Arcade Physics (gravity: 0, top-down)
-- **Hosting:** S3 + CloudFront (static files)
-- **Language:** TypeScript (strict mode)
+- **エンジン:** Phaser.js 3.x
+- **ビルドツール:** Vite 6.x（開発サーバー + バンドラー）
+- **レンダリング:** 2D トップダウン（Canvas / WebGL）
+- **解像度:** 1280x720（Scale.FIT + CENTER_BOTH）
+- **物理演算:** Arcade Physics（gravity: 0、トップダウン）
+- **ホスティング:** S3 + CloudFront（静的ファイル）
+- **言語:** TypeScript（strict mode）
 
-## Backend
+## バックエンド
 
-- **Game Server:** Colyseus (Node.js)
-- **Protocol:** WebSocket (server-authoritative)
-- **Tick Rate:** 60Hz fixed
-- **Client-side:** Prediction + linear interpolation
+- **ゲームサーバー:** Colyseus（Node.js）
+- **プロトコル:** WebSocket（サーバー権威制）
+- **ティックレート:** 60Hz 固定
+- **クライアント側:** 予測 + 線形補間
 
-### Why Colyseus
+### Colyseus を選んだ理由
 
-- Official Phaser.js integration tutorial
-- JS/TS full-stack unification
-- `npm install` and go. No DB required.
-- Built-in binary diff state sync
-- Built-in room-based matchmaking
-- Sufficient for 2v2 small rooms
-- WebSocket-only (no UDP), acceptable for casual .io MOBA
+- Phaser.js 公式連携チュートリアルあり
+- JS/TS フルスタック統一
+- `npm install` で即開始。DB 不要。
+- バイナリ差分ステート同期内蔵
+- ルームベースマッチメイキング内蔵
+- 2v2 小規模ルームに十分な性能
+- WebSocket のみ（UDP なし）、カジュアル .io MOBA では許容範囲
 
-### Future Alternatives
+### 将来の代替候補
 
-| Candidate | Language | When to consider |
-|-----------|----------|-----------------|
-| Nakama | Go | 5v5 expansion, rankings, friends, rUDP needed |
-| Custom (Rust) | Rust | Heavy physics, max performance |
-| GameLift | Any | Thousands of concurrent users |
+| 候補 | 言語 | 検討タイミング |
+|------|------|---------------|
+| Nakama | Go | 5v5 拡張、ランキング、フレンド、rUDP が必要な場合 |
+| カスタム（Rust） | Rust | 高負荷物理演算、最大パフォーマンスが必要な場合 |
+| GameLift | 任意 | 数千人の同時接続ユーザーの場合 |
 
-## AWS Infrastructure
+## AWS インフラ
 
 ```
-[S3 + CloudFront] → Static Phaser.js client
+[S3 + CloudFront] → 静的 Phaser.js クライアント
 
-[ECS on EC2 (t3.small)] ← WebSocket → Colyseus game server
+[ECS on EC2 (t3.small)] ← WebSocket → Colyseus ゲームサーバー
 ```
 
-### Why ECS on EC2
+### ECS on EC2 を選んだ理由
 
-- ECS itself is free. Pay only for EC2.
-- Docker-based deploy = no env drift.
-- Auto-restart on container crash.
-- Scale by adding EC2 instances.
+- ECS 自体は無料。EC2 の料金のみ。
+- Docker ベースデプロイ = 環境差異なし。
+- コンテナクラッシュ時に自動再起動。
+- EC2 インスタンス追加でスケール。
 
-### Cost Estimate (Monthly)
+### コスト見積もり（月額）
 
-| Component | Cost | Notes |
-|-----------|------|-------|
-| EC2 t3.small (1 instance) | ~$20 | Handles dozens of rooms |
-| ECS on EC2 | ~$20 | Same as EC2, no ECS surcharge |
-| ECS on Fargate | ~$35-40 | No EC2 management but more expensive |
-| S3 + CloudFront | ~$1-3 | Nearly free at low traffic |
+| コンポーネント | コスト | 備考 |
+|---------------|--------|------|
+| EC2 t3.small（1インスタンス） | 約$20 | 数十のルームを処理可能 |
+| ECS on EC2 | 約$20 | EC2 と同額、ECS 追加料金なし |
+| ECS on Fargate | 約$35-40 | EC2 管理不要だが高コスト |
+| S3 + CloudFront | 約$1-3 | 低トラフィックではほぼ無料 |
 
-Initial monthly cost: **~$20**.
+初期月額コスト: **約$20**。
 
 ## Infrastructure as Code
 
-- **Tool:** Terraform (>= 1.0)
-- **Local dev:** LocalStack (Docker Compose) for AWS service emulation
-- **Structure:**
-  - `infrastructure/terraform/modules/` — reusable modules (static-hosting)
-  - `infrastructure/terraform/environments/local/` — LocalStack config
-  - `infrastructure/terraform/environments/prod/` — Production AWS config
-- **State:** S3 backend with DynamoDB locking (prod)
+- **ツール:** Terraform（>= 1.0）
+- **ローカル開発:** LocalStack（Docker Compose）で AWS サービスをエミュレーション
+- **構成:**
+  - `infrastructure/terraform/modules/` — 再利用可能モジュール（static-hosting）
+  - `infrastructure/terraform/environments/local/` — LocalStack 設定
+  - `infrastructure/terraform/environments/prod/` — 本番 AWS 設定
+- **ステート:** S3 バックエンド + DynamoDB ロック（本番）
 
 ## CI/CD
 
-- **Platform:** GitHub Actions
-- **Claude Code Review:** Auto-reviews all non-draft PRs targeting `develop`
-- **Claude Code (@claude):** On-demand via `@claude` mention in PR/issue comments
+- **プラットフォーム:** GitHub Actions
+- **Claude Code Review:** `develop` 向けの非ドラフト PR を自動レビュー
+- **Claude Code（@claude）:** PR/Issue コメントでの `@claude` メンションによるオンデマンド実行
