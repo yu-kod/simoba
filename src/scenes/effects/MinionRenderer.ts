@@ -2,17 +2,10 @@ import Phaser from 'phaser'
 import type { MinionState } from '@shared/entities/Minion'
 import type { Team } from '@/domain/types'
 import { HpBarRenderer } from '@/scenes/ui/HpBarRenderer'
-
-const TEAM_COLORS: Record<Team, number> = {
-  blue: 0x3498db,
-  red: 0xe74c3c,
-  neutral: 0x95a5a6,
-}
+import { TEAM_COLORS, FLASH_DURATION_MS, FLASH_COLOR } from './entityColors'
 
 const BODY_FILL_ALPHA = 0.6
 const BODY_STROKE_WIDTH = 2
-const FLASH_DURATION_MS = 100
-const FLASH_COLOR = 0xffffff
 
 export class MinionRenderer {
   private readonly container: Phaser.GameObjects.Container

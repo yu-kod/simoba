@@ -7,12 +7,7 @@ import {
   type ProjectileVisualType,
   type DiamondVisualDef,
 } from '@shared/projectile/projectileVisuals'
-
-const PROJECTILE_COLORS: Record<Team, number> = {
-  blue: 0x3498db,
-  red: 0xe74c3c,
-  neutral: 0x95a5a6,
-}
+import { TEAM_COLORS } from './entityColors'
 
 const PROJECTILE_DEPTH = 8
 
@@ -33,7 +28,7 @@ export class ProjectileRenderer {
     this.graphics.clear()
 
     for (const p of projectiles) {
-      const color = PROJECTILE_COLORS[p.ownerTeam]
+      const color = TEAM_COLORS[p.ownerTeam]
       this.graphics.fillStyle(color, 1)
       this.graphics.fillCircle(p.position.x, p.position.y, p.radius)
     }
@@ -44,7 +39,7 @@ export class ProjectileRenderer {
     this.graphics.clear()
 
     for (const p of projectiles) {
-      const color = PROJECTILE_COLORS[p.team as Team]
+      const color = TEAM_COLORS[p.team as Team]
       const visual = PROJECTILE_VISUALS[p.visualType as ProjectileVisualType]
 
       if (!visual || visual.type === 'circle') {
