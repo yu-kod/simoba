@@ -23,6 +23,8 @@ playwright-report/
 
 # Build cache
 .vite/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 
 # Tool configs (local)
 .claude/

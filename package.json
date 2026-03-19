@@ -13,7 +13,10 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/ server/src/",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@logtape/logtape": "^2.0.4",
@@ -32,6 +35,7 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.55.0",
     "vite": "^6.0.0",
+    "vitepress": "^1.6.4",
     "vitest": "^3.0.0"
   },
   "engines": {
