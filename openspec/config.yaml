@@ -13,16 +13,33 @@ context: |
   Heroes: BLADE (melee), BOLT (ranged), AURA (support) with talent trees
   Systems: Attack, projectiles (homing), minions, towers, XP/level, death/respawn, base HP regen
 
+specs:
+  structure: |
+    openspec/specs/
+    ├── game-mechanics.md, heroes.md, tech-architecture.md, dev-phases.md  (top-level reference docs)
+    ├── game/
+    │   ├── combat/       — 攻撃・ダメージ・戦闘システム (attack-system, combat-events, projectile-system, skill-execution, skill-slots)
+    │   ├── skills/       — 各スキル仕様 (aura-*, blade-*, bolt-*, pierce-shot, slow-field)
+    │   ├── ui/           — 画面・UI・レンダリング (game-hud, hero-rendering, hp-bar-rendering, lobby-scene, match-end-ui, world-camera, zone-rendering)
+    │   ├── hero/         — ヒーロー関連 (hero-stats, hero-selection, hero-kill-xp, debug-hero-switch)
+    │   ├── progression/  — 成長・タレント系 (xp-level-sync, talent-tree, talent-effects, talent-tree-expansion, bot-talent-spending)
+    │   ├── entity/       — エンティティ系 (entity-registry, entity-interpolation, lane-creeps, tower-entity)
+    │   ├── match/        — マッチ・モード系 (match-end, online-multiplayer, solo-play-mode, death-respawn, respawn-timer-scaling, room-lock-disconnect)
+    │   └── core/         — 基盤システム (map-layout, input-system, unified-world, mvc-architecture)
+    └── infra/            — インフラ・CI/CD (game-server-infra, game-server-deploy-workflow, frontend-deploy-workflow, vpc-networking, custom-domain-ssl, ci-testing, e2e-testing, unit-testing, code-linting, logging)
+  language: ja
+
 rules:
   spec:
     - Specs must start with `# Specification`, then `## Purpose` (50+ chars), then `## Requirements`
     - Each requirement uses `### Requirement: <name>` with scenarios
     - Balance values (damage, timers, HP, etc.) must reference shared/constants.ts
+    - All specs must be written in Japanese (日本語統一)
   proposal:
     - Keep proposals under 500 words
     - Always include a "Non-goals" section
-    - Reference relevant spec files in openspec/specs/
+    - Reference relevant spec files in openspec/specs/ using the new folder structure (e.g., game/skills/bolt-dash)
   tasks:
     - Break tasks into chunks of max 2 hours
     - Each task should be independently testable
-    - Specify which spec file the task relates to
+    - Specify which spec file the task relates to using the new folder path
