@@ -1,47 +1,47 @@
-# Development Phases
+# 開発フェーズ
 
-## Phase 1: Prototype ← CURRENT
+## Phase 1: プロトタイプ ← 現在
 
-**Goal:** Validate "fun in 5 minutes"
+**目標:** 「5分で楽しい」を検証
 
-**Scope:** Online-first. Colyseus server-authoritative + Phaser.js client.
+**スコープ:** オンラインファースト。Colyseus サーバー権威制 + Phaser.js クライアント。
 
-**Deliverables:**
-- [x] Map rendering (single lane, bases, tower, bushes)
-- [x] Character movement (WASD + mouse aim)
-- [x] Basic attack and skill system (Q, E, R)
-- [x] 3 heroes playable (BLADE, BOLT, AURA)
-- [x] Minion auto-spawn and lane walking
-- [x] XP gain by proximity, level-up talent choices
-- [x] Bot AI (enemy team + ally if needed)
-- [x] Match tempo events (3min buff, 4min boss, 5min sudden death)
-- [x] Win/lose condition and match reset
-- [x] Colyseus game server setup
-- [x] Server-authoritative game logic
-- [x] Client-side prediction + interpolation
-- [x] Talent tree system with skill slots
-- [ ] ECS on EC2 deployment
+**成果物:**
+- [x] マップレンダリング（シングルレーン、拠点、タワー、ブッシュ）
+- [x] キャラクター移動（WASD + マウスエイム）
+- [x] 通常攻撃とスキルシステム（Q、E、R）
+- [x] 3ヒーローがプレイ可能（BLADE、BOLT、AURA）
+- [x] ミニオン自動スポーンとレーン歩行
+- [x] 近接による XP 獲得、レベルアップ時タレント選択
+- [x] Bot AI（敵チーム + 必要に応じて味方）
+- [x] 試合テンポイベント（3分バフ、4分ボス、5分サドンデス）
+- [x] 勝敗条件と試合リセット
+- [x] Colyseus ゲームサーバーセットアップ
+- [x] サーバー権威制ゲームロジック
+- [x] クライアント側予測 + 補間
+- [x] タレントツリーシステムとスキルスロット
+- [ ] ECS on EC2 デプロイ
 
-**Tech:** Phaser.js + Vite + TypeScript + Colyseus. Deploy to S3 + CloudFront (client) + ECS on EC2 (server).
-
----
-
-## Phase 2: 2v2 Online Match
-
-**Goal:** Public release with full 2v2
-
-**Deliverables:**
-- [ ] Room-based matchmaking (Colyseus built-in)
-- [ ] Mid-match join / Bot replacement on disconnect
-- [ ] Hero and map balance tuning
-- [ ] Basic UI (hero select, match result)
-- [ ] Monitoring and metrics (active rooms, player count, tick performance)
+**技術:** Phaser.js + Vite + TypeScript + Colyseus。S3 + CloudFront（クライアント）+ ECS on EC2（サーバー）にデプロイ。
 
 ---
 
-## Phase 3: Expansion (Future)
+## Phase 2: 2v2 オンラインマッチ
 
-- Additional heroes per type
-- Ranking system
-- 5v5 mode (consider Nakama migration)
-- Mobile support (touch controls)
+**目標:** フル2v2で一般公開
+
+**成果物:**
+- [ ] ルームベースマッチメイキング（Colyseus 内蔵）
+- [ ] 試合中参加 / 切断時の Bot 代替
+- [ ] ヒーローとマップのバランス調整
+- [ ] 基本 UI（ヒーロー選択、試合結果）
+- [ ] モニタリングとメトリクス（アクティブルーム数、プレイヤー数、ティックパフォーマンス）
+
+---
+
+## Phase 3: 拡張（将来）
+
+- タイプごとの追加ヒーロー
+- ランキングシステム
+- 5v5 モード（Nakama 移行を検討）
+- モバイル対応（タッチ操作）

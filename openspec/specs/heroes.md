@@ -1,73 +1,73 @@
-# Heroes
+# ヒーロー
 
-## Skill Structure (All Heroes)
+## スキル構成（全ヒーロー共通）
 
-Each hero has exactly 4 abilities:
-1. **Basic Attack** — Left click
-2. **Skill 1 (Q)** — Core ability
-3. **Skill 2 (E)** — Utility ability
-4. **Ultimate (R)** — Unlocked at Lv3, enhanced at Lv5
+各ヒーローは正確に4つのアビリティを持つ:
+1. **通常攻撃** — 左クリック
+2. **スキル1（Q）** — コアアビリティ
+3. **スキル2（E）** — ユーティリティアビリティ
+4. **アルティメット（R）** — Lv3 で解放、Lv5 で強化
 
-Additionally, all heroes share the universal **Dodge Dash (Space)** mechanic (see game-mechanics.md). This is not counted as a hero ability.
+全ヒーロー共通のユニバーサル **回避ダッシュ（Space）** メカニクスあり（game-mechanics.md 参照）。これはヒーローアビリティにはカウントしない。
 
-No passives. Simplicity over depth.
-
----
-
-## BLADE — Fighter (Melee)
-
-| Property | Value |
-|----------|-------|
-| Role | Front-line |
-| Range | Close |
-| Playstyle | Dive in, deal AoE damage |
-
-**Abilities:**
-- **Basic Attack:** Melee swing
-- **Q — Charge:** Dash forward toward cursor direction
-- **E — Cleave:** AoE slash around self
-- **R — (Lv3):** Ultimate TBD (powerful melee finisher)
+パッシブなし。深さよりシンプルさ。
 
 ---
 
-## BOLT — Ranger (Ranged)
+## BLADE — ファイター（近接）
 
-| Property | Value |
-|----------|-------|
-| Role | Back-line |
-| Range | Long |
-| Playstyle | Kite, zone control |
+| プロパティ | 値 |
+|-----------|-----|
+| ロール | フロントライン |
+| 射程 | 近距離 |
+| プレイスタイル | 突入して AoE ダメージ |
 
-**Abilities:**
-- **Basic Attack:** Ranged projectile
-- **Q — Pierce Shot:** Piercing projectile (hits multiple targets)
-- **E — Trap:** Place a trap on the ground (slows/damages enemies)
-- **R — (Lv3):** Ultimate TBD (high-damage ranged burst)
-
----
-
-## AURA — Support
-
-| Property | Value |
-|----------|-------|
-| Role | Back-line / Flex |
-| Range | Medium |
-| Playstyle | Protect ally, sustain |
-
-**Abilities:**
-- **Basic Attack:** Ranged projectile (lower damage)
-- **Q — Heal:** Restore ally HP
-- **E — Shield:** Grant temporary shield to ally
-- **R — (Lv3):** Ultimate TBD (team-wide buff or zone heal)
+**アビリティ:**
+- **通常攻撃:** 近接スイング
+- **Q — チャージ:** カーソル方向へのダッシュ
+- **E — クリーブ:** 自身周囲の AoE 斬撃
+- **R —（Lv3）:** アルティメット TBD（強力な近接フィニッシャー）
 
 ---
 
-## Talent System
+## BOLT — レンジャー（遠距離）
 
-- **Max level:** 30. Each level-up grants 1 talent point.
-- **Talent tree:** Each hero has a unique tree with 45-55 nodes in a fan shape (roots at bottom, branches expand upward).
-- **Variable cost:** Nodes cost 1, 2, or 3 talent points. Cost 1 = stat tweaks, Cost 2 = skill upgrades, Cost 3 = game-changers.
-- **Build diversity:** With 30 points available, players can acquire only 30-40% of all nodes, ensuring different builds each match.
-- **XP curve:** Segmented (early fast, mid linear, late steep). Typical match reaches Lv15-25.
-- **Lv3:** Ultimate unlocked.
-- **Lv5:** Ultimate enhanced.
+| プロパティ | 値 |
+|-----------|-----|
+| ロール | バックライン |
+| 射程 | 長距離 |
+| プレイスタイル | カイト、ゾーンコントロール |
+
+**アビリティ:**
+- **通常攻撃:** 遠距離弾丸
+- **Q — ピアスショット:** 貫通弾丸（複数ターゲットにヒット）
+- **E — トラップ:** 地面にトラップを設置（敵をスロー/ダメージ）
+- **R —（Lv3）:** アルティメット TBD（高ダメージ遠距離バースト）
+
+---
+
+## AURA — サポート
+
+| プロパティ | 値 |
+|-----------|-----|
+| ロール | バックライン / フレックス |
+| 射程 | 中距離 |
+| プレイスタイル | 味方を保護、持続戦 |
+
+**アビリティ:**
+- **通常攻撃:** 遠距離弾丸（低ダメージ）
+- **Q — ヒール:** 味方の HP を回復
+- **E — シールド:** 味方に一時的なシールドを付与
+- **R —（Lv3）:** アルティメット TBD（チーム全体バフまたはゾーンヒール）
+
+---
+
+## タレントシステム
+
+- **最大レベル:** 30。レベルアップごとにタレントポイントを1付与。
+- **タレントツリー:** 各ヒーローは扇形の固有ツリーを持つ（45〜55ノード、根が下、枝が上に展開）。
+- **可変コスト:** ノードコストは1、2、または3タレントポイント。コスト1 = ステータス微調整、コスト2 = スキルアップグレード、コスト3 = ゲームチェンジャー。
+- **ビルド多様性:** 30ポイントで全ノードの30〜40% のみ取得可能。毎試合異なるビルドを保証。
+- **XP カーブ:** セグメント式（序盤高速、中盤線形、終盤急勾配）。通常の試合ではLv15〜25に到達。
+- **Lv3:** アルティメット解放。
+- **Lv5:** アルティメット強化。

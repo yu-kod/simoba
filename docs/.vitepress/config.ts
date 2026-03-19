@@ -26,13 +26,13 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: 'Overview',
+        text: '概要',
         items: [
-          { text: 'Top', link: '/' },
-          { text: 'Game Mechanics', link: '/game-mechanics' },
-          { text: 'Heroes', link: '/heroes' },
-          { text: 'Tech Architecture', link: '/tech-architecture' },
-          { text: 'Dev Phases', link: '/dev-phases' },
+          { text: 'トップ', link: '/' },
+          { text: 'ゲームメカニクス', link: '/game-mechanics' },
+          { text: 'ヒーロー', link: '/heroes' },
+          { text: '技術アーキテクチャ', link: '/tech-architecture' },
+          { text: '開発フェーズ', link: '/dev-phases' },
         ],
       },
       {
