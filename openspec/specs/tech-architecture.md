@@ -5,7 +5,7 @@
 - **エンジン:** Phaser.js 3.x
 - **ビルドツール:** Vite 6.x（開発サーバー + バンドラー）
 - **レンダリング:** 2D トップダウン（Canvas / WebGL）
-- **解像度:** 1280x720（Scale.FIT + CENTER_BOTH）
+- **解像度:** 2560x1440（Scale.FIT + CENTER_BOTH）
 - **物理演算:** Arcade Physics（gravity: 0、トップダウン）
 - **ホスティング:** S3 + CloudFront（静的ファイル）
 - **言語:** TypeScript（strict mode）
