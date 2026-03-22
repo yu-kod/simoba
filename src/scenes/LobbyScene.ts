@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
-import { GAME_WIDTH } from '@/config/gameConfig'
+import { GAME_WIDTH, GAME_HEIGHT } from '@/config/gameConfig'
+import { detectDevice, formatDeviceLabel } from '@/config/deviceDetection'
 import { createText } from '@/scenes/ui/createText'
 import { NetworkClient } from '@/network/NetworkClient'
 import { OnlineGameMode } from '@/network/OnlineGameMode'
@@ -115,6 +116,17 @@ export class LobbyScene extends Phaser.Scene {
     })
     this.errorText.setOrigin(0.5)
     this.errorText.setVisible(false)
+
+    // Device detection label (bottom-right, subtle)
+    const deviceInfo = detectDevice(this.sys.game.device)
+    const deviceLabel = createText(
+      this,
+      GAME_WIDTH - 40,
+      GAME_HEIGHT - 40,
+      formatDeviceLabel(deviceInfo),
+      { fontSize: '24px', color: '#636e72' },
+    )
+    deviceLabel.setOrigin(1, 1)
 
     this.setState('menu')
   }
