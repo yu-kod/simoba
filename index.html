@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>simoba - 2v2 Micro Arena</title>
     <style>
       * {
@@ -11,19 +11,23 @@
         box-sizing: border-box;
       }
 
-      body {
-        background-color: #1a1a1a;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
+      html, body {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
         overflow: hidden;
+        background-color: #1a1a1a;
       }
 
       #game-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      #game-container canvas {
+        display: block;
+        touch-action: none;
       }
     </style>
   </head>
