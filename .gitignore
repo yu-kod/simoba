@@ -27,7 +27,7 @@ docs/.vitepress/dist/
 docs/.vitepress/cache/
 
 # Tool configs (local)
-.claude/
+.claude/settings.local.json
 .serena/
 
 # Screenshots / images (ad-hoc debug captures)
