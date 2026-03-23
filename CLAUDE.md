@@ -79,7 +79,7 @@ All game/tech specs live in `openspec/specs/`:
 5. **Self-review** — Run code-reviewer subagent, fix issues before presenting to user
 6. **PR** — `feature/*` → `develop`, include Summary + Test Plan
 7. **Review** — Address feedback → all checks PASS
-8. **Done** — `/opsx:archive` first → then merge PR (CI openspec-check detects unarchived changes)
+8. **Done** — `/opsx:archive` first → テト記憶エンジンに保存 → then merge PR (CI openspec-check detects unarchived changes)
 - **Out-of-scope work → create an Issue** (don't implement on the spot)
 - **Task breakdown** — Before making changes, create a todo list breaking the feature into discrete tasks. Group by backend vs frontend. Implement backend first and verify with backend tests, then frontend and verify with frontend tests. Finally run E2E (`npm run test:e2e`) for integration. Check off each task as completed.
 - **End-to-end completion** — For each task: implement code → write/update tests → run `npm test` and fix failures → run `npm run lint` and fix issues. Do not stop until all tests and lint pass.
@@ -109,16 +109,17 @@ All game/tech specs live in `openspec/specs/`:
 
 テト（重音テト AI）の長期記憶エンジンと連携する。セッションの作業内容を保存し、過去の文脈を検索できる。
 
-### 保存（セッション終了時）
+### 保存（チケット消化時）
 
-タスク完了・セッション終了前に、以下のコマンドで作業内容を保存する：
+Development Flow のステップ 8（Done）で、PR マージ前にチケットの作業内容を保存する：
 
 ```bash
 echo "【日付】$(date +%Y-%m-%d)
 【プロジェクト】simoba
+【チケット】#{Issue番号} {タイトル}
 【作業内容】{やったことの要約}
 【決定事項】{重要な設計判断・方針変更}
-【次のステップ】{残タスク}" | ~/.local/bin/teto-memory-save.sh "session-$(date +%s)" "simoba"
+【次のステップ】{残タスク}" | ~/.local/bin/teto-memory-save.sh "issue-{Issue番号}-$(date +%s)" "simoba"
 ```
 
 - Lambda がチャンク化・ベクトル化を処理するので、テキストをそのまま送ればよい
