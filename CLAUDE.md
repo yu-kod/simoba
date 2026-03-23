@@ -105,6 +105,37 @@ All game/tech specs live in `openspec/specs/`:
 - **Local CI gate** — Push and open a PR only after `npm test && npm run test:e2e` pass locally.
 - **Playwright ブラウザテスト** — Playwright MCP でブラウザ操作する際は `localhost:3000` を使用する。サーバーが起動していなければユーザーに起動を依頼する。スクリーンショットは `.playwright-mcp/` 配下に保存する（ルートディレクトリに保存しない）。
 
+## テト記憶エンジン連携
+
+テト（重音テト AI）の長期記憶エンジンと連携する。セッションの作業内容を保存し、過去の文脈を検索できる。
+
+### 保存（セッション終了時）
+
+タスク完了・セッション終了前に、以下のコマンドで作業内容を保存する：
+
+```bash
+echo "【日付】$(date +%Y-%m-%d)
+【プロジェクト】simoba
+【作業内容】{やったことの要約}
+【決定事項】{重要な設計判断・方針変更}
+【次のステップ】{残タスク}" | ~/.local/bin/teto-memory-save.sh "session-$(date +%s)" "simoba"
+```
+
+- Lambda がチャンク化・ベクトル化を処理するので、テキストをそのまま送ればよい
+- 要約は簡潔に（日本語OK）
+
+### 検索（セッション開始時）
+
+新しいセッションで前回の文脈が必要なとき、関連記憶を検索する：
+
+```bash
+curl -s "https://bo4dr2bvka.execute-api.ap-northeast-1.amazonaws.com/prod/memory/search?q={検索クエリ}&source=claude-code-simoba" \
+  -H "x-api-key: ${TETO_MEMORY_API_KEY}" | jq '.results[:3]'
+```
+
+- セッション開始時に前回の作業を思い出すために使う
+- ユーザーが「前回何やったっけ」と聞いたときに使う
+
 ## Design & Spec Work
 
 - When a design spec or proposal document has already been reviewed and approved by the user, treat all details in it as requirements. Do not rearrange or reinterpret layout/positioning decisions that were explicitly stated in earlier phases.
